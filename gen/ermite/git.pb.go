@@ -678,8 +678,19 @@ type GetTreeResponse struct {
 	// TreeId is the object id of the listed directory.
 	TreeId string `protobuf:"bytes,2,opt,name=tree_id,json=treeId,proto3" json:"tree_id,omitempty"`
 	// Entries are the entries of the directory: directories first, then the other
-	// entries, each group ordered by name.
-	Entries       []*TreeEntry `protobuf:"bytes,3,rep,name=entries,proto3" json:"entries,omitempty"`
+	// entries, each group ordered by name. A response holds at most 5,000
+	// entries (a server limit that may change; rely on truncated, not on the
+	// number): past that, the first 5,000 in this order are returned and
+	// truncated is set. Paging may be added later, additively.
+	Entries []*TreeEntry `protobuf:"bytes,3,rep,name=entries,proto3" json:"entries,omitempty"`
+	// LastCommitsTruncated is true when include_last_commit was set and the
+	// server gave a last_commit to the first entries only (at most 200 of them,
+	// in the order of entries), because each one costs a history lookup. The
+	// other entries have no last_commit although they have one in Git.
+	LastCommitsTruncated bool `protobuf:"varint,4,opt,name=last_commits_truncated,json=lastCommitsTruncated,proto3" json:"last_commits_truncated,omitempty"`
+	// Truncated is true when the directory has more entries than the response
+	// holds; entries are then the first ones in the documented order.
+	Truncated     bool `protobuf:"varint,5,opt,name=truncated,proto3" json:"truncated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -733,6 +744,20 @@ func (x *GetTreeResponse) GetEntries() []*TreeEntry {
 		return x.Entries
 	}
 	return nil
+}
+
+func (x *GetTreeResponse) GetLastCommitsTruncated() bool {
+	if x != nil {
+		return x.LastCommitsTruncated
+	}
+	return false
+}
+
+func (x *GetTreeResponse) GetTruncated() bool {
+	if x != nil {
+		return x.Truncated
+	}
+	return false
 }
 
 // BlobInfo describes a file.
@@ -1823,11 +1848,13 @@ const file_ermite_git_proto_rawDesc = "" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x1a\n" +
 	"\brevision\x18\x02 \x01(\tR\brevision\x12\x12\n" +
 	"\x04path\x18\x03 \x01(\tR\x04path\x12.\n" +
-	"\x13include_last_commit\x18\x04 \x01(\bR\x11includeLastCommit\"t\n" +
+	"\x13include_last_commit\x18\x04 \x01(\bR\x11includeLastCommit\"\xc8\x01\n" +
 	"\x0fGetTreeResponse\x12\x1b\n" +
 	"\tcommit_id\x18\x01 \x01(\tR\bcommitId\x12\x17\n" +
 	"\atree_id\x18\x02 \x01(\tR\x06treeId\x12+\n" +
-	"\aentries\x18\x03 \x03(\v2\x11.ermite.TreeEntryR\aentries\"\x8d\x01\n" +
+	"\aentries\x18\x03 \x03(\v2\x11.ermite.TreeEntryR\aentries\x124\n" +
+	"\x16last_commits_truncated\x18\x04 \x01(\bR\x14lastCommitsTruncated\x12\x1c\n" +
+	"\ttruncated\x18\x05 \x01(\bR\ttruncated\"\x8d\x01\n" +
 	"\bBlobInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x12\n" +

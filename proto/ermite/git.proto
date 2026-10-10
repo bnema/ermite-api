@@ -183,8 +183,19 @@ message GetTreeResponse {
   // TreeId is the object id of the listed directory.
   string tree_id = 2;
   // Entries are the entries of the directory: directories first, then the other
-  // entries, each group ordered by name.
+  // entries, each group ordered by name. A response holds at most 5,000
+  // entries (a server limit that may change; rely on truncated, not on the
+  // number): past that, the first 5,000 in this order are returned and
+  // truncated is set. Paging may be added later, additively.
   repeated TreeEntry entries = 3;
+  // LastCommitsTruncated is true when include_last_commit was set and the
+  // server gave a last_commit to the first entries only (at most 200 of them,
+  // in the order of entries), because each one costs a history lookup. The
+  // other entries have no last_commit although they have one in Git.
+  bool last_commits_truncated = 4;
+  // Truncated is true when the directory has more entries than the response
+  // holds; entries are then the first ones in the documented order.
+  bool truncated = 5;
 }
 
 // BlobInfo describes a file.
