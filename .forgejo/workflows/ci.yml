@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  # Test the module alone, with the versions in go.mod (never a go.work).
+  GOWORK: "off"
+  GOPRIVATE: bnema.dev/ermite*
+
+jobs:
+  proto:
+    name: Proto
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      # Skipped until the first .proto file exists: buf fails on an empty module.
+      - name: Lint, breaking, generated code up to date
+        run: |
+          if ! find proto -name '*.proto' -print -quit 2>/dev/null | grep -q .; then
+            echo "no .proto files yet"; exit 0
+          fi
+          buf lint
+          if git cat-file -e origin/main:buf.yaml 2>/dev/null && git ls-tree -r --name-only origin/main proto | grep -q '\.proto$'; then
+            buf breaking --against '.git#ref=origin/main'
+          fi
+          buf generate
+          git diff --exit-code -- gen
+
+  go:
+    name: Go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+      - run: go vet ./...
+      - run: go build ./...
