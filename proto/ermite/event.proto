@@ -18,6 +18,15 @@ service EventService {
   // When resume_after is no longer buffered (or unknown), the stream begins
   // with a Gap event, then continues with the oldest buffered event: the client
   // must reload its state. Without resume_after, only new events are sent.
+  //
+  // The access of the caller is checked again for every event: the stream ends
+  // with unauthenticated when the token was revoked or has expired (the server
+  // may take a few seconds to notice). A repository that becomes private
+  // sends one last repo_updated to the callers who could read it before, with
+  // the new visibility and nothing else about it; no later event of it
+  // reaches them. The server limits the watchers: more than 64 topics is
+  // invalid_argument, and too many concurrent streams, in total or from one
+  // client, is resource_exhausted.
   rpc Watch(WatchRequest) returns (stream WatchResponse);
 }
 

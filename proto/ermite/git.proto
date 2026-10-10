@@ -89,7 +89,8 @@ service GitService {
   rpc GetBlob(GetBlobRequest) returns (stream GetBlobResponse);
   // ListCommits lists the history reachable from a revision, newest first
   // (Git's default order), optionally limited to the commits that touched a
-  // path.
+  // path. A page_token that points deeper than 100,000 commits into the
+  // history is invalid_argument.
   rpc ListCommits(ListCommitsRequest) returns (ListCommitsResponse);
   // GetCommit returns one commit with its statistics and its diff.
   rpc GetCommit(GetCommitRequest) returns (GetCommitResponse);

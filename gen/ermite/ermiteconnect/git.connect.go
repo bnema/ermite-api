@@ -67,7 +67,8 @@ type GitServiceClient interface {
 	GetBlob(context.Context, *connect.Request[ermite.GetBlobRequest]) (*connect.ServerStreamForClient[ermite.GetBlobResponse], error)
 	// ListCommits lists the history reachable from a revision, newest first
 	// (Git's default order), optionally limited to the commits that touched a
-	// path.
+	// path. A page_token that points deeper than 100,000 commits into the
+	// history is invalid_argument.
 	ListCommits(context.Context, *connect.Request[ermite.ListCommitsRequest]) (*connect.Response[ermite.ListCommitsResponse], error)
 	// GetCommit returns one commit with its statistics and its diff.
 	GetCommit(context.Context, *connect.Request[ermite.GetCommitRequest]) (*connect.Response[ermite.GetCommitResponse], error)
@@ -182,7 +183,8 @@ type GitServiceHandler interface {
 	GetBlob(context.Context, *connect.Request[ermite.GetBlobRequest], *connect.ServerStream[ermite.GetBlobResponse]) error
 	// ListCommits lists the history reachable from a revision, newest first
 	// (Git's default order), optionally limited to the commits that touched a
-	// path.
+	// path. A page_token that points deeper than 100,000 commits into the
+	// history is invalid_argument.
 	ListCommits(context.Context, *connect.Request[ermite.ListCommitsRequest]) (*connect.Response[ermite.ListCommitsResponse], error)
 	// GetCommit returns one commit with its statistics and its diff.
 	GetCommit(context.Context, *connect.Request[ermite.GetCommitRequest]) (*connect.Response[ermite.GetCommitResponse], error)
