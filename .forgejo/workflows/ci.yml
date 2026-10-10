@@ -25,6 +25,7 @@ jobs:
       # Full URL: the Forgejo runner resolves short names against its own action mirror.
       - uses: https://github.com/bufbuild/buf-action@v1
         with:
+          version: 1.73.0
           setup_only: true
       # Skipped until the first .proto file exists: buf fails on an empty module.
       - name: Lint, breaking, generated code up to date
