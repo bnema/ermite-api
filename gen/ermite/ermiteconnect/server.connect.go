@@ -38,6 +38,9 @@ const (
 	// ServerServiceGetVersionProcedure is the fully-qualified name of the ServerService's GetVersion
 	// RPC.
 	ServerServiceGetVersionProcedure = "/ermite.ServerService/GetVersion"
+	// ServerServiceGetSigningKeyProcedure is the fully-qualified name of the ServerService's
+	// GetSigningKey RPC.
+	ServerServiceGetSigningKeyProcedure = "/ermite.ServerService/GetSigningKey"
 )
 
 // ServerServiceClient is a client for the ermite.ServerService service.
@@ -46,6 +49,12 @@ type ServerServiceClient interface {
 	// contract it implements. It needs no authentication, so a client can call
 	// it first to check compatibility.
 	GetVersion(context.Context, *connect.Request[ermite.GetVersionRequest]) (*connect.Response[ermite.GetVersionResponse], error)
+	// GetSigningKey returns the public key with which the server signs the
+	// commits it creates (squash merges, see MergeMode). It needs no
+	// authentication: the key is public, and anyone verifying a commit needs it.
+	// Servers that implement it list "signing_key" in
+	// GetVersionResponse.features.
+	GetSigningKey(context.Context, *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error)
 }
 
 // NewServerServiceClient constructs a client for the ermite.ServerService service. By default, it
@@ -65,17 +74,29 @@ func NewServerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(serverServiceMethods.ByName("GetVersion")),
 			connect.WithClientOptions(opts...),
 		),
+		getSigningKey: connect.NewClient[ermite.GetSigningKeyRequest, ermite.GetSigningKeyResponse](
+			httpClient,
+			baseURL+ServerServiceGetSigningKeyProcedure,
+			connect.WithSchema(serverServiceMethods.ByName("GetSigningKey")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // serverServiceClient implements ServerServiceClient.
 type serverServiceClient struct {
-	getVersion *connect.Client[ermite.GetVersionRequest, ermite.GetVersionResponse]
+	getVersion    *connect.Client[ermite.GetVersionRequest, ermite.GetVersionResponse]
+	getSigningKey *connect.Client[ermite.GetSigningKeyRequest, ermite.GetSigningKeyResponse]
 }
 
 // GetVersion calls ermite.ServerService.GetVersion.
 func (c *serverServiceClient) GetVersion(ctx context.Context, req *connect.Request[ermite.GetVersionRequest]) (*connect.Response[ermite.GetVersionResponse], error) {
 	return c.getVersion.CallUnary(ctx, req)
+}
+
+// GetSigningKey calls ermite.ServerService.GetSigningKey.
+func (c *serverServiceClient) GetSigningKey(ctx context.Context, req *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error) {
+	return c.getSigningKey.CallUnary(ctx, req)
 }
 
 // ServerServiceHandler is an implementation of the ermite.ServerService service.
@@ -84,6 +105,12 @@ type ServerServiceHandler interface {
 	// contract it implements. It needs no authentication, so a client can call
 	// it first to check compatibility.
 	GetVersion(context.Context, *connect.Request[ermite.GetVersionRequest]) (*connect.Response[ermite.GetVersionResponse], error)
+	// GetSigningKey returns the public key with which the server signs the
+	// commits it creates (squash merges, see MergeMode). It needs no
+	// authentication: the key is public, and anyone verifying a commit needs it.
+	// Servers that implement it list "signing_key" in
+	// GetVersionResponse.features.
+	GetSigningKey(context.Context, *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error)
 }
 
 // NewServerServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -99,10 +126,18 @@ func NewServerServiceHandler(svc ServerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(serverServiceMethods.ByName("GetVersion")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serverServiceGetSigningKeyHandler := connect.NewUnaryHandler(
+		ServerServiceGetSigningKeyProcedure,
+		svc.GetSigningKey,
+		connect.WithSchema(serverServiceMethods.ByName("GetSigningKey")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ermite.ServerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ServerServiceGetVersionProcedure:
 			serverServiceGetVersionHandler.ServeHTTP(w, r)
+		case ServerServiceGetSigningKeyProcedure:
+			serverServiceGetSigningKeyHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -114,4 +149,8 @@ type UnimplementedServerServiceHandler struct{}
 
 func (UnimplementedServerServiceHandler) GetVersion(context.Context, *connect.Request[ermite.GetVersionRequest]) (*connect.Response[ermite.GetVersionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ServerService.GetVersion is not implemented"))
+}
+
+func (UnimplementedServerServiceHandler) GetSigningKey(context.Context, *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ServerService.GetSigningKey is not implemented"))
 }

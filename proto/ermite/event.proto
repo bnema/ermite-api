@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package ermite;
 
+import "ermite/merge_request.proto";
 import "ermite/repo.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -12,6 +13,15 @@ service EventService {
   // Watch streams events until the client cancels the call or the server shuts
   // down. Events are filtered by the caller's access: events of a private
   // repository are only sent to callers that may read it.
+  //
+  // The events are repo_created, repo_updated, repo_deleted, pushed, gap and,
+  // for merge requests, merge_request_opened, merge_request_merged,
+  // merge_request_closed and comment_added. Each one is delivered on the
+  // "repo:<name>" topic of its repository and on "home", subject to the
+  // visibility of the repository. There is no event for a change of title or
+  // description, nor for a resolved comment: after a gap, or to see such
+  // changes, clients read the merge request again. A merge publishes
+  // merge_request_merged, then pushed for the target branch.
   //
   // The server keeps a bounded buffer of recent events. With resume_after set,
   // buffered events after that id are replayed first, then live events follow.
@@ -69,6 +79,14 @@ message Event {
     Pushed pushed = 6;
     // Gap: events were lost, reload state.
     Gap gap = 7;
+    // MergeRequestOpened: a merge request was opened.
+    MergeRequestOpened merge_request_opened = 8;
+    // MergeRequestMerged: a merge request was merged.
+    MergeRequestMerged merge_request_merged = 9;
+    // MergeRequestClosed: a merge request was closed without merging.
+    MergeRequestClosed merge_request_closed = 10;
+    // CommentAdded: a comment was added to a merge request.
+    CommentAdded comment_added = 11;
   }
 }
 
@@ -108,7 +126,37 @@ message RefUpdate {
   string new_id = 3;
 }
 
+// MergeRequestOpened reports a new merge request.
+message MergeRequestOpened {
+  // MergeRequest is the new merge request.
+  MergeRequest merge_request = 1;
+}
+
+// MergeRequestMerged reports a merged merge request. It is published before
+// the Pushed event of the target branch.
+message MergeRequestMerged {
+  // MergeRequest is the merge request after the merge.
+  MergeRequest merge_request = 1;
+}
+
+// MergeRequestClosed reports a merge request closed without merging.
+message MergeRequestClosed {
+  // MergeRequest is the merge request after closing.
+  MergeRequest merge_request = 1;
+}
+
+// CommentAdded reports a new comment on a merge request.
+message CommentAdded {
+  // Repo is the name of the repository.
+  string repo = 1;
+  // Number is the number of the merge request.
+  int64 number = 2;
+  // Comment is the new comment.
+  Comment comment = 3;
+}
+
 // Gap tells the client that events were lost: the requested resume point is
 // older than the server's buffer. It has no fields. The client should reload
-// the state it displays (repositories, refs) and carry on with the next events.
+// the state it displays (repositories, refs, merge requests and their
+// comments) and carry on with the next events.
 message Gap {}

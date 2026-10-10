@@ -80,6 +80,68 @@ func (Visibility) EnumDescriptor() ([]byte, []int) {
 	return file_ermite_repo_proto_rawDescGZIP(), []int{0}
 }
 
+// RepoSettings are the settings of a repository that govern its merge
+// requests.
+type RepoSettings struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// AllowedMergeModes are the modes with which a merge request of the
+	// repository may be merged. It is never empty in a response and has no
+	// duplicate. Both MERGE_MODE_FAST_FORWARD and MERGE_MODE_SQUASH are allowed
+	// by default. MERGE_MODE_UNSPECIFIED is rejected.
+	AllowedMergeModes []MergeMode `protobuf:"varint,1,rep,packed,name=allowed_merge_modes,json=allowedMergeModes,proto3,enum=ermite.MergeMode" json:"allowed_merge_modes,omitempty"`
+	// FailingChecksBlock says whether a merge request whose checks fail cannot be
+	// merged. It is true at creation of the repository and always stored
+	// explicitly, so a later change of the server default never alters an
+	// existing repository.
+	FailingChecksBlock bool `protobuf:"varint,2,opt,name=failing_checks_block,json=failingChecksBlock,proto3" json:"failing_checks_block,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *RepoSettings) Reset() {
+	*x = RepoSettings{}
+	mi := &file_ermite_repo_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RepoSettings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RepoSettings) ProtoMessage() {}
+
+func (x *RepoSettings) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_repo_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RepoSettings.ProtoReflect.Descriptor instead.
+func (*RepoSettings) Descriptor() ([]byte, []int) {
+	return file_ermite_repo_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *RepoSettings) GetAllowedMergeModes() []MergeMode {
+	if x != nil {
+		return x.AllowedMergeModes
+	}
+	return nil
+}
+
+func (x *RepoSettings) GetFailingChecksBlock() bool {
+	if x != nil {
+		return x.FailingChecksBlock
+	}
+	return false
+}
+
 // Repo is the metadata of a repository. Git-owned state (refs, trees, history)
 // is read through GitService.
 type Repo struct {
@@ -98,14 +160,17 @@ type Repo struct {
 	// CreatedAt is when the repository was created.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// PushedAt is the time of the last push. It is unset until the first push.
-	PushedAt      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=pushed_at,json=pushedAt,proto3" json:"pushed_at,omitempty"`
+	PushedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=pushed_at,json=pushedAt,proto3" json:"pushed_at,omitempty"`
+	// Settings are the merge settings of the repository. Always set in a
+	// response, with the defaults for a repository that never changed them.
+	Settings      *RepoSettings `protobuf:"bytes,7,opt,name=settings,proto3" json:"settings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Repo) Reset() {
 	*x = Repo{}
-	mi := &file_ermite_repo_proto_msgTypes[0]
+	mi := &file_ermite_repo_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -117,7 +182,7 @@ func (x *Repo) String() string {
 func (*Repo) ProtoMessage() {}
 
 func (x *Repo) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[0]
+	mi := &file_ermite_repo_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -130,7 +195,7 @@ func (x *Repo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Repo.ProtoReflect.Descriptor instead.
 func (*Repo) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{0}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Repo) GetName() string {
@@ -175,6 +240,13 @@ func (x *Repo) GetPushedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Repo) GetSettings() *RepoSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
 // ListReposRequest selects a page of repositories.
 type ListReposRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -190,7 +262,7 @@ type ListReposRequest struct {
 
 func (x *ListReposRequest) Reset() {
 	*x = ListReposRequest{}
-	mi := &file_ermite_repo_proto_msgTypes[1]
+	mi := &file_ermite_repo_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -202,7 +274,7 @@ func (x *ListReposRequest) String() string {
 func (*ListReposRequest) ProtoMessage() {}
 
 func (x *ListReposRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[1]
+	mi := &file_ermite_repo_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -215,7 +287,7 @@ func (x *ListReposRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReposRequest.ProtoReflect.Descriptor instead.
 func (*ListReposRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{1}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ListReposRequest) GetPageSize() int32 {
@@ -246,7 +318,7 @@ type ListReposResponse struct {
 
 func (x *ListReposResponse) Reset() {
 	*x = ListReposResponse{}
-	mi := &file_ermite_repo_proto_msgTypes[2]
+	mi := &file_ermite_repo_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -258,7 +330,7 @@ func (x *ListReposResponse) String() string {
 func (*ListReposResponse) ProtoMessage() {}
 
 func (x *ListReposResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[2]
+	mi := &file_ermite_repo_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -271,7 +343,7 @@ func (x *ListReposResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReposResponse.ProtoReflect.Descriptor instead.
 func (*ListReposResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{2}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListReposResponse) GetRepos() []*Repo {
@@ -299,7 +371,7 @@ type GetRepoRequest struct {
 
 func (x *GetRepoRequest) Reset() {
 	*x = GetRepoRequest{}
-	mi := &file_ermite_repo_proto_msgTypes[3]
+	mi := &file_ermite_repo_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -311,7 +383,7 @@ func (x *GetRepoRequest) String() string {
 func (*GetRepoRequest) ProtoMessage() {}
 
 func (x *GetRepoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[3]
+	mi := &file_ermite_repo_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,7 +396,7 @@ func (x *GetRepoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRepoRequest.ProtoReflect.Descriptor instead.
 func (*GetRepoRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{3}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetRepoRequest) GetRepo() string {
@@ -345,7 +417,7 @@ type GetRepoResponse struct {
 
 func (x *GetRepoResponse) Reset() {
 	*x = GetRepoResponse{}
-	mi := &file_ermite_repo_proto_msgTypes[4]
+	mi := &file_ermite_repo_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -357,7 +429,7 @@ func (x *GetRepoResponse) String() string {
 func (*GetRepoResponse) ProtoMessage() {}
 
 func (x *GetRepoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[4]
+	mi := &file_ermite_repo_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -370,7 +442,7 @@ func (x *GetRepoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRepoResponse.ProtoReflect.Descriptor instead.
 func (*GetRepoResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{4}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetRepoResponse) GetRepo() *Repo {
@@ -396,7 +468,7 @@ type CreateRepoRequest struct {
 
 func (x *CreateRepoRequest) Reset() {
 	*x = CreateRepoRequest{}
-	mi := &file_ermite_repo_proto_msgTypes[5]
+	mi := &file_ermite_repo_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -408,7 +480,7 @@ func (x *CreateRepoRequest) String() string {
 func (*CreateRepoRequest) ProtoMessage() {}
 
 func (x *CreateRepoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[5]
+	mi := &file_ermite_repo_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -421,7 +493,7 @@ func (x *CreateRepoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRepoRequest.ProtoReflect.Descriptor instead.
 func (*CreateRepoRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{5}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CreateRepoRequest) GetName() string {
@@ -456,7 +528,7 @@ type CreateRepoResponse struct {
 
 func (x *CreateRepoResponse) Reset() {
 	*x = CreateRepoResponse{}
-	mi := &file_ermite_repo_proto_msgTypes[6]
+	mi := &file_ermite_repo_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -468,7 +540,7 @@ func (x *CreateRepoResponse) String() string {
 func (*CreateRepoResponse) ProtoMessage() {}
 
 func (x *CreateRepoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[6]
+	mi := &file_ermite_repo_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -481,7 +553,7 @@ func (x *CreateRepoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRepoResponse.ProtoReflect.Descriptor instead.
 func (*CreateRepoResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{6}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateRepoResponse) GetRepo() *Repo {
@@ -507,16 +579,24 @@ type UpdateRepoRequest struct {
 	// update_mask contains "default_branch". The branch must exist, otherwise
 	// the call fails with failed_precondition.
 	DefaultBranch string `protobuf:"bytes,4,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
-	// UpdateMask lists the fields to change: "description", "visibility" and/or
-	// "default_branch". It must not be empty. Other paths are invalid_argument.
-	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	// UpdateMask lists the fields to change: "description", "visibility",
+	// "default_branch", "settings.allowed_merge_modes" and/or
+	// "settings.failing_checks_block". "settings" stands for both settings
+	// paths. It must not be empty. Other paths are invalid_argument.
+	UpdateMask *fieldmaskpb.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	// Settings holds the new merge settings. Only the fields named in
+	// update_mask are used. allowed_merge_modes must then not be empty nor
+	// contain MERGE_MODE_UNSPECIFIED, otherwise the call fails with
+	// invalid_argument. Changing settings needs the repo:admin scope, like any
+	// other field.
+	Settings      *RepoSettings `protobuf:"bytes,6,opt,name=settings,proto3" json:"settings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateRepoRequest) Reset() {
 	*x = UpdateRepoRequest{}
-	mi := &file_ermite_repo_proto_msgTypes[7]
+	mi := &file_ermite_repo_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -528,7 +608,7 @@ func (x *UpdateRepoRequest) String() string {
 func (*UpdateRepoRequest) ProtoMessage() {}
 
 func (x *UpdateRepoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[7]
+	mi := &file_ermite_repo_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -541,7 +621,7 @@ func (x *UpdateRepoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRepoRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRepoRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{7}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateRepoRequest) GetRepo() string {
@@ -579,6 +659,13 @@ func (x *UpdateRepoRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
 	return nil
 }
 
+func (x *UpdateRepoRequest) GetSettings() *RepoSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
 // UpdateRepoResponse holds the repository after the update.
 type UpdateRepoResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -590,7 +677,7 @@ type UpdateRepoResponse struct {
 
 func (x *UpdateRepoResponse) Reset() {
 	*x = UpdateRepoResponse{}
-	mi := &file_ermite_repo_proto_msgTypes[8]
+	mi := &file_ermite_repo_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -602,7 +689,7 @@ func (x *UpdateRepoResponse) String() string {
 func (*UpdateRepoResponse) ProtoMessage() {}
 
 func (x *UpdateRepoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[8]
+	mi := &file_ermite_repo_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -615,7 +702,7 @@ func (x *UpdateRepoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRepoResponse.ProtoReflect.Descriptor instead.
 func (*UpdateRepoResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{8}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateRepoResponse) GetRepo() *Repo {
@@ -636,7 +723,7 @@ type DeleteRepoRequest struct {
 
 func (x *DeleteRepoRequest) Reset() {
 	*x = DeleteRepoRequest{}
-	mi := &file_ermite_repo_proto_msgTypes[9]
+	mi := &file_ermite_repo_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -648,7 +735,7 @@ func (x *DeleteRepoRequest) String() string {
 func (*DeleteRepoRequest) ProtoMessage() {}
 
 func (x *DeleteRepoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[9]
+	mi := &file_ermite_repo_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -661,7 +748,7 @@ func (x *DeleteRepoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRepoRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRepoRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{9}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeleteRepoRequest) GetRepo() string {
@@ -680,7 +767,7 @@ type DeleteRepoResponse struct {
 
 func (x *DeleteRepoResponse) Reset() {
 	*x = DeleteRepoResponse{}
-	mi := &file_ermite_repo_proto_msgTypes[10]
+	mi := &file_ermite_repo_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -692,7 +779,7 @@ func (x *DeleteRepoResponse) String() string {
 func (*DeleteRepoResponse) ProtoMessage() {}
 
 func (x *DeleteRepoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_repo_proto_msgTypes[10]
+	mi := &file_ermite_repo_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -705,14 +792,17 @@ func (x *DeleteRepoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRepoResponse.ProtoReflect.Descriptor instead.
 func (*DeleteRepoResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_repo_proto_rawDescGZIP(), []int{10}
+	return file_ermite_repo_proto_rawDescGZIP(), []int{11}
 }
 
 var File_ermite_repo_proto protoreflect.FileDescriptor
 
 const file_ermite_repo_proto_rawDesc = "" +
 	"\n" +
-	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8b\x02\n" +
+	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x83\x01\n" +
+	"\fRepoSettings\x12A\n" +
+	"\x13allowed_merge_modes\x18\x01 \x03(\x0e2\x11.ermite.MergeModeR\x11allowedMergeModes\x120\n" +
+	"\x14failing_checks_block\x18\x02 \x01(\bR\x12failingChecksBlock\"\xbd\x02\n" +
 	"\x04Repo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -722,7 +812,8 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"\x0edefault_branch\x18\x04 \x01(\tR\rdefaultBranch\x129\n" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x127\n" +
-	"\tpushed_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\bpushedAt\"N\n" +
+	"\tpushed_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\bpushedAt\x120\n" +
+	"\bsettings\x18\a \x01(\v2\x14.ermite.RepoSettingsR\bsettings\"N\n" +
 	"\x10ListReposRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -741,7 +832,7 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"visibility\x18\x03 \x01(\x0e2\x12.ermite.VisibilityR\n" +
 	"visibility\"6\n" +
 	"\x12CreateRepoResponse\x12 \n" +
-	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\xe1\x01\n" +
+	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\x93\x02\n" +
 	"\x11UpdateRepoRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -750,7 +841,8 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"visibility\x12%\n" +
 	"\x0edefault_branch\x18\x04 \x01(\tR\rdefaultBranch\x12;\n" +
 	"\vupdate_mask\x18\x05 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
-	"updateMask\"6\n" +
+	"updateMask\x120\n" +
+	"\bsettings\x18\x06 \x01(\v2\x14.ermite.RepoSettingsR\bsettings\"6\n" +
 	"\x12UpdateRepoResponse\x12 \n" +
 	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"'\n" +
 	"\x11DeleteRepoRequest\x12\x12\n" +
@@ -786,49 +878,54 @@ func file_ermite_repo_proto_rawDescGZIP() []byte {
 }
 
 var file_ermite_repo_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ermite_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_ermite_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ermite_repo_proto_goTypes = []any{
 	(Visibility)(0),               // 0: ermite.Visibility
-	(*Repo)(nil),                  // 1: ermite.Repo
-	(*ListReposRequest)(nil),      // 2: ermite.ListReposRequest
-	(*ListReposResponse)(nil),     // 3: ermite.ListReposResponse
-	(*GetRepoRequest)(nil),        // 4: ermite.GetRepoRequest
-	(*GetRepoResponse)(nil),       // 5: ermite.GetRepoResponse
-	(*CreateRepoRequest)(nil),     // 6: ermite.CreateRepoRequest
-	(*CreateRepoResponse)(nil),    // 7: ermite.CreateRepoResponse
-	(*UpdateRepoRequest)(nil),     // 8: ermite.UpdateRepoRequest
-	(*UpdateRepoResponse)(nil),    // 9: ermite.UpdateRepoResponse
-	(*DeleteRepoRequest)(nil),     // 10: ermite.DeleteRepoRequest
-	(*DeleteRepoResponse)(nil),    // 11: ermite.DeleteRepoResponse
-	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil), // 13: google.protobuf.FieldMask
+	(*RepoSettings)(nil),          // 1: ermite.RepoSettings
+	(*Repo)(nil),                  // 2: ermite.Repo
+	(*ListReposRequest)(nil),      // 3: ermite.ListReposRequest
+	(*ListReposResponse)(nil),     // 4: ermite.ListReposResponse
+	(*GetRepoRequest)(nil),        // 5: ermite.GetRepoRequest
+	(*GetRepoResponse)(nil),       // 6: ermite.GetRepoResponse
+	(*CreateRepoRequest)(nil),     // 7: ermite.CreateRepoRequest
+	(*CreateRepoResponse)(nil),    // 8: ermite.CreateRepoResponse
+	(*UpdateRepoRequest)(nil),     // 9: ermite.UpdateRepoRequest
+	(*UpdateRepoResponse)(nil),    // 10: ermite.UpdateRepoResponse
+	(*DeleteRepoRequest)(nil),     // 11: ermite.DeleteRepoRequest
+	(*DeleteRepoResponse)(nil),    // 12: ermite.DeleteRepoResponse
+	(MergeMode)(0),                // 13: ermite.MergeMode
+	(*timestamppb.Timestamp)(nil), // 14: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil), // 15: google.protobuf.FieldMask
 }
 var file_ermite_repo_proto_depIdxs = []int32{
-	0,  // 0: ermite.Repo.visibility:type_name -> ermite.Visibility
-	12, // 1: ermite.Repo.created_at:type_name -> google.protobuf.Timestamp
-	12, // 2: ermite.Repo.pushed_at:type_name -> google.protobuf.Timestamp
-	1,  // 3: ermite.ListReposResponse.repos:type_name -> ermite.Repo
-	1,  // 4: ermite.GetRepoResponse.repo:type_name -> ermite.Repo
-	0,  // 5: ermite.CreateRepoRequest.visibility:type_name -> ermite.Visibility
-	1,  // 6: ermite.CreateRepoResponse.repo:type_name -> ermite.Repo
-	0,  // 7: ermite.UpdateRepoRequest.visibility:type_name -> ermite.Visibility
-	13, // 8: ermite.UpdateRepoRequest.update_mask:type_name -> google.protobuf.FieldMask
-	1,  // 9: ermite.UpdateRepoResponse.repo:type_name -> ermite.Repo
-	2,  // 10: ermite.RepoService.ListRepos:input_type -> ermite.ListReposRequest
-	4,  // 11: ermite.RepoService.GetRepo:input_type -> ermite.GetRepoRequest
-	6,  // 12: ermite.RepoService.CreateRepo:input_type -> ermite.CreateRepoRequest
-	8,  // 13: ermite.RepoService.UpdateRepo:input_type -> ermite.UpdateRepoRequest
-	10, // 14: ermite.RepoService.DeleteRepo:input_type -> ermite.DeleteRepoRequest
-	3,  // 15: ermite.RepoService.ListRepos:output_type -> ermite.ListReposResponse
-	5,  // 16: ermite.RepoService.GetRepo:output_type -> ermite.GetRepoResponse
-	7,  // 17: ermite.RepoService.CreateRepo:output_type -> ermite.CreateRepoResponse
-	9,  // 18: ermite.RepoService.UpdateRepo:output_type -> ermite.UpdateRepoResponse
-	11, // 19: ermite.RepoService.DeleteRepo:output_type -> ermite.DeleteRepoResponse
-	15, // [15:20] is the sub-list for method output_type
-	10, // [10:15] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	13, // 0: ermite.RepoSettings.allowed_merge_modes:type_name -> ermite.MergeMode
+	0,  // 1: ermite.Repo.visibility:type_name -> ermite.Visibility
+	14, // 2: ermite.Repo.created_at:type_name -> google.protobuf.Timestamp
+	14, // 3: ermite.Repo.pushed_at:type_name -> google.protobuf.Timestamp
+	1,  // 4: ermite.Repo.settings:type_name -> ermite.RepoSettings
+	2,  // 5: ermite.ListReposResponse.repos:type_name -> ermite.Repo
+	2,  // 6: ermite.GetRepoResponse.repo:type_name -> ermite.Repo
+	0,  // 7: ermite.CreateRepoRequest.visibility:type_name -> ermite.Visibility
+	2,  // 8: ermite.CreateRepoResponse.repo:type_name -> ermite.Repo
+	0,  // 9: ermite.UpdateRepoRequest.visibility:type_name -> ermite.Visibility
+	15, // 10: ermite.UpdateRepoRequest.update_mask:type_name -> google.protobuf.FieldMask
+	1,  // 11: ermite.UpdateRepoRequest.settings:type_name -> ermite.RepoSettings
+	2,  // 12: ermite.UpdateRepoResponse.repo:type_name -> ermite.Repo
+	3,  // 13: ermite.RepoService.ListRepos:input_type -> ermite.ListReposRequest
+	5,  // 14: ermite.RepoService.GetRepo:input_type -> ermite.GetRepoRequest
+	7,  // 15: ermite.RepoService.CreateRepo:input_type -> ermite.CreateRepoRequest
+	9,  // 16: ermite.RepoService.UpdateRepo:input_type -> ermite.UpdateRepoRequest
+	11, // 17: ermite.RepoService.DeleteRepo:input_type -> ermite.DeleteRepoRequest
+	4,  // 18: ermite.RepoService.ListRepos:output_type -> ermite.ListReposResponse
+	6,  // 19: ermite.RepoService.GetRepo:output_type -> ermite.GetRepoResponse
+	8,  // 20: ermite.RepoService.CreateRepo:output_type -> ermite.CreateRepoResponse
+	10, // 21: ermite.RepoService.UpdateRepo:output_type -> ermite.UpdateRepoResponse
+	12, // 22: ermite.RepoService.DeleteRepo:output_type -> ermite.DeleteRepoResponse
+	18, // [18:23] is the sub-list for method output_type
+	13, // [13:18] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_ermite_repo_proto_init() }
@@ -836,13 +933,14 @@ func file_ermite_repo_proto_init() {
 	if File_ermite_repo_proto != nil {
 		return
 	}
+	file_ermite_types_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_repo_proto_rawDesc), len(file_ermite_repo_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

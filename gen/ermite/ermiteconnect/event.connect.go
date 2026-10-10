@@ -45,6 +45,15 @@ type EventServiceClient interface {
 	// down. Events are filtered by the caller's access: events of a private
 	// repository are only sent to callers that may read it.
 	//
+	// The events are repo_created, repo_updated, repo_deleted, pushed, gap and,
+	// for merge requests, merge_request_opened, merge_request_merged,
+	// merge_request_closed and comment_added. Each one is delivered on the
+	// "repo:<name>" topic of its repository and on "home", subject to the
+	// visibility of the repository. There is no event for a change of title or
+	// description, nor for a resolved comment: after a gap, or to see such
+	// changes, clients read the merge request again. A merge publishes
+	// merge_request_merged, then pushed for the target branch.
+	//
 	// The server keeps a bounded buffer of recent events. With resume_after set,
 	// buffered events after that id are replayed first, then live events follow.
 	// When resume_after is no longer buffered (or unknown), the stream begins
@@ -97,6 +106,15 @@ type EventServiceHandler interface {
 	// Watch streams events until the client cancels the call or the server shuts
 	// down. Events are filtered by the caller's access: events of a private
 	// repository are only sent to callers that may read it.
+	//
+	// The events are repo_created, repo_updated, repo_deleted, pushed, gap and,
+	// for merge requests, merge_request_opened, merge_request_merged,
+	// merge_request_closed and comment_added. Each one is delivered on the
+	// "repo:<name>" topic of its repository and on "home", subject to the
+	// visibility of the repository. There is no event for a change of title or
+	// description, nor for a resolved comment: after a gap, or to see such
+	// changes, clients read the merge request again. A merge publishes
+	// merge_request_merged, then pushed for the target branch.
 	//
 	// The server keeps a bounded buffer of recent events. With resume_after set,
 	// buffered events after that id are replayed first, then live events follow.

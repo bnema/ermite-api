@@ -1,0 +1,371 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "ermite/git.proto";
+import "ermite/types.proto";
+import "google/protobuf/timestamp.proto";
+
+// MergeRequestState is where a merge request is in its life.
+enum MergeRequestState {
+  // Not set. In ListMergeRequestsRequest.state it means every state. Never
+  // returned by the server.
+  MERGE_REQUEST_STATE_UNSPECIFIED = 0;
+  // The merge request awaits review; it can be commented on, merged or closed.
+  MERGE_REQUEST_STATE_OPEN = 1;
+  // The source branch was merged into the target. Final.
+  MERGE_REQUEST_STATE_MERGED = 2;
+  // The merge request was closed without merging. Final.
+  MERGE_REQUEST_STATE_CLOSED = 3;
+}
+
+// DiffSide is the side of a diff a line comment is attached to.
+enum DiffSide {
+  // Not set. On a Comment it means the comment is general, not attached to a
+  // line. In AddCommentRequest it is valid only for a general comment.
+  DIFF_SIDE_UNSPECIFIED = 0;
+  // The old side: the line is a Line.old_number (a deletion or a context line).
+  DIFF_SIDE_OLD = 1;
+  // The new side: the line is a Line.new_number (an addition or a context
+  // line).
+  DIFF_SIDE_NEW = 2;
+}
+
+// MergeRequest asks to merge one branch of a repository into another branch
+// of the same repository. It is about a branch, not about who wrote it.
+message MergeRequest {
+  // Repo is the name of the repository.
+  string repo = 1;
+  // Number identifies the merge request within its repository, starting at 1
+  // and never reused. It is written "!<number>" in messages and URLs.
+  int64 number = 2;
+  // Title is a one-line plain-text title, at most 120 characters.
+  string title = 3;
+  // Description is a plain-text description, at most 8,000 characters. It may
+  // be empty. Clients show it escaped, with line breaks kept.
+  string description = 4;
+  // SourceBranch is the short name of the branch to merge, for example
+  // "feat/x".
+  string source_branch = 5;
+  // TargetBranch is the short name of the branch to merge into, for example
+  // "main".
+  string target_branch = 6;
+  // State is where the merge request is in its life.
+  MergeRequestState state = 7;
+  // Author names who created the merge request: the label of the token that
+  // was used, "root" for the root token, or "owner" for a web session. It is
+  // informational: labels are not unique and the token may be gone.
+  string author = 8;
+  // CreatedAt is when the merge request was created.
+  google.protobuf.Timestamp created_at = 9;
+  // UpdatedAt is when the merge request last changed: title, description,
+  // state, or a comment added or resolved. Pushes to the source branch do not
+  // change it.
+  google.protobuf.Timestamp updated_at = 10;
+  // HeadId is the id of the commit the source branch points to. While the
+  // merge request is open it is read from Git at every call, so it changes
+  // when the branch is pushed; it is empty if the branch was deleted. Once
+  // merged or closed it is the head at that moment.
+  string head_id = 11;
+  // MergedCommitId is the id of the commit the target branch points to after
+  // the merge: the head for a fast-forward, the new commit for a squash.
+  // Empty unless state is MERGED.
+  string merged_commit_id = 12;
+  // MergeMode is how the merge request was merged. MERGE_MODE_UNSPECIFIED
+  // unless state is MERGED.
+  MergeMode merge_mode = 13;
+}
+
+// Comment is a note on a merge request, either general or attached to a line
+// of its diff.
+message Comment {
+  // Id identifies the comment within its merge request. Opaque.
+  string id = 1;
+  // Author names who wrote the comment, like MergeRequest.author.
+  string author = 2;
+  // Path is the path of the commented file in the diff (the new path, or the
+  // old path of a deleted file). Empty for a general comment.
+  string path = 3;
+  // Line is the 1-based line number on side. 0 for a general comment.
+  int32 line = 4;
+  // Side tells whether line counts on the old or the new side of the diff.
+  // DIFF_SIDE_UNSPECIFIED for a general comment.
+  DiffSide side = 5;
+  // CommitId is the head of the merge request when the comment was written.
+  // When it differs from the current head the line may have moved; clients
+  // may show the comment as outdated.
+  string commit_id = 6;
+  // Text is the plain-text content, at most 8,000 characters. Clients show it
+  // escaped, with line breaks kept.
+  string text = 7;
+  // Resolved is true once the comment was marked resolved.
+  bool resolved = 8;
+  // CreatedAt is when the comment was written.
+  google.protobuf.Timestamp created_at = 9;
+}
+
+// MergeRequestService reviews and merges branches.
+//
+// Every RPC takes the repository name and, except for creation and listing,
+// the merge request number. A repository that does not exist or that the
+// caller cannot read gives not_found; so does an unknown number. Reading
+// (ListMergeRequests, GetMergeRequest) needs the same access as reading the
+// repository: nothing for a public one, the repo:read scope for a private
+// one. Writing needs a scope on the repository, given per RPC; a caller
+// without it gets permission_denied.
+//
+// Text fields follow the same rules everywhere: valid UTF-8, no control
+// characters (except the line break in description and comment text) and no
+// Unicode bidirectional override or isolate characters; title is one line of
+// at most 120 characters, description and comment text at most 8,000
+// characters. A request that breaks a rule is rejected whole with
+// invalid_argument, and the error carries a BadRequest detail naming the
+// fields.
+//
+// Servers that implement this service list "merge_requests" in
+// GetVersionResponse.features.
+service MergeRequestService {
+  // CreateMergeRequest opens a merge request. Needs the mr:write scope. Fails
+  // with invalid_argument if a text rule is broken, if a branch does not exist
+  // or if source and target are the same branch, and with already_exists if an
+  // open merge request already has the same source and target.
+  rpc CreateMergeRequest(CreateMergeRequestRequest) returns (CreateMergeRequestResponse);
+  // ListMergeRequests lists the merge requests of a repository, highest
+  // number (newest) first, optionally restricted to one state. The listed
+  // merge requests carry no diff or comments; head_id is set. Fails with
+  // not_found if the repository does not exist or is not readable.
+  rpc ListMergeRequests(ListMergeRequestsRequest) returns (ListMergeRequestsResponse);
+  // GetMergeRequest returns one merge request with its commits, its diff and
+  // its comments. The diff compares the target with the head (what the merge
+  // would bring: "target...head"), or, with since_last_read, the head the
+  // caller last marked read with the current head. Fails with not_found if
+  // the repository or the number is unknown.
+  rpc GetMergeRequest(GetMergeRequestRequest) returns (GetMergeRequestResponse);
+  // AddComment adds a general comment or a comment on a line of the diff.
+  // Needs the mr:write scope. Fails with invalid_argument if the text breaks
+  // a rule or if path, line and side do not designate a line of the current
+  // diff of the merge request, and with failed_precondition if the merge
+  // request is not open.
+  rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+  // ResolveComment marks a comment resolved or unresolved. Needs the mr:write
+  // scope. Fails with not_found if the comment is unknown and with
+  // failed_precondition if the merge request is not open. Setting the state
+  // the comment already has succeeds and changes nothing.
+  rpc ResolveComment(ResolveCommentRequest) returns (ResolveCommentResponse);
+  // CloseMergeRequest closes an open merge request without merging it. Needs
+  // the mr:write scope. Fails with failed_precondition if the merge request
+  // is not open. A closed merge request cannot be reopened: open a new one.
+  rpc CloseMergeRequest(CloseMergeRequestRequest) returns (CloseMergeRequestResponse);
+  // MergeMergeRequest merges an open merge request. Needs the mr:merge scope.
+  // The caller passes the head it reviewed: the server merges only if the
+  // source branch still points to it, so a push between review and merge is
+  // never merged unseen. Fails with invalid_argument if head_id is empty or
+  // not a commit id, and with failed_precondition if the merge request is not
+  // open, if the source branch no longer points to head_id ("branch moved,
+  // read again"), if the target is not an ancestor of the head (rebase and
+  // push again), if the mode is not allowed by RepoSettings, or if a check
+  // fails and RepoSettings.failing_checks_block is set. Merges of one
+  // repository run one at a time. Repeating a call that succeeded fails with
+  // failed_precondition (not open). On success the server publishes
+  // MergeRequestMerged then Pushed for the target branch.
+  rpc MergeMergeRequest(MergeMergeRequestRequest) returns (MergeMergeRequestResponse);
+  // MarkRead records the head the caller has reviewed, for the since_last_read
+  // option of GetMergeRequest. There is one read position per merge request,
+  // the reviewer's. Needs the mr:write scope. Marking a commit that does not
+  // exist in the repository is invalid_argument.
+  rpc MarkRead(MarkReadRequest) returns (MarkReadResponse);
+}
+
+// CreateMergeRequestRequest describes the merge request to open.
+message CreateMergeRequestRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Title is the one-line title. Required.
+  string title = 2;
+  // Description is the optional description.
+  string description = 3;
+  // SourceBranch is the short name of the branch to merge. Required; the
+  // branch must exist.
+  string source_branch = 4;
+  // TargetBranch is the short name of the branch to merge into. Empty means
+  // the default branch of the repository. The branch must exist and differ
+  // from source_branch.
+  string target_branch = 5;
+}
+
+// CreateMergeRequestResponse holds the new merge request.
+message CreateMergeRequestResponse {
+  // MergeRequest is the created merge request.
+  MergeRequest merge_request = 1;
+}
+
+// ListMergeRequestsRequest selects a page of merge requests.
+message ListMergeRequestsRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // State restricts the result to one state. MERGE_REQUEST_STATE_UNSPECIFIED
+  // means every state.
+  MergeRequestState state = 2;
+  // PageSize is the maximum number of merge requests to return. 0 means the
+  // server default; values above the server maximum are lowered to it.
+  int32 page_size = 3;
+  // PageToken is the next_page_token of a previous response, to continue the
+  // same listing. Empty for the first page. Other fields must be unchanged.
+  string page_token = 4;
+}
+
+// ListMergeRequestsResponse is one page of merge requests.
+message ListMergeRequestsResponse {
+  // MergeRequests are the merge requests of this page, highest number first.
+  repeated MergeRequest merge_requests = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// GetMergeRequestRequest selects a merge request.
+message GetMergeRequestRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+  // SinceLastRead asks for the diff between the head recorded by MarkRead and
+  // the current head instead of the diff against the target. It works after a
+  // force-push as long as the recorded commit still exists in the repository.
+  // When nothing was marked read, or the recorded commit is gone, the response
+  // holds the diff against the target and says so in last_read_id and
+  // last_read_lost.
+  bool since_last_read = 3;
+}
+
+// GetMergeRequestResponse holds a merge request with its review data.
+message GetMergeRequestResponse {
+  // MergeRequest is the merge request.
+  MergeRequest merge_request = 1;
+  // Commits are the commits of the head that are not in the target
+  // ("target..head"), newest first. At most 100 are returned (a server limit
+  // that may change; rely on commits_truncated, not on the number). Empty when
+  // the source branch was deleted.
+  repeated Commit commits = 2;
+  // CommitsTruncated is true when the branch has more commits than commits
+  // holds.
+  bool commits_truncated = 3;
+  // DiffBaseId is the id of the commit the diff compares from: the merge base
+  // of the target and the head, or the last read head when since_last_read
+  // applied. Empty when the source branch was deleted; diff is then empty.
+  string diff_base_id = 4;
+  // Stats are the totals of the diff, including files that it omits or
+  // truncates.
+  DiffStats stats = 5;
+  // Diff is the structured diff from diff_base_id to the head, with the same
+  // limits and truncated flags as GetCommitResponse.diff.
+  Diff diff = 6;
+  // Comments are every comment of the merge request, oldest first.
+  repeated Comment comments = 7;
+  // LastReadId is the head recorded by MarkRead, whether or not
+  // since_last_read was set. Empty when nothing was marked read.
+  string last_read_id = 8;
+  // LastReadLost is true when since_last_read was set, a head was recorded,
+  // but that commit no longer exists in the repository: the diff is then the
+  // diff against the target. A client should tell the reader to review the
+  // whole change again.
+  bool last_read_lost = 9;
+}
+
+// AddCommentRequest describes the comment to add.
+message AddCommentRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+  // Path is the file the comment is attached to, as given by the diff of the
+  // merge request: FileDiff.new_path, or old_path for a deleted file. Empty
+  // for a general comment; then line must be 0 and side unspecified.
+  string path = 3;
+  // Line is the 1-based line number on side. It must be the old_number or
+  // new_number of a Line of a hunk of the file; a line outside the hunks is
+  // invalid_argument. 0 for a general comment.
+  int32 line = 4;
+  // Side is the side line counts on. Required when path is set.
+  DiffSide side = 5;
+  // Text is the plain-text content. Required.
+  string text = 6;
+}
+
+// AddCommentResponse holds the new comment.
+message AddCommentResponse {
+  // Comment is the created comment.
+  Comment comment = 1;
+}
+
+// ResolveCommentRequest changes the resolved state of a comment.
+message ResolveCommentRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+  // CommentId is the Comment.id to change.
+  string comment_id = 3;
+  // Resolved is the new state: true to resolve, false to unresolve.
+  bool resolved = 4;
+}
+
+// ResolveCommentResponse holds the comment after the change.
+message ResolveCommentResponse {
+  // Comment is the updated comment.
+  Comment comment = 1;
+}
+
+// CloseMergeRequestRequest names the merge request to close.
+message CloseMergeRequestRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+}
+
+// CloseMergeRequestResponse holds the merge request after closing.
+message CloseMergeRequestResponse {
+  // MergeRequest is the closed merge request.
+  MergeRequest merge_request = 1;
+}
+
+// MergeMergeRequestRequest describes the merge to perform.
+message MergeMergeRequestRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+  // Mode is how to merge. MERGE_MODE_UNSPECIFIED means fast-forward. The mode
+  // must be in RepoSettings.allowed_merge_modes of the repository.
+  MergeMode mode = 3;
+  // HeadId is the full id of the commit the caller reviewed, that is the
+  // MergeRequest.head_id it was shown. Required. The merge happens only if the
+  // source branch still points to it.
+  string head_id = 4;
+}
+
+// MergeMergeRequestResponse holds the merged merge request.
+message MergeMergeRequestResponse {
+  // MergeRequest is the merge request after the merge: state MERGED,
+  // merged_commit_id set to the new tip of the target branch and merge_mode
+  // set to the mode used.
+  MergeRequest merge_request = 1;
+}
+
+// MarkReadRequest records a read position.
+message MarkReadRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+  // HeadId is the full id of the commit the caller has reviewed, usually the
+  // MergeRequest.head_id it was shown. Empty means the current head of the
+  // source branch.
+  string head_id = 3;
+}
+
+// MarkReadResponse is empty.
+message MarkReadResponse {}

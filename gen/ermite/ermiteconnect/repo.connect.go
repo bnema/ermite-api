@@ -54,12 +54,13 @@ type RepoServiceClient interface {
 	// GetRepo returns one repository. Fails with not_found if it does not exist
 	// or is private and not readable by the caller.
 	GetRepo(context.Context, *connect.Request[ermite.GetRepoRequest]) (*connect.Response[ermite.GetRepoResponse], error)
-	// CreateRepo creates an empty repository. Needs the repo:write scope. Fails
+	// CreateRepo creates an empty repository with the default settings. Needs
+	// the repo:write scope. Fails
 	// with already_exists if the name is taken and invalid_argument if the name
 	// is not valid.
 	CreateRepo(context.Context, *connect.Request[ermite.CreateRepoRequest]) (*connect.Response[ermite.CreateRepoResponse], error)
-	// UpdateRepo changes the fields named in update_mask. Needs the repo:admin
-	// scope.
+	// UpdateRepo changes the fields named in update_mask, including the merge
+	// settings. Needs the repo:admin scope.
 	UpdateRepo(context.Context, *connect.Request[ermite.UpdateRepoRequest]) (*connect.Response[ermite.UpdateRepoResponse], error)
 	// DeleteRepo deletes a repository. Needs the repo:admin scope. The server
 	// moves the data aside rather than destroying it; there is no undelete RPC.
@@ -151,12 +152,13 @@ type RepoServiceHandler interface {
 	// GetRepo returns one repository. Fails with not_found if it does not exist
 	// or is private and not readable by the caller.
 	GetRepo(context.Context, *connect.Request[ermite.GetRepoRequest]) (*connect.Response[ermite.GetRepoResponse], error)
-	// CreateRepo creates an empty repository. Needs the repo:write scope. Fails
+	// CreateRepo creates an empty repository with the default settings. Needs
+	// the repo:write scope. Fails
 	// with already_exists if the name is taken and invalid_argument if the name
 	// is not valid.
 	CreateRepo(context.Context, *connect.Request[ermite.CreateRepoRequest]) (*connect.Response[ermite.CreateRepoResponse], error)
-	// UpdateRepo changes the fields named in update_mask. Needs the repo:admin
-	// scope.
+	// UpdateRepo changes the fields named in update_mask, including the merge
+	// settings. Needs the repo:admin scope.
 	UpdateRepo(context.Context, *connect.Request[ermite.UpdateRepoRequest]) (*connect.Response[ermite.UpdateRepoResponse], error)
 	// DeleteRepo deletes a repository. Needs the repo:admin scope. The server
 	// moves the data aside rather than destroying it; there is no undelete RPC.

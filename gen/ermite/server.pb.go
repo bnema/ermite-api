@@ -121,6 +121,132 @@ func (x *GetVersionResponse) GetFeatures() []string {
 	return nil
 }
 
+// GetSigningKeyRequest is empty.
+type GetSigningKeyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSigningKeyRequest) Reset() {
+	*x = GetSigningKeyRequest{}
+	mi := &file_ermite_server_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSigningKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSigningKeyRequest) ProtoMessage() {}
+
+func (x *GetSigningKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_server_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSigningKeyRequest.ProtoReflect.Descriptor instead.
+func (*GetSigningKeyRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_server_proto_rawDescGZIP(), []int{2}
+}
+
+// GetSigningKeyResponse describes the commit signing key of the server.
+type GetSigningKeyResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// PublicKey is the public key as one OpenSSH authorized_keys line, for
+	// example "ssh-ed25519 AAAA...". Commits are signed in the SSH signature
+	// format (SSHSIG).
+	PublicKey string `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	// Fingerprint is the SHA-256 fingerprint of the key, in the form
+	// "SHA256:<base64>" that ssh-keygen prints.
+	Fingerprint string `protobuf:"bytes,2,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	// CommitterName is the name the server records as the committer of the
+	// commits it creates.
+	CommitterName string `protobuf:"bytes,3,opt,name=committer_name,json=committerName,proto3" json:"committer_name,omitempty"`
+	// CommitterEmail is the email address the server records as the committer of
+	// the commits it creates. It is the principal of allowed_signers.
+	CommitterEmail string `protobuf:"bytes,4,opt,name=committer_email,json=committerEmail,proto3" json:"committer_email,omitempty"`
+	// AllowedSigners is a ready-to-use line for an allowed signers file
+	// ("<committer_email> <public_key>"), to verify these commits with
+	// "git config gpg.ssh.allowedSignersFile".
+	AllowedSigners string `protobuf:"bytes,5,opt,name=allowed_signers,json=allowedSigners,proto3" json:"allowed_signers,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetSigningKeyResponse) Reset() {
+	*x = GetSigningKeyResponse{}
+	mi := &file_ermite_server_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSigningKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSigningKeyResponse) ProtoMessage() {}
+
+func (x *GetSigningKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_server_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSigningKeyResponse.ProtoReflect.Descriptor instead.
+func (*GetSigningKeyResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_server_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetSigningKeyResponse) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *GetSigningKeyResponse) GetFingerprint() string {
+	if x != nil {
+		return x.Fingerprint
+	}
+	return ""
+}
+
+func (x *GetSigningKeyResponse) GetCommitterName() string {
+	if x != nil {
+		return x.CommitterName
+	}
+	return ""
+}
+
+func (x *GetSigningKeyResponse) GetCommitterEmail() string {
+	if x != nil {
+		return x.CommitterEmail
+	}
+	return ""
+}
+
+func (x *GetSigningKeyResponse) GetAllowedSigners() string {
+	if x != nil {
+		return x.AllowedSigners
+	}
+	return ""
+}
+
 var File_ermite_server_proto protoreflect.FileDescriptor
 
 const file_ermite_server_proto_rawDesc = "" +
@@ -129,10 +255,19 @@ const file_ermite_server_proto_rawDesc = "" +
 	"\x11GetVersionRequest\"J\n" +
 	"\x12GetVersionResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1a\n" +
-	"\bfeatures\x18\x02 \x03(\tR\bfeatures2T\n" +
+	"\bfeatures\x18\x02 \x03(\tR\bfeatures\"\x16\n" +
+	"\x14GetSigningKeyRequest\"\xd1\x01\n" +
+	"\x15GetSigningKeyResponse\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x01 \x01(\tR\tpublicKey\x12 \n" +
+	"\vfingerprint\x18\x02 \x01(\tR\vfingerprint\x12%\n" +
+	"\x0ecommitter_name\x18\x03 \x01(\tR\rcommitterName\x12'\n" +
+	"\x0fcommitter_email\x18\x04 \x01(\tR\x0ecommitterEmail\x12'\n" +
+	"\x0fallowed_signers\x18\x05 \x01(\tR\x0eallowedSigners2\xa2\x01\n" +
 	"\rServerService\x12C\n" +
 	"\n" +
-	"GetVersion\x12\x19.ermite.GetVersionRequest\x1a\x1a.ermite.GetVersionResponseBr\n" +
+	"GetVersion\x12\x19.ermite.GetVersionRequest\x1a\x1a.ermite.GetVersionResponse\x12L\n" +
+	"\rGetSigningKey\x12\x1c.ermite.GetSigningKeyRequest\x1a\x1d.ermite.GetSigningKeyResponseBr\n" +
 	"\n" +
 	"com.ermiteB\vServerProtoP\x01Z\x1fbnema.dev/ermite-api/gen/ermite\xa2\x02\x03EXX\xaa\x02\x06Ermite\xca\x02\x06Ermite\xe2\x02\x12Ermite\\GPBMetadata\xea\x02\x06Ermiteb\x06proto3"
 
@@ -148,16 +283,20 @@ func file_ermite_server_proto_rawDescGZIP() []byte {
 	return file_ermite_server_proto_rawDescData
 }
 
-var file_ermite_server_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ermite_server_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ermite_server_proto_goTypes = []any{
-	(*GetVersionRequest)(nil),  // 0: ermite.GetVersionRequest
-	(*GetVersionResponse)(nil), // 1: ermite.GetVersionResponse
+	(*GetVersionRequest)(nil),     // 0: ermite.GetVersionRequest
+	(*GetVersionResponse)(nil),    // 1: ermite.GetVersionResponse
+	(*GetSigningKeyRequest)(nil),  // 2: ermite.GetSigningKeyRequest
+	(*GetSigningKeyResponse)(nil), // 3: ermite.GetSigningKeyResponse
 }
 var file_ermite_server_proto_depIdxs = []int32{
 	0, // 0: ermite.ServerService.GetVersion:input_type -> ermite.GetVersionRequest
-	1, // 1: ermite.ServerService.GetVersion:output_type -> ermite.GetVersionResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: ermite.ServerService.GetSigningKey:input_type -> ermite.GetSigningKeyRequest
+	1, // 2: ermite.ServerService.GetVersion:output_type -> ermite.GetVersionResponse
+	3, // 3: ermite.ServerService.GetSigningKey:output_type -> ermite.GetSigningKeyResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -174,7 +313,7 @@ func file_ermite_server_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_server_proto_rawDesc), len(file_ermite_server_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

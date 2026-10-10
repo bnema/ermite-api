@@ -10,6 +10,12 @@ service ServerService {
   // contract it implements. It needs no authentication, so a client can call
   // it first to check compatibility.
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+  // GetSigningKey returns the public key with which the server signs the
+  // commits it creates (squash merges, see MergeMode). It needs no
+  // authentication: the key is public, and anyone verifying a commit needs it.
+  // Servers that implement it list "signing_key" in
+  // GetVersionResponse.features.
+  rpc GetSigningKey(GetSigningKeyRequest) returns (GetSigningKeyResponse);
 }
 
 // GetVersionRequest is empty.
@@ -27,4 +33,28 @@ message GetVersionResponse {
   // should warn instead of failing on an unimplemented RPC or ignored field.
   // Identifiers are lowercase, dot-separated and never reused.
   repeated string features = 2;
+}
+
+// GetSigningKeyRequest is empty.
+message GetSigningKeyRequest {}
+
+// GetSigningKeyResponse describes the commit signing key of the server.
+message GetSigningKeyResponse {
+  // PublicKey is the public key as one OpenSSH authorized_keys line, for
+  // example "ssh-ed25519 AAAA...". Commits are signed in the SSH signature
+  // format (SSHSIG).
+  string public_key = 1;
+  // Fingerprint is the SHA-256 fingerprint of the key, in the form
+  // "SHA256:<base64>" that ssh-keygen prints.
+  string fingerprint = 2;
+  // CommitterName is the name the server records as the committer of the
+  // commits it creates.
+  string committer_name = 3;
+  // CommitterEmail is the email address the server records as the committer of
+  // the commits it creates. It is the principal of allowed_signers.
+  string committer_email = 4;
+  // AllowedSigners is a ready-to-use line for an allowed signers file
+  // ("<committer_email> <public_key>"), to verify these commits with
+  // "git config gpg.ssh.allowedSignersFile".
+  string allowed_signers = 5;
 }

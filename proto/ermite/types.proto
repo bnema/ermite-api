@@ -35,3 +35,23 @@ message Commit {
   // not valid UTF-8 is converted with the replacement character.
   string message = 6;
 }
+
+// MergeMode is how a merge request is merged. Both modes need the target to
+// be an ancestor of the head: a branch behind its target is rebased by its
+// author and pushed again, the server never rebases nor creates merge commits.
+enum MergeMode {
+  // Not set. In MergeMergeRequestRequest.mode it means fast-forward. Rejected
+  // in RepoSettings.allowed_merge_modes. Returned on a merge request that was
+  // not merged.
+  MERGE_MODE_UNSPECIFIED = 0;
+  // The target branch moves to the head. No commit is created and the
+  // signatures of the branch's commits are kept.
+  MERGE_MODE_FAST_FORWARD = 1;
+  // One new commit is created with the tree of the head and the target as
+  // only parent, signed by the server's key (see ServerService.GetSigningKey).
+  // Its author is the author of the first commit of the branch, the other
+  // authors are added as "Co-authored-by:" trailers, and its message is the
+  // title, " (!<number>)", a blank line and the list of the squashed commits'
+  // summaries.
+  MERGE_MODE_SQUASH = 2;
+}

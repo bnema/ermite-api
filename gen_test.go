@@ -30,7 +30,18 @@ func TestProcedures(t *testing.T) {
 		{ermiteconnect.TokenServiceListTokensProcedure, "/ermite.TokenService/ListTokens"},
 		{ermiteconnect.TokenServiceRevokeTokenProcedure, "/ermite.TokenService/RevokeToken"},
 		{ermiteconnect.EventServiceWatchProcedure, "/ermite.EventService/Watch"},
+		{ermiteconnect.MergeRequestServiceCreateMergeRequestProcedure, "/ermite.MergeRequestService/CreateMergeRequest"},
+		{ermiteconnect.MergeRequestServiceListMergeRequestsProcedure, "/ermite.MergeRequestService/ListMergeRequests"},
+		{ermiteconnect.MergeRequestServiceGetMergeRequestProcedure, "/ermite.MergeRequestService/GetMergeRequest"},
+		{ermiteconnect.MergeRequestServiceAddCommentProcedure, "/ermite.MergeRequestService/AddComment"},
+		{ermiteconnect.MergeRequestServiceResolveCommentProcedure, "/ermite.MergeRequestService/ResolveComment"},
+		{ermiteconnect.MergeRequestServiceCloseMergeRequestProcedure, "/ermite.MergeRequestService/CloseMergeRequest"},
+		{ermiteconnect.MergeRequestServiceMergeMergeRequestProcedure, "/ermite.MergeRequestService/MergeMergeRequest"},
+		{ermiteconnect.MergeRequestServiceMarkReadProcedure, "/ermite.MergeRequestService/MarkRead"},
+		{ermiteconnect.SessionServiceCreateLoginLinkProcedure, "/ermite.SessionService/CreateLoginLink"},
+		{ermiteconnect.SessionServiceSignOutEverywhereProcedure, "/ermite.SessionService/SignOutEverywhere"},
 		{ermiteconnect.ServerServiceGetVersionProcedure, "/ermite.ServerService/GetVersion"},
+		{ermiteconnect.ServerServiceGetSigningKeyProcedure, "/ermite.ServerService/GetSigningKey"},
 	}
 	for _, tt := range tests {
 		if tt.got != tt.want {
@@ -49,6 +60,15 @@ func TestEnumNumbers(t *testing.T) {
 	}
 	if got := ermite.Visibility_VISIBILITY_PRIVATE; got != 2 {
 		t.Errorf("VISIBILITY_PRIVATE = %d, want 2", got)
+	}
+	if got := ermite.MergeMode_MERGE_MODE_SQUASH; got != 2 {
+		t.Errorf("MERGE_MODE_SQUASH = %d, want 2", got)
+	}
+	if got := ermite.MergeRequestState_MERGE_REQUEST_STATE_CLOSED; got != 3 {
+		t.Errorf("MERGE_REQUEST_STATE_CLOSED = %d, want 3", got)
+	}
+	if got := ermite.DiffSide_DIFF_SIDE_NEW; got != 2 {
+		t.Errorf("DIFF_SIDE_NEW = %d, want 2", got)
 	}
 }
 
@@ -88,5 +108,46 @@ func TestUpdateRepoMask(t *testing.T) {
 	}
 	if got := req.GetUpdateMask().GetPaths(); len(got) != 1 || got[0] != "visibility" {
 		t.Errorf("paths = %v", got)
+	}
+}
+
+// TestMergeRequestEventRoundTrip checks the merge request event kinds and the
+// repository settings survive the wire.
+func TestMergeRequestEventRoundTrip(t *testing.T) {
+	in := &ermite.WatchResponse{Event: &ermite.Event{
+		Id: "43",
+		Kind: &ermite.Event_CommentAdded{CommentAdded: &ermite.CommentAdded{
+			Repo:   "ermite",
+			Number: 7,
+			Comment: &ermite.Comment{
+				Id: "c1", Path: "a.go", Line: 3, Side: ermite.DiffSide_DIFF_SIDE_OLD, Text: "hi",
+			},
+		}},
+	}}
+	b, err := proto.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out ermite.WatchResponse
+	if err := proto.Unmarshal(b, &out); err != nil {
+		t.Fatal(err)
+	}
+	if !proto.Equal(in, &out) {
+		t.Errorf("round trip mismatch: %v != %v", &out, in)
+	}
+	if got := out.GetEvent().GetCommentAdded().GetNumber(); got != 7 {
+		t.Errorf("number = %d, want 7", got)
+	}
+
+	req := &ermite.UpdateRepoRequest{
+		Repo: "ermite",
+		Settings: &ermite.RepoSettings{
+			AllowedMergeModes:  []ermite.MergeMode{ermite.MergeMode_MERGE_MODE_SQUASH},
+			FailingChecksBlock: true,
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"settings.allowed_merge_modes", "settings.failing_checks_block"}},
+	}
+	if got := req.GetSettings().GetAllowedMergeModes(); len(got) != 1 || got[0] != ermite.MergeMode_MERGE_MODE_SQUASH {
+		t.Errorf("modes = %v", got)
 	}
 }

@@ -5,6 +5,7 @@ syntax = "proto3";
 package ermite;
 
 import "google/protobuf/field_mask.proto";
+import "ermite/types.proto";
 import "google/protobuf/timestamp.proto";
 
 // Visibility says who may read a repository.
@@ -17,6 +18,21 @@ enum Visibility {
   // Only callers holding the repo:read scope on the repository may read it.
   // Everyone else gets not_found, never permission_denied.
   VISIBILITY_PRIVATE = 2;
+}
+
+// RepoSettings are the settings of a repository that govern its merge
+// requests.
+message RepoSettings {
+  // AllowedMergeModes are the modes with which a merge request of the
+  // repository may be merged. It is never empty in a response and has no
+  // duplicate. Both MERGE_MODE_FAST_FORWARD and MERGE_MODE_SQUASH are allowed
+  // by default. MERGE_MODE_UNSPECIFIED is rejected.
+  repeated MergeMode allowed_merge_modes = 1;
+  // FailingChecksBlock says whether a merge request whose checks fail cannot be
+  // merged. It is true at creation of the repository and always stored
+  // explicitly, so a later change of the server default never alters an
+  // existing repository.
+  bool failing_checks_block = 2;
 }
 
 // Repo is the metadata of a repository. Git-owned state (refs, trees, history)
@@ -37,6 +53,9 @@ message Repo {
   google.protobuf.Timestamp created_at = 5;
   // PushedAt is the time of the last push. It is unset until the first push.
   google.protobuf.Timestamp pushed_at = 6;
+  // Settings are the merge settings of the repository. Always set in a
+  // response, with the defaults for a repository that never changed them.
+  RepoSettings settings = 7;
 }
 
 // RepoService manages repositories and their metadata.
@@ -49,12 +68,13 @@ service RepoService {
   // GetRepo returns one repository. Fails with not_found if it does not exist
   // or is private and not readable by the caller.
   rpc GetRepo(GetRepoRequest) returns (GetRepoResponse);
-  // CreateRepo creates an empty repository. Needs the repo:write scope. Fails
+  // CreateRepo creates an empty repository with the default settings. Needs
+  // the repo:write scope. Fails
   // with already_exists if the name is taken and invalid_argument if the name
   // is not valid.
   rpc CreateRepo(CreateRepoRequest) returns (CreateRepoResponse);
-  // UpdateRepo changes the fields named in update_mask. Needs the repo:admin
-  // scope.
+  // UpdateRepo changes the fields named in update_mask, including the merge
+  // settings. Needs the repo:admin scope.
   rpc UpdateRepo(UpdateRepoRequest) returns (UpdateRepoResponse);
   // DeleteRepo deletes a repository. Needs the repo:admin scope. The server
   // moves the data aside rather than destroying it; there is no undelete RPC.
@@ -124,9 +144,17 @@ message UpdateRepoRequest {
   // update_mask contains "default_branch". The branch must exist, otherwise
   // the call fails with failed_precondition.
   string default_branch = 4;
-  // UpdateMask lists the fields to change: "description", "visibility" and/or
-  // "default_branch". It must not be empty. Other paths are invalid_argument.
+  // UpdateMask lists the fields to change: "description", "visibility",
+  // "default_branch", "settings.allowed_merge_modes" and/or
+  // "settings.failing_checks_block". "settings" stands for both settings
+  // paths. It must not be empty. Other paths are invalid_argument.
   google.protobuf.FieldMask update_mask = 5;
+  // Settings holds the new merge settings. Only the fields named in
+  // update_mask are used. allowed_merge_modes must then not be empty nor
+  // contain MERGE_MODE_UNSPECIFIED, otherwise the call fails with
+  // invalid_argument. Changing settings needs the repo:admin scope, like any
+  // other field.
+  RepoSettings settings = 6;
 }
 
 // UpdateRepoResponse holds the repository after the update.

@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/timestamp.proto";
+
+// SessionService manages the owner's browser sessions. The browser itself
+// never calls it: it signs in by opening the link that CreateLoginLink
+// returns, and signs out by posting to the web's logout route.
+//
+// Every RPC is owner-only: it needs the root token, or a stored token that
+// holds every scope and is not restricted to repositories. Any other caller
+// gets permission_denied. Sessions do not go through this API: the Connect
+// API accepts bearer tokens only and ignores cookies.
+//
+// Servers that implement this service list "session" in
+// GetVersionResponse.features.
+service SessionService {
+  // CreateLoginLink creates a one-time link that signs the owner's browser
+  // in. The link is valid for a short time (about a minute), can be used
+  // once, and is kept in memory only: a server restart voids it. Opening it
+  // shows a confirmation page; only confirming it consumes the link and sets
+  // the session. Creating a new link does not void an earlier one. Fails with
+  // resource_exhausted when too many links are pending.
+  rpc CreateLoginLink(CreateLoginLinkRequest) returns (CreateLoginLinkResponse);
+  // SignOutEverywhere ends every browser session at once, including those on
+  // other devices. Pending login links are not affected. Tokens are not
+  // affected either: revoke them with TokenService.
+  rpc SignOutEverywhere(SignOutEverywhereRequest) returns (SignOutEverywhereResponse);
+}
+
+// CreateLoginLinkRequest is empty.
+message CreateLoginLinkRequest {}
+
+// CreateLoginLinkResponse holds the link.
+message CreateLoginLinkResponse {
+  // Url is the absolute link to open in a browser, on the public URL of the
+  // server. It holds a secret: clients print it to the terminal and nowhere
+  // else, and never log it.
+  string url = 1;
+  // ExpiresAt is when the link stops working if it is not used.
+  google.protobuf.Timestamp expires_at = 2;
+}
+
+// SignOutEverywhereRequest is empty.
+message SignOutEverywhereRequest {}
+
+// SignOutEverywhereResponse is empty.
+message SignOutEverywhereResponse {}
