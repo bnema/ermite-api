@@ -1,0 +1,105 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "ermite/repo.proto";
+import "google/protobuf/timestamp.proto";
+
+// EventService streams what happens on the forge.
+service EventService {
+  // Watch streams events until the client cancels the call or the server shuts
+  // down. Events are filtered by the caller's access: events of a private
+  // repository are only sent to callers that may read it.
+  //
+  // The server keeps a bounded buffer of recent events. With resume_after set,
+  // buffered events after that id are replayed first, then live events follow.
+  // When resume_after is no longer buffered (or unknown), the stream begins
+  // with a Gap event, then continues with the oldest buffered event: the client
+  // must reload its state. Without resume_after, only new events are sent.
+  rpc Watch(WatchRequest) returns (stream WatchResponse);
+}
+
+// WatchRequest selects the events to receive.
+message WatchRequest {
+  // Topics are the subjects to follow: "home" for every repository visible to
+  // the caller, or "repo:<name>" for one repository. Empty means "home".
+  // Unknown topics are invalid_argument. A "repo:<name>" topic for a repository
+  // that does not exist or is not visible is not_found.
+  repeated string topics = 1;
+  // ResumeAfter is the Event.id of the last event the client has seen. Empty
+  // to receive only new events.
+  string resume_after = 2;
+}
+
+// WatchResponse carries one event of the stream.
+message WatchResponse {
+  // Event is the event.
+  Event event = 1;
+}
+
+// Event is something that happened on the forge.
+message Event {
+  // Id identifies the event and is passed as resume_after to resume a stream.
+  // It is opaque and only comparable for equality; clients must not parse it.
+  // Empty on a Gap event.
+  string id = 1;
+  // Time is when the event happened.
+  google.protobuf.Timestamp time = 2;
+  // Kind is the type and payload of the event. New kinds may be added; clients
+  // must ignore kinds they do not know.
+  oneof kind {
+    // RepoCreated: a repository was created.
+    RepoCreated repo_created = 3;
+    // RepoUpdated: repository metadata changed.
+    RepoUpdated repo_updated = 4;
+    // RepoDeleted: a repository was deleted.
+    RepoDeleted repo_deleted = 5;
+    // Pushed: refs of a repository were updated by a push.
+    Pushed pushed = 6;
+    // Gap: events were lost, reload state.
+    Gap gap = 7;
+  }
+}
+
+// RepoCreated reports a new repository.
+message RepoCreated {
+  // Repo is the new repository.
+  Repo repo = 1;
+}
+
+// RepoUpdated reports a metadata change.
+message RepoUpdated {
+  // Repo is the repository after the change.
+  Repo repo = 1;
+}
+
+// RepoDeleted reports a deleted repository.
+message RepoDeleted {
+  // Repo is the name of the deleted repository.
+  string repo = 1;
+}
+
+// Pushed reports the ref updates of one push.
+message Pushed {
+  // Repo is the name of the repository.
+  string repo = 1;
+  // RefUpdates are the refs changed by the push.
+  repeated RefUpdate ref_updates = 2;
+}
+
+// RefUpdate is the change of one ref.
+message RefUpdate {
+  // Ref is the full ref name, for example "refs/heads/main".
+  string ref = 1;
+  // OldId is the object id before the update. Empty when the ref was created.
+  string old_id = 2;
+  // NewId is the object id after the update. Empty when the ref was deleted.
+  string new_id = 3;
+}
+
+// Gap tells the client that events were lost: the requested resume point is
+// older than the server's buffer. It has no fields. The client should reload
+// the state it displays (repositories, refs) and carry on with the next events.
+message Gap {}

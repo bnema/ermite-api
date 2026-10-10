@@ -1,0 +1,388 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "ermite/types.proto";
+
+// RefKind is the kind of a Git ref.
+enum RefKind {
+  // Not set. In ListRefsRequest.kinds it is rejected; never returned.
+  REF_KIND_UNSPECIFIED = 0;
+  // A branch (refs/heads/*).
+  REF_KIND_BRANCH = 1;
+  // A tag (refs/tags/*), lightweight or annotated.
+  REF_KIND_TAG = 2;
+  // The symbolic ref HEAD, that is the default branch.
+  REF_KIND_HEAD = 3;
+}
+
+// EntryKind is the kind of an entry of a Git tree.
+enum EntryKind {
+  // Not set. Never returned.
+  ENTRY_KIND_UNSPECIFIED = 0;
+  // A regular, non-executable file (mode 100644).
+  ENTRY_KIND_FILE = 1;
+  // An executable file (mode 100755).
+  ENTRY_KIND_EXECUTABLE = 2;
+  // A directory (mode 040000).
+  ENTRY_KIND_DIRECTORY = 3;
+  // A symbolic link (mode 120000). The blob content is the link target.
+  ENTRY_KIND_SYMLINK = 4;
+  // A submodule commit (mode 160000). The id is a commit of another
+  // repository, which this one does not contain.
+  ENTRY_KIND_SUBMODULE = 5;
+}
+
+// FileStatus tells what a commit did to a file.
+enum FileStatus {
+  // Not set. Never returned.
+  FILE_STATUS_UNSPECIFIED = 0;
+  // The file was added.
+  FILE_STATUS_ADDED = 1;
+  // The file was deleted.
+  FILE_STATUS_DELETED = 2;
+  // The content or the mode of the file changed.
+  FILE_STATUS_MODIFIED = 3;
+  // The file was moved, possibly with changes. Rename detection is done by Git.
+  FILE_STATUS_RENAMED = 4;
+  // The file was copied from another file, possibly with changes.
+  FILE_STATUS_COPIED = 5;
+  // The type of the entry changed, for example a file became a symbolic link.
+  FILE_STATUS_TYPE_CHANGED = 6;
+}
+
+// LineKind tells how a line of a hunk relates to the two sides of a diff.
+enum LineKind {
+  // Not set. Never returned.
+  LINE_KIND_UNSPECIFIED = 0;
+  // The line is present, unchanged, on both sides.
+  LINE_KIND_CONTEXT = 1;
+  // The line exists only on the new side.
+  LINE_KIND_ADDITION = 2;
+  // The line exists only on the old side.
+  LINE_KIND_DELETION = 3;
+}
+
+// GitService reads the Git data of repositories. It is read-only: pushes go
+// through Git itself.
+//
+// Every RPC takes the repository name. A repository that does not exist or
+// that the caller cannot read gives not_found. A revision is a branch name, a
+// tag name or a commit id (full, or an unambiguous abbreviation of at least 7
+// characters); empty means HEAD. A revision or path that does not exist gives
+// not_found; so does an empty repository, which has no commit to resolve.
+service GitService {
+  // ListRefs lists the branches, tags and HEAD of a repository. Refs are
+  // ordered by kind (HEAD, branches, tags) then by name.
+  rpc ListRefs(ListRefsRequest) returns (ListRefsResponse);
+  // GetTree lists the entries of a directory at a revision. Fails with
+  // not_found if the path does not exist and invalid_argument if it is not a
+  // directory.
+  rpc GetTree(GetTreeRequest) returns (GetTreeResponse);
+  // GetBlob streams the content of a file at a revision, in chunks of at most
+  // 64 KiB. The first message carries the metadata in info, then the chunks
+  // follow; the memory used by the server does not depend on the file size.
+  // Fails with not_found if the path does not exist and invalid_argument if it
+  // is not a file.
+  rpc GetBlob(GetBlobRequest) returns (stream GetBlobResponse);
+  // ListCommits lists the history reachable from a revision, newest first
+  // (Git's default order), optionally limited to the commits that touched a
+  // path.
+  rpc ListCommits(ListCommitsRequest) returns (ListCommitsResponse);
+  // GetCommit returns one commit with its statistics and its diff.
+  rpc GetCommit(GetCommitRequest) returns (GetCommitResponse);
+  // ResolveRevision turns a revision into the id of the commit it designates.
+  rpc ResolveRevision(ResolveRevisionRequest) returns (ResolveRevisionResponse);
+}
+
+// Ref is a branch, a tag or HEAD.
+message Ref {
+  // Name is the full ref name, for example "refs/heads/main" or
+  // "refs/tags/v1.0.0". For HEAD it is "HEAD".
+  string name = 1;
+  // ShortName is the name without its "refs/heads/" or "refs/tags/" prefix. For
+  // HEAD it is the short name of the default branch, or empty if HEAD points
+  // to a branch that does not exist yet.
+  string short_name = 2;
+  // Kind is the kind of the ref.
+  RefKind kind = 3;
+  // Id is the id of the object the ref points to. For an annotated tag it is
+  // the id of the tag object.
+  string id = 4;
+  // CommitId is the id of the commit the ref designates once annotated tags are
+  // followed. It equals id for branches and lightweight tags. It is empty for
+  // a tag that points to something other than a commit.
+  string commit_id = 5;
+}
+
+// ListRefsRequest selects the refs to list.
+message ListRefsRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Kinds restricts the result to these kinds. Empty means all kinds.
+  repeated RefKind kinds = 2;
+  // PageSize is the maximum number of refs to return. 0 means the server
+  // default; values above the server maximum are lowered to it.
+  int32 page_size = 3;
+  // PageToken is the next_page_token of a previous response. Empty for the
+  // first page.
+  string page_token = 4;
+}
+
+// ListRefsResponse is one page of refs.
+message ListRefsResponse {
+  // Refs are the refs of this page.
+  repeated Ref refs = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// TreeEntry is one entry of a directory.
+message TreeEntry {
+  // Name is the name of the entry in its directory, without slash.
+  string name = 1;
+  // Path is the path of the entry from the repository root, with "/"
+  // separators and no leading slash.
+  string path = 2;
+  // Kind is the kind of the entry.
+  EntryKind kind = 3;
+  // Mode is the Git file mode, for example 0o100644 (33188 in decimal).
+  uint32 mode = 4;
+  // Id is the object id of the blob, tree or submodule commit.
+  string id = 5;
+  // Size is the size in bytes of a file or symbolic link. It is 0 for
+  // directories and submodules.
+  int64 size = 6;
+  // LastCommit is the latest commit that changed the entry. Set only when the
+  // request asked for it with include_last_commit.
+  Commit last_commit = 7;
+}
+
+// GetTreeRequest selects a directory.
+message GetTreeRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Revision is a branch, a tag or a commit id. Empty means HEAD.
+  string revision = 2;
+  // Path is the directory, from the repository root, with "/" separators.
+  // Empty means the root.
+  string path = 3;
+  // IncludeLastCommit asks for the last commit of every entry in last_commit.
+  // It costs one history walk, so it is off by default and the server may be
+  // slow on large directories.
+  bool include_last_commit = 4;
+}
+
+// GetTreeResponse lists a directory.
+message GetTreeResponse {
+  // CommitId is the id of the commit the revision resolved to.
+  string commit_id = 1;
+  // TreeId is the object id of the listed directory.
+  string tree_id = 2;
+  // Entries are the entries of the directory: directories first, then the other
+  // entries, each group ordered by name.
+  repeated TreeEntry entries = 3;
+}
+
+// BlobInfo describes a file.
+message BlobInfo {
+  // Id is the object id of the blob.
+  string id = 1;
+  // Path is the path of the file from the repository root.
+  string path = 2;
+  // Size is the size of the whole content in bytes.
+  int64 size = 3;
+  // Binary is true if the content is binary, with Git's rule: a NUL byte in the
+  // first 8,000 bytes.
+  bool binary = 4;
+  // MediaType is the detected media type, for example "text/plain" or
+  // "image/png", from the file name and the first bytes. It is
+  // "application/octet-stream" when unknown.
+  string media_type = 5;
+  // Mode is the Git file mode, for example 0o100644 (33188 in decimal).
+  uint32 mode = 6;
+}
+
+// GetBlobRequest selects a file.
+message GetBlobRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Revision is a branch, a tag or a commit id. Empty means HEAD.
+  string revision = 2;
+  // Path is the file, from the repository root. It is required.
+  string path = 3;
+}
+
+// GetBlobResponse is one message of the content stream.
+message GetBlobResponse {
+  // Info describes the file. Set in the first message of the stream only.
+  BlobInfo info = 1;
+  // Chunk is the next part of the content, at most 64 KiB, in order. The first
+  // message may have an empty chunk. The chunks of a stream add up to
+  // info.size bytes.
+  bytes chunk = 2;
+}
+
+// ListCommitsRequest selects a page of history.
+message ListCommitsRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Revision is where the history starts: a branch, a tag or a commit id.
+  // Empty means HEAD.
+  string revision = 2;
+  // Path restricts the result to the commits that changed this file or
+  // directory. Empty means the whole history.
+  string path = 3;
+  // PageSize is the maximum number of commits to return. 0 means the server
+  // default; values above 100 are lowered to 100.
+  int32 page_size = 4;
+  // PageToken is the next_page_token of a previous response, to continue the
+  // same listing. Empty for the first page. Other fields must be unchanged.
+  string page_token = 5;
+}
+
+// ListCommitsResponse is one page of commits.
+message ListCommitsResponse {
+  // Commits are the commits of this page, newest first.
+  repeated Commit commits = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// GetCommitRequest selects a commit.
+message GetCommitRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Revision is a branch, a tag or a commit id. Empty means HEAD.
+  string revision = 2;
+}
+
+// GetCommitResponse holds a commit, its statistics and its diff.
+message GetCommitResponse {
+  // Commit is the commit metadata.
+  Commit commit = 1;
+  // Stats are the totals over all the changed files, including files that the
+  // diff omits or truncates.
+  DiffStats stats = 2;
+  // Diff is the structured diff against the first parent, or against the empty
+  // tree for a root commit. For a merge commit this is the change relative to
+  // the first parent.
+  Diff diff = 3;
+}
+
+// DiffStats are the totals of a diff.
+message DiffStats {
+  // FilesChanged is the number of changed files.
+  int32 files_changed = 1;
+  // Additions is the number of added lines. Binary files count for 0.
+  int32 additions = 2;
+  // Deletions is the number of deleted lines. Binary files count for 0.
+  int32 deletions = 3;
+}
+
+// Diff is the structured difference introduced by a commit.
+//
+// The server limits its size: at most 300 files, at most 2,000 lines in one
+// file and at most 20,000 lines in total (hunk lines, context included). These
+// numbers are server behaviour and may change; clients must rely on the
+// truncated flags, not on the numbers.
+message Diff {
+  // Files are the changed files, ordered by path. Files past the file limit are
+  // omitted.
+  repeated FileDiff files = 1;
+  // Truncated is true when the diff is incomplete: files were omitted, or at
+  // least one listed file has truncated set. DiffStats still count everything.
+  bool truncated = 2;
+}
+
+// FileDiff is the change of one file.
+message FileDiff {
+  // OldPath is the path before the commit. Empty for an added file.
+  string old_path = 1;
+  // NewPath is the path after the commit. Empty for a deleted file.
+  string new_path = 2;
+  // Status tells what happened to the file.
+  FileStatus status = 3;
+  // OldMode is the Git file mode before the commit, or 0 for an added file.
+  uint32 old_mode = 4;
+  // NewMode is the Git file mode after the commit, or 0 for a deleted file.
+  uint32 new_mode = 5;
+  // OldId is the blob id before the commit. Empty for an added file.
+  string old_id = 6;
+  // NewId is the blob id after the commit. Empty for a deleted file.
+  string new_id = 7;
+  // Binary is true if Git treats the file as binary (numstat reports "-"). A
+  // binary file has no hunks and additions and deletions are 0.
+  bool binary = 8;
+  // Additions is the number of added lines.
+  int32 additions = 9;
+  // Deletions is the number of deleted lines.
+  int32 deletions = 10;
+  // Similarity is the percentage (0-100) of unchanged content for a renamed or
+  // copied file, and 0 otherwise.
+  int32 similarity = 11;
+  // Truncated is true when the file exceeded a diff limit: hunks is then empty
+  // although the file changed. Additions and deletions remain accurate.
+  bool truncated = 12;
+  // Hunks are the changed regions, in file order. Empty for a binary file, a
+  // truncated file, a pure rename and a mode-only change.
+  repeated Hunk hunks = 13;
+}
+
+// Hunk is a contiguous changed region with its context.
+message Hunk {
+  // OldStart is the 1-based first line of the region in the old file. 0 when
+  // old_lines is 0 and the file was added.
+  int32 old_start = 1;
+  // OldLines is the number of old-side lines in the hunk.
+  int32 old_lines = 2;
+  // NewStart is the 1-based first line of the region in the new file. 0 when
+  // new_lines is 0 and the file was deleted.
+  int32 new_start = 3;
+  // NewLines is the number of new-side lines in the hunk.
+  int32 new_lines = 4;
+  // Header is the text after the second "@@" of the hunk header, usually the
+  // enclosing function. It may be empty.
+  string header = 5;
+  // Lines are the lines of the hunk, in order.
+  repeated Line lines = 6;
+}
+
+// Line is one line of a hunk.
+message Line {
+  // Kind tells which side the line belongs to.
+  LineKind kind = 1;
+  // OldNumber is the 1-based line number on the old side. 0 for an addition.
+  int32 old_number = 2;
+  // NewNumber is the 1-based line number on the new side. 0 for a deletion.
+  int32 new_number = 3;
+  // Text is the content without the line terminator. Bytes that are not valid
+  // UTF-8 are replaced by the replacement character.
+  string text = 4;
+  // NoNewlineAtEof is true when this is the last line of its side and the file
+  // does not end with a line break there.
+  bool no_newline_at_eof = 5;
+}
+
+// ResolveRevisionRequest names a revision.
+message ResolveRevisionRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Revision is a branch, a tag or a commit id. Empty means HEAD.
+  string revision = 2;
+}
+
+// ResolveRevisionResponse holds the resolved commit.
+message ResolveRevisionResponse {
+  // CommitId is the full id of the commit the revision designates, after
+  // following annotated tags.
+  string commit_id = 1;
+  // Ref is the full name of the ref the revision matched, for example
+  // "refs/heads/main". Empty when the revision was a commit id or for HEAD
+  // when it is resolved by default.
+  string ref = 2;
+}

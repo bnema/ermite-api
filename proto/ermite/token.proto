@@ -1,0 +1,132 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/timestamp.proto";
+
+// Scope is a permission carried by a token. The API knows scopes only; any
+// grouping into presets is a client concern.
+enum Scope {
+  // Not set. Rejected in requests, never returned by the server.
+  SCOPE_UNSPECIFIED = 0;
+  // SCOPE_REPO_READ allows reading private repositories (public ones need no
+  // token). Wire name: repo:read.
+  SCOPE_REPO_READ = 1;
+  // SCOPE_REPO_WRITE allows pushing and creating repositories. Wire name:
+  // repo:write.
+  SCOPE_REPO_WRITE = 2;
+  // SCOPE_REPO_ADMIN allows deleting a repository and changing its visibility,
+  // description or default branch. Wire name: repo:admin.
+  SCOPE_REPO_ADMIN = 3;
+  // SCOPE_MR_WRITE allows creating, commenting on and closing merge requests.
+  // Wire name: mr:write.
+  SCOPE_MR_WRITE = 4;
+  // SCOPE_MR_MERGE allows merging merge requests. Wire name: mr:merge.
+  SCOPE_MR_MERGE = 5;
+  // SCOPE_CI_WRITE allows re-running or cancelling CI runs. Wire name:
+  // ci:write.
+  SCOPE_CI_WRITE = 6;
+  // SCOPE_SECRETS_WRITE allows setting and deleting secrets and variables.
+  // Wire name: secrets:write.
+  SCOPE_SECRETS_WRITE = 7;
+  // SCOPE_RUNNER_REGISTER allows registering a CI runner. Wire name:
+  // runner:register.
+  SCOPE_RUNNER_REGISTER = 8;
+  // SCOPE_TOKEN_ADMIN allows creating, listing and revoking tokens. Wire name:
+  // token:admin.
+  SCOPE_TOKEN_ADMIN = 9;
+}
+
+// Token describes a stored token. It never contains the secret nor its hash.
+message Token {
+  // Id identifies the token in ListTokens and RevokeToken. It is not the
+  // secret and cannot be used to authenticate.
+  string id = 1;
+  // Label is a human-readable name chosen at creation.
+  string label = 2;
+  // Scopes are the permissions of the token. Never empty.
+  repeated Scope scopes = 3;
+  // Repos restricts the token to these repository names. Empty means every
+  // repository.
+  repeated string repos = 4;
+  // ExpiresAt is when the token stops working. Unset means it never expires.
+  google.protobuf.Timestamp expires_at = 5;
+  // CreatedAt is when the token was created.
+  google.protobuf.Timestamp created_at = 6;
+  // LastUsedAt is when the token last authenticated a request. Unset if never
+  // used. It may lag behind the real time by a short delay.
+  google.protobuf.Timestamp last_used_at = 7;
+}
+
+// TokenService manages stored tokens. Every RPC needs the token:admin scope.
+//
+// A token can only create tokens that are within its own limits: scopes that
+// it holds, repositories that it may access and an expiry no later than its
+// own. The root token (ERMITE_ADMIN_TOKEN) is not a stored token and is never
+// listed.
+service TokenService {
+  // CreateToken creates a token and returns its secret. The secret is shown
+  // only in this response and cannot be retrieved later. Fails with
+  // permission_denied when the new token would exceed the caller's limits and
+  // with invalid_argument when scopes is empty or contains SCOPE_UNSPECIFIED.
+  rpc CreateToken(CreateTokenRequest) returns (CreateTokenResponse);
+  // ListTokens lists stored tokens, newest first.
+  rpc ListTokens(ListTokensRequest) returns (ListTokensResponse);
+  // RevokeToken deletes a token; it stops working immediately. Fails with
+  // not_found if the id is unknown.
+  rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+}
+
+// CreateTokenRequest describes the token to create.
+message CreateTokenRequest {
+  // Label is a human-readable name, for example "laptop". Not required to be
+  // unique.
+  string label = 1;
+  // Scopes are the permissions to grant. At least one is required.
+  repeated Scope scopes = 2;
+  // Repos restricts the token to these repository names. Empty means every
+  // repository.
+  repeated string repos = 3;
+  // ExpiresAt is when the token stops working. Unset means no expiry. It must
+  // be in the future.
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+// CreateTokenResponse holds the new token and its secret.
+message CreateTokenResponse {
+  // Token describes the created token.
+  Token token = 1;
+  // Secret is the bearer secret to present as "Authorization: Bearer <secret>".
+  // It is returned once and never stored in clear text by the server.
+  string secret = 2;
+}
+
+// ListTokensRequest selects a page of tokens.
+message ListTokensRequest {
+  // PageSize is the maximum number of tokens to return. 0 means the server
+  // default; values above the server maximum are lowered to it.
+  int32 page_size = 1;
+  // PageToken is the next_page_token of a previous response. Empty for the
+  // first page.
+  string page_token = 2;
+}
+
+// ListTokensResponse is one page of tokens.
+message ListTokensResponse {
+  // Tokens are the tokens of this page, newest first.
+  repeated Token tokens = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// RevokeTokenRequest names the token to revoke.
+message RevokeTokenRequest {
+  // Id is the Token.id to revoke.
+  string id = 1;
+}
+
+// RevokeTokenResponse is empty.
+message RevokeTokenResponse {}

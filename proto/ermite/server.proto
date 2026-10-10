@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+// ServerService describes the server itself.
+service ServerService {
+  // GetVersion returns the server version and the optional capabilities of the
+  // contract it implements. It needs no authentication, so a client can call
+  // it first to check compatibility.
+  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+}
+
+// GetVersionRequest is empty.
+message GetVersionRequest {}
+
+// GetVersionResponse describes the running server.
+message GetVersionResponse {
+  // Version is the server release, for example "v0.4.0", or "devel" for an
+  // untagged build. Informational: clients must not compare it to decide what
+  // is supported, they use features instead.
+  string version = 1;
+  // Features lists identifiers of the optional capabilities of the contract
+  // that this server implements, for example "repo.update" or
+  // "events.resume". A client that needs a capability missing from this list
+  // should warn instead of failing on an unimplemented RPC or ignored field.
+  // Identifiers are lowercase, dot-separated and never reused.
+  repeated string features = 2;
+}

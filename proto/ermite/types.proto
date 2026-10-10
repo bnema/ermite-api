@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/timestamp.proto";
+
+// Signature identifies who did something in Git and when: the author or the
+// committer of a commit.
+message Signature {
+  // Name is the person's name as recorded in the commit.
+  string name = 1;
+  // Email is the person's email address as recorded in the commit.
+  string email = 2;
+  // Time is when the action happened. The time zone offset of the commit is
+  // not kept.
+  google.protobuf.Timestamp time = 3;
+}
+
+// Commit is the metadata of one Git commit.
+message Commit {
+  // Id is the full object id (40 lowercase hexadecimal characters for SHA-1).
+  string id = 1;
+  // ParentIds are the ids of the parent commits, first parent first. Empty for
+  // a root commit.
+  repeated string parent_ids = 2;
+  // Author is who wrote the change.
+  Signature author = 3;
+  // Committer is who recorded the commit.
+  Signature committer = 4;
+  // Summary is the first line of the message, without the line break.
+  string summary = 5;
+  // Message is the full commit message, including the summary. Text that is
+  // not valid UTF-8 is converted with the replacement character.
+  string message = 6;
+}

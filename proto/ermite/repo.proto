@@ -1,0 +1,145 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+// Visibility says who may read a repository.
+enum Visibility {
+  // Not set. In requests, the server applies its default (private on create,
+  // unchanged on update). Never returned by the server.
+  VISIBILITY_UNSPECIFIED = 0;
+  // Anyone, including anonymous callers, may read the repository.
+  VISIBILITY_PUBLIC = 1;
+  // Only callers holding the repo:read scope on the repository may read it.
+  // Everyone else gets not_found, never permission_denied.
+  VISIBILITY_PRIVATE = 2;
+}
+
+// Repo is the metadata of a repository. Git-owned state (refs, trees, history)
+// is read through GitService.
+message Repo {
+  // Name is the unique, lowercase repository name: 1-100 characters from
+  // [a-z0-9._-], without a ".git" suffix. It is also the URL path: /<name>.
+  string name = 1;
+  // Description is a free one-line description. It may be empty.
+  string description = 2;
+  // Visibility is who may read the repository.
+  Visibility visibility = 3;
+  // DefaultBranch is the short name of the branch HEAD points to, for example
+  // "main". It is set even when the branch does not exist yet (empty
+  // repository).
+  string default_branch = 4;
+  // CreatedAt is when the repository was created.
+  google.protobuf.Timestamp created_at = 5;
+  // PushedAt is the time of the last push. It is unset until the first push.
+  google.protobuf.Timestamp pushed_at = 6;
+}
+
+// RepoService manages repositories and their metadata.
+//
+// Anonymous callers see public repositories only. A private repository that the
+// caller cannot read is reported as not_found.
+service RepoService {
+  // ListRepos lists the repositories the caller may see, ordered by name.
+  rpc ListRepos(ListReposRequest) returns (ListReposResponse);
+  // GetRepo returns one repository. Fails with not_found if it does not exist
+  // or is private and not readable by the caller.
+  rpc GetRepo(GetRepoRequest) returns (GetRepoResponse);
+  // CreateRepo creates an empty repository. Needs the repo:write scope. Fails
+  // with already_exists if the name is taken and invalid_argument if the name
+  // is not valid.
+  rpc CreateRepo(CreateRepoRequest) returns (CreateRepoResponse);
+  // UpdateRepo changes the fields named in update_mask. Needs the repo:admin
+  // scope.
+  rpc UpdateRepo(UpdateRepoRequest) returns (UpdateRepoResponse);
+  // DeleteRepo deletes a repository. Needs the repo:admin scope. The server
+  // moves the data aside rather than destroying it; there is no undelete RPC.
+  rpc DeleteRepo(DeleteRepoRequest) returns (DeleteRepoResponse);
+}
+
+// ListReposRequest selects a page of repositories.
+message ListReposRequest {
+  // PageSize is the maximum number of repositories to return. 0 means the
+  // server default; values above the server maximum are lowered to it.
+  int32 page_size = 1;
+  // PageToken is the next_page_token of a previous response, to get the page
+  // after it. Empty for the first page.
+  string page_token = 2;
+}
+
+// ListReposResponse is one page of repositories.
+message ListReposResponse {
+  // Repos are the repositories of this page, ordered by name.
+  repeated Repo repos = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// GetRepoRequest names the repository to read.
+message GetRepoRequest {
+  // Repo is the repository name.
+  string repo = 1;
+}
+
+// GetRepoResponse holds the repository.
+message GetRepoResponse {
+  // Repo is the repository metadata.
+  Repo repo = 1;
+}
+
+// CreateRepoRequest describes the repository to create.
+message CreateRepoRequest {
+  // Name is the name of the new repository. Names are lowercase; an uppercase
+  // name is rejected with invalid_argument.
+  string name = 1;
+  // Description is an optional one-line description.
+  string description = 2;
+  // Visibility of the new repository. VISIBILITY_UNSPECIFIED means private.
+  Visibility visibility = 3;
+}
+
+// CreateRepoResponse holds the new repository.
+message CreateRepoResponse {
+  // Repo is the created repository.
+  Repo repo = 1;
+}
+
+// UpdateRepoRequest changes some fields of a repository.
+message UpdateRepoRequest {
+  // Repo is the name of the repository to change. Repositories cannot be
+  // renamed.
+  string repo = 1;
+  // Description is the new description. Used only if update_mask contains
+  // "description"; an empty value then clears it.
+  string description = 2;
+  // Visibility is the new visibility. Used only if update_mask contains
+  // "visibility"; it must not be VISIBILITY_UNSPECIFIED then.
+  Visibility visibility = 3;
+  // DefaultBranch is the short name of the new default branch. Used only if
+  // update_mask contains "default_branch". The branch must exist, otherwise
+  // the call fails with failed_precondition.
+  string default_branch = 4;
+  // UpdateMask lists the fields to change: "description", "visibility" and/or
+  // "default_branch". It must not be empty. Other paths are invalid_argument.
+  google.protobuf.FieldMask update_mask = 5;
+}
+
+// UpdateRepoResponse holds the repository after the update.
+message UpdateRepoResponse {
+  // Repo is the updated repository.
+  Repo repo = 1;
+}
+
+// DeleteRepoRequest names the repository to delete.
+message DeleteRepoRequest {
+  // Repo is the repository name.
+  string repo = 1;
+}
+
+// DeleteRepoResponse is empty.
+message DeleteRepoResponse {}
