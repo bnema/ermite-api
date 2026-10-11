@@ -1266,9 +1266,15 @@ type MergeMergeRequestRequest struct {
 	// HeadId is the full id of the commit the caller reviewed, that is the
 	// MergeRequest.head_id it was shown. Required. The merge happens only if the
 	// source branch still points to it.
-	HeadId        string `protobuf:"bytes,4,opt,name=head_id,json=headId,proto3" json:"head_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	HeadId string `protobuf:"bytes,4,opt,name=head_id,json=headId,proto3" json:"head_id,omitempty"`
+	// DeleteSourceBranch deletes the source branch after the merge. The merge
+	// is refused before anything changes when the source branch is the default
+	// branch of the repository or the source or target of another open merge
+	// request. Servers without the "merge_requests.delete_branch" feature ignore
+	// it.
+	DeleteSourceBranch bool `protobuf:"varint,5,opt,name=delete_source_branch,json=deleteSourceBranch,proto3" json:"delete_source_branch,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *MergeMergeRequestRequest) Reset() {
@@ -1329,15 +1335,26 @@ func (x *MergeMergeRequestRequest) GetHeadId() string {
 	return ""
 }
 
+func (x *MergeMergeRequestRequest) GetDeleteSourceBranch() bool {
+	if x != nil {
+		return x.DeleteSourceBranch
+	}
+	return false
+}
+
 // MergeMergeRequestResponse holds the merged merge request.
 type MergeMergeRequestResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// MergeRequest is the merge request after the merge: state MERGED,
 	// merged_commit_id set to the new tip of the target branch and merge_mode
 	// set to the mode used.
-	MergeRequest  *MergeRequest `protobuf:"bytes,1,opt,name=merge_request,json=mergeRequest,proto3" json:"merge_request,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	MergeRequest *MergeRequest `protobuf:"bytes,1,opt,name=merge_request,json=mergeRequest,proto3" json:"merge_request,omitempty"`
+	// SourceBranchDeleted is true when delete_source_branch was set and the
+	// branch is gone. It is false when the deletion failed after the merge (the
+	// branch moved in between, say): the merge stands and the branch is kept.
+	SourceBranchDeleted bool `protobuf:"varint,2,opt,name=source_branch_deleted,json=sourceBranchDeleted,proto3" json:"source_branch_deleted,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *MergeMergeRequestResponse) Reset() {
@@ -1375,6 +1392,13 @@ func (x *MergeMergeRequestResponse) GetMergeRequest() *MergeRequest {
 		return x.MergeRequest
 	}
 	return nil
+}
+
+func (x *MergeMergeRequestResponse) GetSourceBranchDeleted() bool {
+	if x != nil {
+		return x.SourceBranchDeleted
+	}
+	return false
 }
 
 // MarkReadRequest records a read position.
@@ -1568,14 +1592,16 @@ const file_ermite_merge_request_proto_rawDesc = "" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
 	"\x06number\x18\x02 \x01(\x03R\x06number\"V\n" +
 	"\x19CloseMergeRequestResponse\x129\n" +
-	"\rmerge_request\x18\x01 \x01(\v2\x14.ermite.MergeRequestR\fmergeRequest\"\x86\x01\n" +
+	"\rmerge_request\x18\x01 \x01(\v2\x14.ermite.MergeRequestR\fmergeRequest\"\xb8\x01\n" +
 	"\x18MergeMergeRequestRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
 	"\x06number\x18\x02 \x01(\x03R\x06number\x12%\n" +
 	"\x04mode\x18\x03 \x01(\x0e2\x11.ermite.MergeModeR\x04mode\x12\x17\n" +
-	"\ahead_id\x18\x04 \x01(\tR\x06headId\"V\n" +
+	"\ahead_id\x18\x04 \x01(\tR\x06headId\x120\n" +
+	"\x14delete_source_branch\x18\x05 \x01(\bR\x12deleteSourceBranch\"\x8a\x01\n" +
 	"\x19MergeMergeRequestResponse\x129\n" +
-	"\rmerge_request\x18\x01 \x01(\v2\x14.ermite.MergeRequestR\fmergeRequest\"V\n" +
+	"\rmerge_request\x18\x01 \x01(\v2\x14.ermite.MergeRequestR\fmergeRequest\x122\n" +
+	"\x15source_branch_deleted\x18\x02 \x01(\bR\x13sourceBranchDeleted\"V\n" +
 	"\x0fMarkReadRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
 	"\x06number\x18\x02 \x01(\x03R\x06number\x12\x17\n" +

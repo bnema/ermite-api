@@ -345,6 +345,12 @@ message MergeMergeRequestRequest {
   // MergeRequest.head_id it was shown. Required. The merge happens only if the
   // source branch still points to it.
   string head_id = 4;
+  // DeleteSourceBranch deletes the source branch after the merge. The merge
+  // is refused before anything changes when the source branch is the default
+  // branch of the repository or the source or target of another open merge
+  // request. Servers without the "merge_requests.delete_branch" feature ignore
+  // it.
+  bool delete_source_branch = 5;
 }
 
 // MergeMergeRequestResponse holds the merged merge request.
@@ -353,6 +359,10 @@ message MergeMergeRequestResponse {
   // merged_commit_id set to the new tip of the target branch and merge_mode
   // set to the mode used.
   MergeRequest merge_request = 1;
+  // SourceBranchDeleted is true when delete_source_branch was set and the
+  // branch is gone. It is false when the deletion failed after the merge (the
+  // branch moved in between, say): the merge stands and the branch is kept.
+  bool source_branch_deleted = 2;
 }
 
 // MarkReadRequest records a read position.
