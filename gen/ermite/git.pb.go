@@ -760,6 +760,136 @@ func (x *GetTreeResponse) GetTruncated() bool {
 	return false
 }
 
+// ListPathsRequest selects a revision.
+type ListPathsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Repo is the repository name.
+	Repo string `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	// Revision is a branch, a tag or a commit id. Empty means HEAD.
+	Revision      string `protobuf:"bytes,2,opt,name=revision,proto3" json:"revision,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPathsRequest) Reset() {
+	*x = ListPathsRequest{}
+	mi := &file_ermite_git_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPathsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPathsRequest) ProtoMessage() {}
+
+func (x *ListPathsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_git_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPathsRequest.ProtoReflect.Descriptor instead.
+func (*ListPathsRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_git_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListPathsRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *ListPathsRequest) GetRevision() string {
+	if x != nil {
+		return x.Revision
+	}
+	return ""
+}
+
+// ListPathsResponse lists the file paths of a revision.
+type ListPathsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// CommitId is the id of the commit the revision resolved to.
+	CommitId string `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
+	// TreeId is the object id of its root tree.
+	TreeId string `protobuf:"bytes,2,opt,name=tree_id,json=treeId,proto3" json:"tree_id,omitempty"`
+	// Paths are the paths of the files and symbolic links, in Git tree order. A
+	// response holds at most 100,000 paths and 8 MiB of path bytes (server limits
+	// that may change; rely on truncated, not on the numbers).
+	Paths []string `protobuf:"bytes,3,rep,name=paths,proto3" json:"paths,omitempty"`
+	// Truncated is true when more paths exist past the first ones returned.
+	Truncated     bool `protobuf:"varint,4,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPathsResponse) Reset() {
+	*x = ListPathsResponse{}
+	mi := &file_ermite_git_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPathsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPathsResponse) ProtoMessage() {}
+
+func (x *ListPathsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_git_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPathsResponse.ProtoReflect.Descriptor instead.
+func (*ListPathsResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_git_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListPathsResponse) GetCommitId() string {
+	if x != nil {
+		return x.CommitId
+	}
+	return ""
+}
+
+func (x *ListPathsResponse) GetTreeId() string {
+	if x != nil {
+		return x.TreeId
+	}
+	return ""
+}
+
+func (x *ListPathsResponse) GetPaths() []string {
+	if x != nil {
+		return x.Paths
+	}
+	return nil
+}
+
+func (x *ListPathsResponse) GetTruncated() bool {
+	if x != nil {
+		return x.Truncated
+	}
+	return false
+}
+
 // BlobInfo describes a file.
 type BlobInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -784,7 +914,7 @@ type BlobInfo struct {
 
 func (x *BlobInfo) Reset() {
 	*x = BlobInfo{}
-	mi := &file_ermite_git_proto_msgTypes[6]
+	mi := &file_ermite_git_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -796,7 +926,7 @@ func (x *BlobInfo) String() string {
 func (*BlobInfo) ProtoMessage() {}
 
 func (x *BlobInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[6]
+	mi := &file_ermite_git_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -809,7 +939,7 @@ func (x *BlobInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlobInfo.ProtoReflect.Descriptor instead.
 func (*BlobInfo) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{6}
+	return file_ermite_git_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *BlobInfo) GetId() string {
@@ -869,7 +999,7 @@ type GetBlobRequest struct {
 
 func (x *GetBlobRequest) Reset() {
 	*x = GetBlobRequest{}
-	mi := &file_ermite_git_proto_msgTypes[7]
+	mi := &file_ermite_git_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -881,7 +1011,7 @@ func (x *GetBlobRequest) String() string {
 func (*GetBlobRequest) ProtoMessage() {}
 
 func (x *GetBlobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[7]
+	mi := &file_ermite_git_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -894,7 +1024,7 @@ func (x *GetBlobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlobRequest.ProtoReflect.Descriptor instead.
 func (*GetBlobRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{7}
+	return file_ermite_git_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetBlobRequest) GetRepo() string {
@@ -933,7 +1063,7 @@ type GetBlobResponse struct {
 
 func (x *GetBlobResponse) Reset() {
 	*x = GetBlobResponse{}
-	mi := &file_ermite_git_proto_msgTypes[8]
+	mi := &file_ermite_git_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -945,7 +1075,7 @@ func (x *GetBlobResponse) String() string {
 func (*GetBlobResponse) ProtoMessage() {}
 
 func (x *GetBlobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[8]
+	mi := &file_ermite_git_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -958,7 +1088,7 @@ func (x *GetBlobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlobResponse.ProtoReflect.Descriptor instead.
 func (*GetBlobResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{8}
+	return file_ermite_git_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetBlobResponse) GetInfo() *BlobInfo {
@@ -998,7 +1128,7 @@ type ListCommitsRequest struct {
 
 func (x *ListCommitsRequest) Reset() {
 	*x = ListCommitsRequest{}
-	mi := &file_ermite_git_proto_msgTypes[9]
+	mi := &file_ermite_git_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1010,7 +1140,7 @@ func (x *ListCommitsRequest) String() string {
 func (*ListCommitsRequest) ProtoMessage() {}
 
 func (x *ListCommitsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[9]
+	mi := &file_ermite_git_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1023,7 +1153,7 @@ func (x *ListCommitsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCommitsRequest.ProtoReflect.Descriptor instead.
 func (*ListCommitsRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{9}
+	return file_ermite_git_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListCommitsRequest) GetRepo() string {
@@ -1075,7 +1205,7 @@ type ListCommitsResponse struct {
 
 func (x *ListCommitsResponse) Reset() {
 	*x = ListCommitsResponse{}
-	mi := &file_ermite_git_proto_msgTypes[10]
+	mi := &file_ermite_git_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1087,7 +1217,7 @@ func (x *ListCommitsResponse) String() string {
 func (*ListCommitsResponse) ProtoMessage() {}
 
 func (x *ListCommitsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[10]
+	mi := &file_ermite_git_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1100,7 +1230,7 @@ func (x *ListCommitsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCommitsResponse.ProtoReflect.Descriptor instead.
 func (*ListCommitsResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{10}
+	return file_ermite_git_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListCommitsResponse) GetCommits() []*Commit {
@@ -1130,7 +1260,7 @@ type GetCommitRequest struct {
 
 func (x *GetCommitRequest) Reset() {
 	*x = GetCommitRequest{}
-	mi := &file_ermite_git_proto_msgTypes[11]
+	mi := &file_ermite_git_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1142,7 +1272,7 @@ func (x *GetCommitRequest) String() string {
 func (*GetCommitRequest) ProtoMessage() {}
 
 func (x *GetCommitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[11]
+	mi := &file_ermite_git_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1155,7 +1285,7 @@ func (x *GetCommitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCommitRequest.ProtoReflect.Descriptor instead.
 func (*GetCommitRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{11}
+	return file_ermite_git_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetCommitRequest) GetRepo() string {
@@ -1190,7 +1320,7 @@ type GetCommitResponse struct {
 
 func (x *GetCommitResponse) Reset() {
 	*x = GetCommitResponse{}
-	mi := &file_ermite_git_proto_msgTypes[12]
+	mi := &file_ermite_git_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1202,7 +1332,7 @@ func (x *GetCommitResponse) String() string {
 func (*GetCommitResponse) ProtoMessage() {}
 
 func (x *GetCommitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[12]
+	mi := &file_ermite_git_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1215,7 +1345,7 @@ func (x *GetCommitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCommitResponse.ProtoReflect.Descriptor instead.
 func (*GetCommitResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{12}
+	return file_ermite_git_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetCommitResponse) GetCommit() *Commit {
@@ -1254,7 +1384,7 @@ type DiffStats struct {
 
 func (x *DiffStats) Reset() {
 	*x = DiffStats{}
-	mi := &file_ermite_git_proto_msgTypes[13]
+	mi := &file_ermite_git_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1266,7 +1396,7 @@ func (x *DiffStats) String() string {
 func (*DiffStats) ProtoMessage() {}
 
 func (x *DiffStats) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[13]
+	mi := &file_ermite_git_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1279,7 +1409,7 @@ func (x *DiffStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiffStats.ProtoReflect.Descriptor instead.
 func (*DiffStats) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{13}
+	return file_ermite_git_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DiffStats) GetFilesChanged() int32 {
@@ -1323,7 +1453,7 @@ type Diff struct {
 
 func (x *Diff) Reset() {
 	*x = Diff{}
-	mi := &file_ermite_git_proto_msgTypes[14]
+	mi := &file_ermite_git_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1335,7 +1465,7 @@ func (x *Diff) String() string {
 func (*Diff) ProtoMessage() {}
 
 func (x *Diff) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[14]
+	mi := &file_ermite_git_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1348,7 +1478,7 @@ func (x *Diff) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Diff.ProtoReflect.Descriptor instead.
 func (*Diff) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{14}
+	return file_ermite_git_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Diff) GetFiles() []*FileDiff {
@@ -1404,7 +1534,7 @@ type FileDiff struct {
 
 func (x *FileDiff) Reset() {
 	*x = FileDiff{}
-	mi := &file_ermite_git_proto_msgTypes[15]
+	mi := &file_ermite_git_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1416,7 +1546,7 @@ func (x *FileDiff) String() string {
 func (*FileDiff) ProtoMessage() {}
 
 func (x *FileDiff) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[15]
+	mi := &file_ermite_git_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1429,7 +1559,7 @@ func (x *FileDiff) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileDiff.ProtoReflect.Descriptor instead.
 func (*FileDiff) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{15}
+	return file_ermite_git_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *FileDiff) GetOldPath() string {
@@ -1547,7 +1677,7 @@ type Hunk struct {
 
 func (x *Hunk) Reset() {
 	*x = Hunk{}
-	mi := &file_ermite_git_proto_msgTypes[16]
+	mi := &file_ermite_git_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1559,7 +1689,7 @@ func (x *Hunk) String() string {
 func (*Hunk) ProtoMessage() {}
 
 func (x *Hunk) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[16]
+	mi := &file_ermite_git_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1572,7 +1702,7 @@ func (x *Hunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Hunk.ProtoReflect.Descriptor instead.
 func (*Hunk) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{16}
+	return file_ermite_git_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *Hunk) GetOldStart() int32 {
@@ -1638,7 +1768,7 @@ type Line struct {
 
 func (x *Line) Reset() {
 	*x = Line{}
-	mi := &file_ermite_git_proto_msgTypes[17]
+	mi := &file_ermite_git_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1650,7 +1780,7 @@ func (x *Line) String() string {
 func (*Line) ProtoMessage() {}
 
 func (x *Line) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[17]
+	mi := &file_ermite_git_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1663,7 +1793,7 @@ func (x *Line) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Line.ProtoReflect.Descriptor instead.
 func (*Line) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{17}
+	return file_ermite_git_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *Line) GetKind() LineKind {
@@ -1714,7 +1844,7 @@ type ResolveRevisionRequest struct {
 
 func (x *ResolveRevisionRequest) Reset() {
 	*x = ResolveRevisionRequest{}
-	mi := &file_ermite_git_proto_msgTypes[18]
+	mi := &file_ermite_git_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1726,7 +1856,7 @@ func (x *ResolveRevisionRequest) String() string {
 func (*ResolveRevisionRequest) ProtoMessage() {}
 
 func (x *ResolveRevisionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[18]
+	mi := &file_ermite_git_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1739,7 +1869,7 @@ func (x *ResolveRevisionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveRevisionRequest.ProtoReflect.Descriptor instead.
 func (*ResolveRevisionRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{18}
+	return file_ermite_git_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ResolveRevisionRequest) GetRepo() string {
@@ -1772,7 +1902,7 @@ type ResolveRevisionResponse struct {
 
 func (x *ResolveRevisionResponse) Reset() {
 	*x = ResolveRevisionResponse{}
-	mi := &file_ermite_git_proto_msgTypes[19]
+	mi := &file_ermite_git_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1784,7 +1914,7 @@ func (x *ResolveRevisionResponse) String() string {
 func (*ResolveRevisionResponse) ProtoMessage() {}
 
 func (x *ResolveRevisionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_git_proto_msgTypes[19]
+	mi := &file_ermite_git_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1797,7 +1927,7 @@ func (x *ResolveRevisionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveRevisionResponse.ProtoReflect.Descriptor instead.
 func (*ResolveRevisionResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{19}
+	return file_ermite_git_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ResolveRevisionResponse) GetCommitId() string {
@@ -1854,7 +1984,15 @@ const file_ermite_git_proto_rawDesc = "" +
 	"\atree_id\x18\x02 \x01(\tR\x06treeId\x12+\n" +
 	"\aentries\x18\x03 \x03(\v2\x11.ermite.TreeEntryR\aentries\x124\n" +
 	"\x16last_commits_truncated\x18\x04 \x01(\bR\x14lastCommitsTruncated\x12\x1c\n" +
-	"\ttruncated\x18\x05 \x01(\bR\ttruncated\"\x8d\x01\n" +
+	"\ttruncated\x18\x05 \x01(\bR\ttruncated\"B\n" +
+	"\x10ListPathsRequest\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x1a\n" +
+	"\brevision\x18\x02 \x01(\tR\brevision\"}\n" +
+	"\x11ListPathsResponse\x12\x1b\n" +
+	"\tcommit_id\x18\x01 \x01(\tR\bcommitId\x12\x17\n" +
+	"\atree_id\x18\x02 \x01(\tR\x06treeId\x12\x14\n" +
+	"\x05paths\x18\x03 \x03(\tR\x05paths\x12\x1c\n" +
+	"\ttruncated\x18\x04 \x01(\bR\ttruncated\"\x8d\x01\n" +
 	"\bBlobInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x12\n" +
@@ -1957,11 +2095,12 @@ const file_ermite_git_proto_rawDesc = "" +
 	"\x15LINE_KIND_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11LINE_KIND_CONTEXT\x10\x01\x12\x16\n" +
 	"\x12LINE_KIND_ADDITION\x10\x02\x12\x16\n" +
-	"\x12LINE_KIND_DELETION\x10\x032\xa3\x03\n" +
+	"\x12LINE_KIND_DELETION\x10\x032\xe5\x03\n" +
 	"\n" +
 	"GitService\x12=\n" +
 	"\bListRefs\x12\x17.ermite.ListRefsRequest\x1a\x18.ermite.ListRefsResponse\x12:\n" +
-	"\aGetTree\x12\x16.ermite.GetTreeRequest\x1a\x17.ermite.GetTreeResponse\x12<\n" +
+	"\aGetTree\x12\x16.ermite.GetTreeRequest\x1a\x17.ermite.GetTreeResponse\x12@\n" +
+	"\tListPaths\x12\x18.ermite.ListPathsRequest\x1a\x19.ermite.ListPathsResponse\x12<\n" +
 	"\aGetBlob\x12\x16.ermite.GetBlobRequest\x1a\x17.ermite.GetBlobResponse0\x01\x12F\n" +
 	"\vListCommits\x12\x1a.ermite.ListCommitsRequest\x1a\x1b.ermite.ListCommitsResponse\x12@\n" +
 	"\tGetCommit\x12\x18.ermite.GetCommitRequest\x1a\x19.ermite.GetCommitResponse\x12R\n" +
@@ -1982,7 +2121,7 @@ func file_ermite_git_proto_rawDescGZIP() []byte {
 }
 
 var file_ermite_git_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_ermite_git_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_ermite_git_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_ermite_git_proto_goTypes = []any{
 	(RefKind)(0),                    // 0: ermite.RefKind
 	(EntryKind)(0),                  // 1: ermite.EntryKind
@@ -1994,53 +2133,57 @@ var file_ermite_git_proto_goTypes = []any{
 	(*TreeEntry)(nil),               // 7: ermite.TreeEntry
 	(*GetTreeRequest)(nil),          // 8: ermite.GetTreeRequest
 	(*GetTreeResponse)(nil),         // 9: ermite.GetTreeResponse
-	(*BlobInfo)(nil),                // 10: ermite.BlobInfo
-	(*GetBlobRequest)(nil),          // 11: ermite.GetBlobRequest
-	(*GetBlobResponse)(nil),         // 12: ermite.GetBlobResponse
-	(*ListCommitsRequest)(nil),      // 13: ermite.ListCommitsRequest
-	(*ListCommitsResponse)(nil),     // 14: ermite.ListCommitsResponse
-	(*GetCommitRequest)(nil),        // 15: ermite.GetCommitRequest
-	(*GetCommitResponse)(nil),       // 16: ermite.GetCommitResponse
-	(*DiffStats)(nil),               // 17: ermite.DiffStats
-	(*Diff)(nil),                    // 18: ermite.Diff
-	(*FileDiff)(nil),                // 19: ermite.FileDiff
-	(*Hunk)(nil),                    // 20: ermite.Hunk
-	(*Line)(nil),                    // 21: ermite.Line
-	(*ResolveRevisionRequest)(nil),  // 22: ermite.ResolveRevisionRequest
-	(*ResolveRevisionResponse)(nil), // 23: ermite.ResolveRevisionResponse
-	(*Commit)(nil),                  // 24: ermite.Commit
+	(*ListPathsRequest)(nil),        // 10: ermite.ListPathsRequest
+	(*ListPathsResponse)(nil),       // 11: ermite.ListPathsResponse
+	(*BlobInfo)(nil),                // 12: ermite.BlobInfo
+	(*GetBlobRequest)(nil),          // 13: ermite.GetBlobRequest
+	(*GetBlobResponse)(nil),         // 14: ermite.GetBlobResponse
+	(*ListCommitsRequest)(nil),      // 15: ermite.ListCommitsRequest
+	(*ListCommitsResponse)(nil),     // 16: ermite.ListCommitsResponse
+	(*GetCommitRequest)(nil),        // 17: ermite.GetCommitRequest
+	(*GetCommitResponse)(nil),       // 18: ermite.GetCommitResponse
+	(*DiffStats)(nil),               // 19: ermite.DiffStats
+	(*Diff)(nil),                    // 20: ermite.Diff
+	(*FileDiff)(nil),                // 21: ermite.FileDiff
+	(*Hunk)(nil),                    // 22: ermite.Hunk
+	(*Line)(nil),                    // 23: ermite.Line
+	(*ResolveRevisionRequest)(nil),  // 24: ermite.ResolveRevisionRequest
+	(*ResolveRevisionResponse)(nil), // 25: ermite.ResolveRevisionResponse
+	(*Commit)(nil),                  // 26: ermite.Commit
 }
 var file_ermite_git_proto_depIdxs = []int32{
 	0,  // 0: ermite.Ref.kind:type_name -> ermite.RefKind
 	0,  // 1: ermite.ListRefsRequest.kinds:type_name -> ermite.RefKind
 	4,  // 2: ermite.ListRefsResponse.refs:type_name -> ermite.Ref
 	1,  // 3: ermite.TreeEntry.kind:type_name -> ermite.EntryKind
-	24, // 4: ermite.TreeEntry.last_commit:type_name -> ermite.Commit
+	26, // 4: ermite.TreeEntry.last_commit:type_name -> ermite.Commit
 	7,  // 5: ermite.GetTreeResponse.entries:type_name -> ermite.TreeEntry
-	10, // 6: ermite.GetBlobResponse.info:type_name -> ermite.BlobInfo
-	24, // 7: ermite.ListCommitsResponse.commits:type_name -> ermite.Commit
-	24, // 8: ermite.GetCommitResponse.commit:type_name -> ermite.Commit
-	17, // 9: ermite.GetCommitResponse.stats:type_name -> ermite.DiffStats
-	18, // 10: ermite.GetCommitResponse.diff:type_name -> ermite.Diff
-	19, // 11: ermite.Diff.files:type_name -> ermite.FileDiff
+	12, // 6: ermite.GetBlobResponse.info:type_name -> ermite.BlobInfo
+	26, // 7: ermite.ListCommitsResponse.commits:type_name -> ermite.Commit
+	26, // 8: ermite.GetCommitResponse.commit:type_name -> ermite.Commit
+	19, // 9: ermite.GetCommitResponse.stats:type_name -> ermite.DiffStats
+	20, // 10: ermite.GetCommitResponse.diff:type_name -> ermite.Diff
+	21, // 11: ermite.Diff.files:type_name -> ermite.FileDiff
 	2,  // 12: ermite.FileDiff.status:type_name -> ermite.FileStatus
-	20, // 13: ermite.FileDiff.hunks:type_name -> ermite.Hunk
-	21, // 14: ermite.Hunk.lines:type_name -> ermite.Line
+	22, // 13: ermite.FileDiff.hunks:type_name -> ermite.Hunk
+	23, // 14: ermite.Hunk.lines:type_name -> ermite.Line
 	3,  // 15: ermite.Line.kind:type_name -> ermite.LineKind
 	5,  // 16: ermite.GitService.ListRefs:input_type -> ermite.ListRefsRequest
 	8,  // 17: ermite.GitService.GetTree:input_type -> ermite.GetTreeRequest
-	11, // 18: ermite.GitService.GetBlob:input_type -> ermite.GetBlobRequest
-	13, // 19: ermite.GitService.ListCommits:input_type -> ermite.ListCommitsRequest
-	15, // 20: ermite.GitService.GetCommit:input_type -> ermite.GetCommitRequest
-	22, // 21: ermite.GitService.ResolveRevision:input_type -> ermite.ResolveRevisionRequest
-	6,  // 22: ermite.GitService.ListRefs:output_type -> ermite.ListRefsResponse
-	9,  // 23: ermite.GitService.GetTree:output_type -> ermite.GetTreeResponse
-	12, // 24: ermite.GitService.GetBlob:output_type -> ermite.GetBlobResponse
-	14, // 25: ermite.GitService.ListCommits:output_type -> ermite.ListCommitsResponse
-	16, // 26: ermite.GitService.GetCommit:output_type -> ermite.GetCommitResponse
-	23, // 27: ermite.GitService.ResolveRevision:output_type -> ermite.ResolveRevisionResponse
-	22, // [22:28] is the sub-list for method output_type
-	16, // [16:22] is the sub-list for method input_type
+	10, // 18: ermite.GitService.ListPaths:input_type -> ermite.ListPathsRequest
+	13, // 19: ermite.GitService.GetBlob:input_type -> ermite.GetBlobRequest
+	15, // 20: ermite.GitService.ListCommits:input_type -> ermite.ListCommitsRequest
+	17, // 21: ermite.GitService.GetCommit:input_type -> ermite.GetCommitRequest
+	24, // 22: ermite.GitService.ResolveRevision:input_type -> ermite.ResolveRevisionRequest
+	6,  // 23: ermite.GitService.ListRefs:output_type -> ermite.ListRefsResponse
+	9,  // 24: ermite.GitService.GetTree:output_type -> ermite.GetTreeResponse
+	11, // 25: ermite.GitService.ListPaths:output_type -> ermite.ListPathsResponse
+	14, // 26: ermite.GitService.GetBlob:output_type -> ermite.GetBlobResponse
+	16, // 27: ermite.GitService.ListCommits:output_type -> ermite.ListCommitsResponse
+	18, // 28: ermite.GitService.GetCommit:output_type -> ermite.GetCommitResponse
+	25, // 29: ermite.GitService.ResolveRevision:output_type -> ermite.ResolveRevisionResponse
+	23, // [23:30] is the sub-list for method output_type
+	16, // [16:23] is the sub-list for method input_type
 	16, // [16:16] is the sub-list for extension type_name
 	16, // [16:16] is the sub-list for extension extendee
 	0,  // [0:16] is the sub-list for field type_name
@@ -2058,7 +2201,7 @@ func file_ermite_git_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_git_proto_rawDesc), len(file_ermite_git_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   20,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
