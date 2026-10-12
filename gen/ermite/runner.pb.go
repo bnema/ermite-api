@@ -24,143 +24,143 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// RunStatus is where a run, a job or a check is in its life. It is the same
+// CiStatus is where a run, a job or a check is in its life. It is the same
 // as GitHub's status, without the rarely used values.
-type RunStatus int32
+type CiStatus int32
 
 const (
 	// Not set. In a filter it means every status. Never returned by the server.
-	RunStatus_RUN_STATUS_UNSPECIFIED RunStatus = 0
+	CiStatus_CI_STATUS_UNSPECIFIED CiStatus = 0
 	// Waiting: for a runner, for the jobs it needs, or for its turn
 	// (max-parallel).
-	RunStatus_RUN_STATUS_QUEUED RunStatus = 1
+	CiStatus_CI_STATUS_QUEUED CiStatus = 1
 	// At least one job has been given to a runner and has not ended.
-	RunStatus_RUN_STATUS_IN_PROGRESS RunStatus = 2
+	CiStatus_CI_STATUS_IN_PROGRESS CiStatus = 2
 	// Over. The conclusion says how it ended.
-	RunStatus_RUN_STATUS_COMPLETED RunStatus = 3
+	CiStatus_CI_STATUS_COMPLETED CiStatus = 3
 )
 
-// Enum value maps for RunStatus.
+// Enum value maps for CiStatus.
 var (
-	RunStatus_name = map[int32]string{
-		0: "RUN_STATUS_UNSPECIFIED",
-		1: "RUN_STATUS_QUEUED",
-		2: "RUN_STATUS_IN_PROGRESS",
-		3: "RUN_STATUS_COMPLETED",
+	CiStatus_name = map[int32]string{
+		0: "CI_STATUS_UNSPECIFIED",
+		1: "CI_STATUS_QUEUED",
+		2: "CI_STATUS_IN_PROGRESS",
+		3: "CI_STATUS_COMPLETED",
 	}
-	RunStatus_value = map[string]int32{
-		"RUN_STATUS_UNSPECIFIED": 0,
-		"RUN_STATUS_QUEUED":      1,
-		"RUN_STATUS_IN_PROGRESS": 2,
-		"RUN_STATUS_COMPLETED":   3,
+	CiStatus_value = map[string]int32{
+		"CI_STATUS_UNSPECIFIED": 0,
+		"CI_STATUS_QUEUED":      1,
+		"CI_STATUS_IN_PROGRESS": 2,
+		"CI_STATUS_COMPLETED":   3,
 	}
 )
 
-func (x RunStatus) Enum() *RunStatus {
-	p := new(RunStatus)
+func (x CiStatus) Enum() *CiStatus {
+	p := new(CiStatus)
 	*p = x
 	return p
 }
 
-func (x RunStatus) String() string {
+func (x CiStatus) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (RunStatus) Descriptor() protoreflect.EnumDescriptor {
+func (CiStatus) Descriptor() protoreflect.EnumDescriptor {
 	return file_ermite_runner_proto_enumTypes[0].Descriptor()
 }
 
-func (RunStatus) Type() protoreflect.EnumType {
+func (CiStatus) Type() protoreflect.EnumType {
 	return &file_ermite_runner_proto_enumTypes[0]
 }
 
-func (x RunStatus) Number() protoreflect.EnumNumber {
+func (x CiStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use RunStatus.Descriptor instead.
-func (RunStatus) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use CiStatus.Descriptor instead.
+func (CiStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ermite_runner_proto_rawDescGZIP(), []int{0}
 }
 
-// Conclusion is how a run, a job, a step or a check ended, with GitHub's
-// values and meaning. It is unset (CONCLUSION_UNSPECIFIED) until the status is
+// CiConclusion is how a run, a job, a step or a check ended, with GitHub's
+// values and meaning. It is unset (CI_CONCLUSION_UNSPECIFIED) until the status is
 // COMPLETED.
-type Conclusion int32
+type CiConclusion int32
 
 const (
 	// Not completed yet. Never returned by the server for a completed item.
-	Conclusion_CONCLUSION_UNSPECIFIED Conclusion = 0
+	CiConclusion_CI_CONCLUSION_UNSPECIFIED CiConclusion = 0
 	// Everything it ran succeeded.
-	Conclusion_CONCLUSION_SUCCESS Conclusion = 1
+	CiConclusion_CI_CONCLUSION_SUCCESS CiConclusion = 1
 	// A step failed, or the job failed for another reason described in
 	// RunJob.error (runner lost, queue timeout, log limit, feature not
 	// supported yet, invalid workflow file).
-	Conclusion_CONCLUSION_FAILURE Conclusion = 2
+	CiConclusion_CI_CONCLUSION_FAILURE CiConclusion = 2
 	// Cancelled by the owner, or by fail-fast, or because the runner shut down.
-	Conclusion_CONCLUSION_CANCELLED Conclusion = 3
+	CiConclusion_CI_CONCLUSION_CANCELLED CiConclusion = 3
 	// Never ran: its "if" was false, or a job it needs did not succeed, or it was
 	// not selected. Never reported by a runner.
-	Conclusion_CONCLUSION_SKIPPED Conclusion = 4
+	CiConclusion_CI_CONCLUSION_SKIPPED CiConclusion = 4
 	// Exceeded its timeout.
-	Conclusion_CONCLUSION_TIMED_OUT Conclusion = 5
+	CiConclusion_CI_CONCLUSION_TIMED_OUT CiConclusion = 5
 	// Neither a success nor a failure. Defined for parity with GitHub; no
 	// workflow job ends this way yet. For merging it counts as a success.
-	Conclusion_CONCLUSION_NEUTRAL Conclusion = 6
+	CiConclusion_CI_CONCLUSION_NEUTRAL CiConclusion = 6
 	// Waits for a human action (for example the approval of an environment).
 	// Defined for parity with GitHub; the server does not produce it before
 	// environments exist. For merging it counts as a failure.
-	Conclusion_CONCLUSION_ACTION_REQUIRED Conclusion = 7
+	CiConclusion_CI_CONCLUSION_ACTION_REQUIRED CiConclusion = 7
 )
 
-// Enum value maps for Conclusion.
+// Enum value maps for CiConclusion.
 var (
-	Conclusion_name = map[int32]string{
-		0: "CONCLUSION_UNSPECIFIED",
-		1: "CONCLUSION_SUCCESS",
-		2: "CONCLUSION_FAILURE",
-		3: "CONCLUSION_CANCELLED",
-		4: "CONCLUSION_SKIPPED",
-		5: "CONCLUSION_TIMED_OUT",
-		6: "CONCLUSION_NEUTRAL",
-		7: "CONCLUSION_ACTION_REQUIRED",
+	CiConclusion_name = map[int32]string{
+		0: "CI_CONCLUSION_UNSPECIFIED",
+		1: "CI_CONCLUSION_SUCCESS",
+		2: "CI_CONCLUSION_FAILURE",
+		3: "CI_CONCLUSION_CANCELLED",
+		4: "CI_CONCLUSION_SKIPPED",
+		5: "CI_CONCLUSION_TIMED_OUT",
+		6: "CI_CONCLUSION_NEUTRAL",
+		7: "CI_CONCLUSION_ACTION_REQUIRED",
 	}
-	Conclusion_value = map[string]int32{
-		"CONCLUSION_UNSPECIFIED":     0,
-		"CONCLUSION_SUCCESS":         1,
-		"CONCLUSION_FAILURE":         2,
-		"CONCLUSION_CANCELLED":       3,
-		"CONCLUSION_SKIPPED":         4,
-		"CONCLUSION_TIMED_OUT":       5,
-		"CONCLUSION_NEUTRAL":         6,
-		"CONCLUSION_ACTION_REQUIRED": 7,
+	CiConclusion_value = map[string]int32{
+		"CI_CONCLUSION_UNSPECIFIED":     0,
+		"CI_CONCLUSION_SUCCESS":         1,
+		"CI_CONCLUSION_FAILURE":         2,
+		"CI_CONCLUSION_CANCELLED":       3,
+		"CI_CONCLUSION_SKIPPED":         4,
+		"CI_CONCLUSION_TIMED_OUT":       5,
+		"CI_CONCLUSION_NEUTRAL":         6,
+		"CI_CONCLUSION_ACTION_REQUIRED": 7,
 	}
 )
 
-func (x Conclusion) Enum() *Conclusion {
-	p := new(Conclusion)
+func (x CiConclusion) Enum() *CiConclusion {
+	p := new(CiConclusion)
 	*p = x
 	return p
 }
 
-func (x Conclusion) String() string {
+func (x CiConclusion) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (Conclusion) Descriptor() protoreflect.EnumDescriptor {
+func (CiConclusion) Descriptor() protoreflect.EnumDescriptor {
 	return file_ermite_runner_proto_enumTypes[1].Descriptor()
 }
 
-func (Conclusion) Type() protoreflect.EnumType {
+func (CiConclusion) Type() protoreflect.EnumType {
 	return &file_ermite_runner_proto_enumTypes[1]
 }
 
-func (x Conclusion) Number() protoreflect.EnumNumber {
+func (x CiConclusion) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use Conclusion.Descriptor instead.
-func (Conclusion) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use CiConclusion.Descriptor instead.
+func (CiConclusion) EnumDescriptor() ([]byte, []int) {
 	return file_ermite_runner_proto_rawDescGZIP(), []int{1}
 }
 
@@ -175,7 +175,7 @@ const (
 	// Running.
 	StepState_STEP_STATE_IN_PROGRESS StepState = 2
 	// Over. The conclusion says how it ended. A step that did not run because
-	// of its "if" or an earlier failure is COMPLETED with CONCLUSION_SKIPPED.
+	// of its "if" or an earlier failure is COMPLETED with CI_CONCLUSION_SKIPPED.
 	StepState_STEP_STATE_COMPLETED StepState = 3
 )
 
@@ -291,13 +291,13 @@ const (
 	// no request.
 	CancelReason_CANCEL_REASON_UNSPECIFIED CancelReason = 0
 	// The owner cancelled the run (RunService.CancelRun, web or CLI). The job
-	// ends CONCLUSION_CANCELLED.
+	// ends CI_CONCLUSION_CANCELLED.
 	CancelReason_CANCEL_REASON_USER CancelReason = 1
 	// Another job of the same matrix failed and the strategy has fail-fast. The
-	// job ends CONCLUSION_CANCELLED.
+	// job ends CI_CONCLUSION_CANCELLED.
 	CancelReason_CANCEL_REASON_FAIL_FAST CancelReason = 2
 	// The job exceeded its timeout_minutes without the runner ending it. The
-	// job ends CONCLUSION_TIMED_OUT.
+	// job ends CI_CONCLUSION_TIMED_OUT.
 	CancelReason_CANCEL_REASON_TIMEOUT CancelReason = 3
 )
 
@@ -806,15 +806,15 @@ type UpdateJobRequest struct {
 	// the whole call is rejected with invalid_argument and the runner reports
 	// the failure of the job without outputs, with a line in the log.
 	Outputs map[string]string `protobuf:"bytes,3,rep,name=outputs,proto3" json:"outputs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Conclusion ends the job when set. A runner reports CONCLUSION_SUCCESS,
-	// CONCLUSION_FAILURE, CONCLUSION_CANCELLED or CONCLUSION_TIMED_OUT; any
-	// other value is invalid_argument. CONCLUSION_UNSPECIFIED means the job goes
+	// Conclusion ends the job when set. A runner reports CI_CONCLUSION_SUCCESS,
+	// CI_CONCLUSION_FAILURE, CI_CONCLUSION_CANCELLED or CI_CONCLUSION_TIMED_OUT; any
+	// other value is invalid_argument. CI_CONCLUSION_UNSPECIFIED means the job goes
 	// on. Steps that were not reported COMPLETED when the job ends are
-	// completed by the server as CONCLUSION_CANCELLED (or SKIPPED when they
+	// completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when they
 	// never started and the job did not fail by cancellation).
-	Conclusion Conclusion `protobuf:"varint,4,opt,name=conclusion,proto3,enum=ermite.Conclusion" json:"conclusion,omitempty"`
+	Conclusion CiConclusion `protobuf:"varint,4,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
 	// RunnerShutdown is true when the runner ends the job because it was told to
-	// stop (service stopped, signal). Only allowed with CONCLUSION_CANCELLED.
+	// stop (service stopped, signal). Only allowed with CI_CONCLUSION_CANCELLED.
 	// The server then annotates the job with GitHub's message "The runner has
 	// received a shutdown signal. This can happen when the runner service is
 	// stopped, or a manually started runner is canceled."
@@ -874,11 +874,11 @@ func (x *UpdateJobRequest) GetOutputs() map[string]string {
 	return nil
 }
 
-func (x *UpdateJobRequest) GetConclusion() Conclusion {
+func (x *UpdateJobRequest) GetConclusion() CiConclusion {
 	if x != nil {
 		return x.Conclusion
 	}
-	return Conclusion_CONCLUSION_UNSPECIFIED
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
 }
 
 func (x *UpdateJobRequest) GetRunnerShutdown() bool {
@@ -903,7 +903,7 @@ type StepUpdate struct {
 	// Conclusion is how the step ended. Required (not UNSPECIFIED) when state is
 	// COMPLETED, must be UNSPECIFIED otherwise. Allowed values: success,
 	// failure, cancelled, skipped.
-	Conclusion Conclusion `protobuf:"varint,4,opt,name=conclusion,proto3,enum=ermite.Conclusion" json:"conclusion,omitempty"`
+	Conclusion CiConclusion `protobuf:"varint,4,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
 	// StartedAt is when the step started, by the clock of the runner. Required
 	// from IN_PROGRESS on.
 	StartedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
@@ -965,11 +965,11 @@ func (x *StepUpdate) GetState() StepState {
 	return StepState_STEP_STATE_UNSPECIFIED
 }
 
-func (x *StepUpdate) GetConclusion() Conclusion {
+func (x *StepUpdate) GetConclusion() CiConclusion {
 	if x != nil {
 		return x.Conclusion
 	}
-	return Conclusion_CONCLUSION_UNSPECIFIED
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
 }
 
 func (x *StepUpdate) GetStartedAt() *timestamppb.Timestamp {
@@ -1342,7 +1342,7 @@ type WatchJobResponse struct {
 	// Reason is why the job must stop. CANCEL_REASON_UNSPECIFIED marks a
 	// keep-alive: the other fields are empty and the client ignores it. New
 	// reasons may be added; a runner that does not know one cancels the job and
-	// reports CONCLUSION_CANCELLED.
+	// reports CI_CONCLUSION_CANCELLED.
 	Reason CancelReason `protobuf:"varint,1,opt,name=reason,proto3,enum=ermite.CancelReason" json:"reason,omitempty"`
 	// Message is a short human-readable explanation, for the job log, for
 	// example "Canceled by the owner". At most 1,024 characters.
@@ -1439,25 +1439,25 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x0ftimeout_minutes\x18\v \x01(\x05R\x0etimeoutMinutes\x12\x12\n" +
 	"\x04repo\x18\f \x01(\tR\x04repo\x12\x10\n" +
 	"\x03sha\x18\r \x01(\tR\x03sha\x12\x10\n" +
-	"\x03ref\x18\x0e \x01(\tR\x03ref\"\xad\x02\n" +
+	"\x03ref\x18\x0e \x01(\tR\x03ref\"\xaf\x02\n" +
 	"\x10UpdateJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12(\n" +
 	"\x05steps\x18\x02 \x03(\v2\x12.ermite.StepUpdateR\x05steps\x12?\n" +
-	"\aoutputs\x18\x03 \x03(\v2%.ermite.UpdateJobRequest.OutputsEntryR\aoutputs\x122\n" +
+	"\aoutputs\x18\x03 \x03(\v2%.ermite.UpdateJobRequest.OutputsEntryR\aoutputs\x124\n" +
 	"\n" +
-	"conclusion\x18\x04 \x01(\x0e2\x12.ermite.ConclusionR\n" +
+	"conclusion\x18\x04 \x01(\x0e2\x14.ermite.CiConclusionR\n" +
 	"conclusion\x12'\n" +
 	"\x0frunner_shutdown\x18\x05 \x01(\bR\x0erunnerShutdown\x1a:\n" +
 	"\fOutputsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8f\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x91\x02\n" +
 	"\n" +
 	"StepUpdate\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
-	"\x05state\x18\x03 \x01(\x0e2\x11.ermite.StepStateR\x05state\x122\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x11.ermite.StepStateR\x05state\x124\n" +
 	"\n" +
-	"conclusion\x18\x04 \x01(\x0e2\x12.ermite.ConclusionR\n" +
+	"conclusion\x18\x04 \x01(\x0e2\x14.ermite.CiConclusionR\n" +
 	"conclusion\x129\n" +
 	"\n" +
 	"started_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
@@ -1482,22 +1482,21 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x10WatchJobResponse\x12,\n" +
 	"\x06reason\x18\x01 \x01(\x0e2\x14.ermite.CancelReasonR\x06reason\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12=\n" +
-	"\frequested_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vrequestedAt*t\n" +
-	"\tRunStatus\x12\x1a\n" +
-	"\x16RUN_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
-	"\x11RUN_STATUS_QUEUED\x10\x01\x12\x1a\n" +
-	"\x16RUN_STATUS_IN_PROGRESS\x10\x02\x12\x18\n" +
-	"\x14RUN_STATUS_COMPLETED\x10\x03*\xdc\x01\n" +
-	"\n" +
-	"Conclusion\x12\x1a\n" +
-	"\x16CONCLUSION_UNSPECIFIED\x10\x00\x12\x16\n" +
-	"\x12CONCLUSION_SUCCESS\x10\x01\x12\x16\n" +
-	"\x12CONCLUSION_FAILURE\x10\x02\x12\x18\n" +
-	"\x14CONCLUSION_CANCELLED\x10\x03\x12\x16\n" +
-	"\x12CONCLUSION_SKIPPED\x10\x04\x12\x18\n" +
-	"\x14CONCLUSION_TIMED_OUT\x10\x05\x12\x16\n" +
-	"\x12CONCLUSION_NEUTRAL\x10\x06\x12\x1e\n" +
-	"\x1aCONCLUSION_ACTION_REQUIRED\x10\a*u\n" +
+	"\frequested_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vrequestedAt*o\n" +
+	"\bCiStatus\x12\x19\n" +
+	"\x15CI_STATUS_UNSPECIFIED\x10\x00\x12\x14\n" +
+	"\x10CI_STATUS_QUEUED\x10\x01\x12\x19\n" +
+	"\x15CI_STATUS_IN_PROGRESS\x10\x02\x12\x17\n" +
+	"\x13CI_STATUS_COMPLETED\x10\x03*\xf6\x01\n" +
+	"\fCiConclusion\x12\x1d\n" +
+	"\x19CI_CONCLUSION_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15CI_CONCLUSION_SUCCESS\x10\x01\x12\x19\n" +
+	"\x15CI_CONCLUSION_FAILURE\x10\x02\x12\x1b\n" +
+	"\x17CI_CONCLUSION_CANCELLED\x10\x03\x12\x19\n" +
+	"\x15CI_CONCLUSION_SKIPPED\x10\x04\x12\x1b\n" +
+	"\x17CI_CONCLUSION_TIMED_OUT\x10\x05\x12\x19\n" +
+	"\x15CI_CONCLUSION_NEUTRAL\x10\x06\x12!\n" +
+	"\x1dCI_CONCLUSION_ACTION_REQUIRED\x10\a*u\n" +
 	"\tStepState\x12\x1a\n" +
 	"\x16STEP_STATE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12STEP_STATE_PENDING\x10\x01\x12\x1a\n" +
@@ -1538,8 +1537,8 @@ func file_ermite_runner_proto_rawDescGZIP() []byte {
 var file_ermite_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
 var file_ermite_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_ermite_runner_proto_goTypes = []any{
-	(RunStatus)(0),                 // 0: ermite.RunStatus
-	(Conclusion)(0),                // 1: ermite.Conclusion
+	(CiStatus)(0),                  // 0: ermite.CiStatus
+	(CiConclusion)(0),              // 1: ermite.CiConclusion
 	(StepState)(0),                 // 2: ermite.StepState
 	(RunnerIsolation)(0),           // 3: ermite.RunnerIsolation
 	(CancelReason)(0),              // 4: ermite.CancelReason
@@ -1566,9 +1565,9 @@ var file_ermite_runner_proto_depIdxs = []int32{
 	9,  // 1: ermite.FetchJobResponse.job:type_name -> ermite.Job
 	11, // 2: ermite.UpdateJobRequest.steps:type_name -> ermite.StepUpdate
 	20, // 3: ermite.UpdateJobRequest.outputs:type_name -> ermite.UpdateJobRequest.OutputsEntry
-	1,  // 4: ermite.UpdateJobRequest.conclusion:type_name -> ermite.Conclusion
+	1,  // 4: ermite.UpdateJobRequest.conclusion:type_name -> ermite.CiConclusion
 	2,  // 5: ermite.StepUpdate.state:type_name -> ermite.StepState
-	1,  // 6: ermite.StepUpdate.conclusion:type_name -> ermite.Conclusion
+	1,  // 6: ermite.StepUpdate.conclusion:type_name -> ermite.CiConclusion
 	21, // 7: ermite.StepUpdate.started_at:type_name -> google.protobuf.Timestamp
 	21, // 8: ermite.StepUpdate.completed_at:type_name -> google.protobuf.Timestamp
 	14, // 9: ermite.AppendLogRequest.lines:type_name -> ermite.LogLine

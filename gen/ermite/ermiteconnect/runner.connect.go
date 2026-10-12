@@ -112,7 +112,7 @@ type RunnerServiceClient interface {
 	// The log of a job is limited to 512 MiB (536,870,912 bytes) as stored by
 	// the server (text, timestamps and separators). The call that would exceed
 	// it appends nothing; the server adds a last line saying that the limit was
-	// reached, ends the job with CONCLUSION_FAILURE and RunJob.error set, and
+	// reached, ends the job with CI_CONCLUSION_FAILURE and RunJob.error set, and
 	// answers resource_exhausted. The runner then stops the job and sends
 	// nothing more: its calls get unauthenticated.
 	//
@@ -122,7 +122,7 @@ type RunnerServiceClient interface {
 	// Heartbeat tells the server that the runner is alive and still working on
 	// the job. Needs the job token. The runner calls it every 30 seconds for as
 	// long as the job runs, from assignment to the end. Without a heartbeat for
-	// 2 minutes the server ends the job with CONCLUSION_FAILURE and the message
+	// 2 minutes the server ends the job with CI_CONCLUSION_FAILURE and the message
 	// "The self-hosted runner: <name> lost communication with the server...".
 	// Only Heartbeat counts: other calls do not keep a job alive.
 	Heartbeat(context.Context, *connect.Request[ermite.HeartbeatRequest]) (*connect.Response[ermite.HeartbeatResponse], error)
@@ -294,7 +294,7 @@ type RunnerServiceHandler interface {
 	// The log of a job is limited to 512 MiB (536,870,912 bytes) as stored by
 	// the server (text, timestamps and separators). The call that would exceed
 	// it appends nothing; the server adds a last line saying that the limit was
-	// reached, ends the job with CONCLUSION_FAILURE and RunJob.error set, and
+	// reached, ends the job with CI_CONCLUSION_FAILURE and RunJob.error set, and
 	// answers resource_exhausted. The runner then stops the job and sends
 	// nothing more: its calls get unauthenticated.
 	//
@@ -304,7 +304,7 @@ type RunnerServiceHandler interface {
 	// Heartbeat tells the server that the runner is alive and still working on
 	// the job. Needs the job token. The runner calls it every 30 seconds for as
 	// long as the job runs, from assignment to the end. Without a heartbeat for
-	// 2 minutes the server ends the job with CONCLUSION_FAILURE and the message
+	// 2 minutes the server ends the job with CI_CONCLUSION_FAILURE and the message
 	// "The self-hosted runner: <name> lost communication with the server...".
 	// Only Heartbeat counts: other calls do not keep a job alive.
 	Heartbeat(context.Context, *connect.Request[ermite.HeartbeatRequest]) (*connect.Response[ermite.HeartbeatResponse], error)

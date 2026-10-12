@@ -6,46 +6,46 @@ package ermite;
 
 import "google/protobuf/timestamp.proto";
 
-// RunStatus is where a run, a job or a check is in its life. It is the same
+// CiStatus is where a run, a job or a check is in its life. It is the same
 // as GitHub's status, without the rarely used values.
-enum RunStatus {
+enum CiStatus {
   // Not set. In a filter it means every status. Never returned by the server.
-  RUN_STATUS_UNSPECIFIED = 0;
+  CI_STATUS_UNSPECIFIED = 0;
   // Waiting: for a runner, for the jobs it needs, or for its turn
   // (max-parallel).
-  RUN_STATUS_QUEUED = 1;
+  CI_STATUS_QUEUED = 1;
   // At least one job has been given to a runner and has not ended.
-  RUN_STATUS_IN_PROGRESS = 2;
+  CI_STATUS_IN_PROGRESS = 2;
   // Over. The conclusion says how it ended.
-  RUN_STATUS_COMPLETED = 3;
+  CI_STATUS_COMPLETED = 3;
 }
 
-// Conclusion is how a run, a job, a step or a check ended, with GitHub's
-// values and meaning. It is unset (CONCLUSION_UNSPECIFIED) until the status is
+// CiConclusion is how a run, a job, a step or a check ended, with GitHub's
+// values and meaning. It is unset (CI_CONCLUSION_UNSPECIFIED) until the status is
 // COMPLETED.
-enum Conclusion {
+enum CiConclusion {
   // Not completed yet. Never returned by the server for a completed item.
-  CONCLUSION_UNSPECIFIED = 0;
+  CI_CONCLUSION_UNSPECIFIED = 0;
   // Everything it ran succeeded.
-  CONCLUSION_SUCCESS = 1;
+  CI_CONCLUSION_SUCCESS = 1;
   // A step failed, or the job failed for another reason described in
   // RunJob.error (runner lost, queue timeout, log limit, feature not
   // supported yet, invalid workflow file).
-  CONCLUSION_FAILURE = 2;
+  CI_CONCLUSION_FAILURE = 2;
   // Cancelled by the owner, or by fail-fast, or because the runner shut down.
-  CONCLUSION_CANCELLED = 3;
+  CI_CONCLUSION_CANCELLED = 3;
   // Never ran: its "if" was false, or a job it needs did not succeed, or it was
   // not selected. Never reported by a runner.
-  CONCLUSION_SKIPPED = 4;
+  CI_CONCLUSION_SKIPPED = 4;
   // Exceeded its timeout.
-  CONCLUSION_TIMED_OUT = 5;
+  CI_CONCLUSION_TIMED_OUT = 5;
   // Neither a success nor a failure. Defined for parity with GitHub; no
   // workflow job ends this way yet. For merging it counts as a success.
-  CONCLUSION_NEUTRAL = 6;
+  CI_CONCLUSION_NEUTRAL = 6;
   // Waits for a human action (for example the approval of an environment).
   // Defined for parity with GitHub; the server does not produce it before
   // environments exist. For merging it counts as a failure.
-  CONCLUSION_ACTION_REQUIRED = 7;
+  CI_CONCLUSION_ACTION_REQUIRED = 7;
 }
 
 // StepState is where a step is in its life.
@@ -57,7 +57,7 @@ enum StepState {
   // Running.
   STEP_STATE_IN_PROGRESS = 2;
   // Over. The conclusion says how it ended. A step that did not run because
-  // of its "if" or an earlier failure is COMPLETED with CONCLUSION_SKIPPED.
+  // of its "if" or an earlier failure is COMPLETED with CI_CONCLUSION_SKIPPED.
   STEP_STATE_COMPLETED = 3;
 }
 
@@ -83,13 +83,13 @@ enum CancelReason {
   // no request.
   CANCEL_REASON_UNSPECIFIED = 0;
   // The owner cancelled the run (RunService.CancelRun, web or CLI). The job
-  // ends CONCLUSION_CANCELLED.
+  // ends CI_CONCLUSION_CANCELLED.
   CANCEL_REASON_USER = 1;
   // Another job of the same matrix failed and the strategy has fail-fast. The
-  // job ends CONCLUSION_CANCELLED.
+  // job ends CI_CONCLUSION_CANCELLED.
   CANCEL_REASON_FAIL_FAST = 2;
   // The job exceeded its timeout_minutes without the runner ending it. The
-  // job ends CONCLUSION_TIMED_OUT.
+  // job ends CI_CONCLUSION_TIMED_OUT.
   CANCEL_REASON_TIMEOUT = 3;
 }
 
@@ -184,7 +184,7 @@ service RunnerService {
   // The log of a job is limited to 512 MiB (536,870,912 bytes) as stored by
   // the server (text, timestamps and separators). The call that would exceed
   // it appends nothing; the server adds a last line saying that the limit was
-  // reached, ends the job with CONCLUSION_FAILURE and RunJob.error set, and
+  // reached, ends the job with CI_CONCLUSION_FAILURE and RunJob.error set, and
   // answers resource_exhausted. The runner then stops the job and sends
   // nothing more: its calls get unauthenticated.
   //
@@ -194,7 +194,7 @@ service RunnerService {
   // Heartbeat tells the server that the runner is alive and still working on
   // the job. Needs the job token. The runner calls it every 30 seconds for as
   // long as the job runs, from assignment to the end. Without a heartbeat for
-  // 2 minutes the server ends the job with CONCLUSION_FAILURE and the message
+  // 2 minutes the server ends the job with CI_CONCLUSION_FAILURE and the message
   // "The self-hosted runner: <name> lost communication with the server...".
   // Only Heartbeat counts: other calls do not keep a job alive.
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
@@ -342,15 +342,15 @@ message UpdateJobRequest {
   // the whole call is rejected with invalid_argument and the runner reports
   // the failure of the job without outputs, with a line in the log.
   map<string, string> outputs = 3;
-  // Conclusion ends the job when set. A runner reports CONCLUSION_SUCCESS,
-  // CONCLUSION_FAILURE, CONCLUSION_CANCELLED or CONCLUSION_TIMED_OUT; any
-  // other value is invalid_argument. CONCLUSION_UNSPECIFIED means the job goes
+  // Conclusion ends the job when set. A runner reports CI_CONCLUSION_SUCCESS,
+  // CI_CONCLUSION_FAILURE, CI_CONCLUSION_CANCELLED or CI_CONCLUSION_TIMED_OUT; any
+  // other value is invalid_argument. CI_CONCLUSION_UNSPECIFIED means the job goes
   // on. Steps that were not reported COMPLETED when the job ends are
-  // completed by the server as CONCLUSION_CANCELLED (or SKIPPED when they
+  // completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when they
   // never started and the job did not fail by cancellation).
-  Conclusion conclusion = 4;
+  CiConclusion conclusion = 4;
   // RunnerShutdown is true when the runner ends the job because it was told to
-  // stop (service stopped, signal). Only allowed with CONCLUSION_CANCELLED.
+  // stop (service stopped, signal). Only allowed with CI_CONCLUSION_CANCELLED.
   // The server then annotates the job with GitHub's message "The runner has
   // received a shutdown signal. This can happen when the runner service is
   // stopped, or a manually started runner is canceled."
@@ -371,7 +371,7 @@ message StepUpdate {
   // Conclusion is how the step ended. Required (not UNSPECIFIED) when state is
   // COMPLETED, must be UNSPECIFIED otherwise. Allowed values: success,
   // failure, cancelled, skipped.
-  Conclusion conclusion = 4;
+  CiConclusion conclusion = 4;
   // StartedAt is when the step started, by the clock of the runner. Required
   // from IN_PROGRESS on.
   google.protobuf.Timestamp started_at = 5;
@@ -439,7 +439,7 @@ message WatchJobResponse {
   // Reason is why the job must stop. CANCEL_REASON_UNSPECIFIED marks a
   // keep-alive: the other fields are empty and the client ignores it. New
   // reasons may be added; a runner that does not know one cancels the job and
-  // reports CONCLUSION_CANCELLED.
+  // reports CI_CONCLUSION_CANCELLED.
   CancelReason reason = 1;
   // Message is a short human-readable explanation, for the job log, for
   // example "Canceled by the owner". At most 1,024 characters.

@@ -87,10 +87,10 @@ func TestEnumNumbers(t *testing.T) {
 	if got := ermite.DiffSide_DIFF_SIDE_NEW; got != 2 {
 		t.Errorf("DIFF_SIDE_NEW = %d, want 2", got)
 	}
-	if got := ermite.RunStatus_RUN_STATUS_COMPLETED; got != 3 {
+	if got := ermite.CiStatus_CI_STATUS_COMPLETED; got != 3 {
 		t.Errorf("RUN_STATUS_COMPLETED = %d, want 3", got)
 	}
-	if got := ermite.Conclusion_CONCLUSION_ACTION_REQUIRED; got != 7 {
+	if got := ermite.CiConclusion_CI_CONCLUSION_ACTION_REQUIRED; got != 7 {
 		t.Errorf("CONCLUSION_ACTION_REQUIRED = %d, want 7", got)
 	}
 	if got := ermite.StepState_STEP_STATE_COMPLETED; got != 3 {
@@ -193,8 +193,8 @@ func TestCIEventRoundTrip(t *testing.T) {
 			Id:         "j1",
 			RunId:      9,
 			Attempt:    2,
-			Status:     ermite.RunStatus_RUN_STATUS_COMPLETED,
-			Conclusion: ermite.Conclusion_CONCLUSION_TIMED_OUT,
+			Status:     ermite.CiStatus_CI_STATUS_COMPLETED,
+			Conclusion: ermite.CiConclusion_CI_CONCLUSION_TIMED_OUT,
 			Isolation:  ermite.RunnerIsolation_RUNNER_ISOLATION_VM,
 			Steps:      []*ermite.Step{{Number: 1, Name: "Set up job", LogStart: 0, LogEnd: 3}},
 		}}},

@@ -48,12 +48,12 @@ message Run {
   string actor = 11;
   // Status is where this attempt is: QUEUED until a job starts, IN_PROGRESS
   // while jobs run or wait, COMPLETED when every job is over.
-  RunStatus status = 12;
+  CiStatus status = 12;
   // Conclusion is how this attempt ended, from its jobs' conclusions like
   // GitHub: CANCELLED if it was cancelled, else FAILURE if a job failed or
   // timed out, else SUCCESS (also when jobs were skipped). Unset until
   // status is COMPLETED.
-  Conclusion conclusion = 13;
+  CiConclusion conclusion = 13;
   // Error is set when the run failed without running a job because the
   // workflow could not be used: an invalid workflow file (the run then has
   // no jobs and conclusion FAILURE), as GitHub's "Invalid workflow file".
@@ -94,9 +94,9 @@ message RunJob {
   string name = 6;
   // Status is where the job is. A job waits QUEUED for a runner and for the
   // jobs it needs.
-  RunStatus status = 7;
+  CiStatus status = 7;
   // Conclusion is how the job ended. Unset until status is COMPLETED.
-  Conclusion conclusion = 8;
+  CiConclusion conclusion = 8;
   // Error explains a FAILURE, CANCELLED or TIMED_OUT that no step explains, in
   // GitHub's words where it has them: the runner was lost ("The self-hosted
   // runner: <name> lost communication with the server..."), it received a
@@ -139,7 +139,7 @@ message Step {
   // State is where the step is.
   StepState state = 3;
   // Conclusion is how the step ended. Unset until state is COMPLETED.
-  Conclusion conclusion = 4;
+  CiConclusion conclusion = 4;
   // StartedAt is when the step started. Unset while PENDING.
   google.protobuf.Timestamp started_at = 5;
   // CompletedAt is when the step ended. Unset until COMPLETED.
@@ -166,10 +166,10 @@ message Check {
   // Name is the name of the check: the RunJob.name of the job.
   string name = 4;
   // Status is where the check is.
-  RunStatus status = 5;
+  CiStatus status = 5;
   // Conclusion is how the check ended. Unset until status is COMPLETED. The
   // value "stale" of GitHub is never used.
-  Conclusion conclusion = 6;
+  CiConclusion conclusion = 6;
   // RunId is the run of the job.
   int64 run_id = 7;
   // JobId is the RunJob.id of the job, to open its page and log.
@@ -319,9 +319,9 @@ message ListRunsRequest {
   // "ci.runs.filters".
   string branch = 5;
   // Status restricts the result to the runs whose latest attempt has this
-  // status. RUN_STATUS_UNSPECIFIED means every status. Ignored by servers
+  // status. CI_STATUS_UNSPECIFIED means every status. Ignored by servers
   // without "ci.runs.filters".
-  RunStatus status = 6;
+  CiStatus status = 6;
 }
 
 // ListRunsResponse is one page of runs.

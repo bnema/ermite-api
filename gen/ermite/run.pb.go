@@ -66,12 +66,12 @@ type Run struct {
 	Actor string `protobuf:"bytes,11,opt,name=actor,proto3" json:"actor,omitempty"`
 	// Status is where this attempt is: QUEUED until a job starts, IN_PROGRESS
 	// while jobs run or wait, COMPLETED when every job is over.
-	Status RunStatus `protobuf:"varint,12,opt,name=status,proto3,enum=ermite.RunStatus" json:"status,omitempty"`
+	Status CiStatus `protobuf:"varint,12,opt,name=status,proto3,enum=ermite.CiStatus" json:"status,omitempty"`
 	// Conclusion is how this attempt ended, from its jobs' conclusions like
 	// GitHub: CANCELLED if it was cancelled, else FAILURE if a job failed or
 	// timed out, else SUCCESS (also when jobs were skipped). Unset until
 	// status is COMPLETED.
-	Conclusion Conclusion `protobuf:"varint,13,opt,name=conclusion,proto3,enum=ermite.Conclusion" json:"conclusion,omitempty"`
+	Conclusion CiConclusion `protobuf:"varint,13,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
 	// Error is set when the run failed without running a job because the
 	// workflow could not be used: an invalid workflow file (the run then has
 	// no jobs and conclusion FAILURE), as GitHub's "Invalid workflow file".
@@ -197,18 +197,18 @@ func (x *Run) GetActor() string {
 	return ""
 }
 
-func (x *Run) GetStatus() RunStatus {
+func (x *Run) GetStatus() CiStatus {
 	if x != nil {
 		return x.Status
 	}
-	return RunStatus_RUN_STATUS_UNSPECIFIED
+	return CiStatus_CI_STATUS_UNSPECIFIED
 }
 
-func (x *Run) GetConclusion() Conclusion {
+func (x *Run) GetConclusion() CiConclusion {
 	if x != nil {
 		return x.Conclusion
 	}
-	return Conclusion_CONCLUSION_UNSPECIFIED
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
 }
 
 func (x *Run) GetError() string {
@@ -264,9 +264,9 @@ type RunJob struct {
 	Name string `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
 	// Status is where the job is. A job waits QUEUED for a runner and for the
 	// jobs it needs.
-	Status RunStatus `protobuf:"varint,7,opt,name=status,proto3,enum=ermite.RunStatus" json:"status,omitempty"`
+	Status CiStatus `protobuf:"varint,7,opt,name=status,proto3,enum=ermite.CiStatus" json:"status,omitempty"`
 	// Conclusion is how the job ended. Unset until status is COMPLETED.
-	Conclusion Conclusion `protobuf:"varint,8,opt,name=conclusion,proto3,enum=ermite.Conclusion" json:"conclusion,omitempty"`
+	Conclusion CiConclusion `protobuf:"varint,8,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
 	// Error explains a FAILURE, CANCELLED or TIMED_OUT that no step explains, in
 	// GitHub's words where it has them: the runner was lost ("The self-hosted
 	// runner: <name> lost communication with the server..."), it received a
@@ -373,18 +373,18 @@ func (x *RunJob) GetName() string {
 	return ""
 }
 
-func (x *RunJob) GetStatus() RunStatus {
+func (x *RunJob) GetStatus() CiStatus {
 	if x != nil {
 		return x.Status
 	}
-	return RunStatus_RUN_STATUS_UNSPECIFIED
+	return CiStatus_CI_STATUS_UNSPECIFIED
 }
 
-func (x *RunJob) GetConclusion() Conclusion {
+func (x *RunJob) GetConclusion() CiConclusion {
 	if x != nil {
 		return x.Conclusion
 	}
-	return Conclusion_CONCLUSION_UNSPECIFIED
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
 }
 
 func (x *RunJob) GetError() string {
@@ -468,7 +468,7 @@ type Step struct {
 	// State is where the step is.
 	State StepState `protobuf:"varint,3,opt,name=state,proto3,enum=ermite.StepState" json:"state,omitempty"`
 	// Conclusion is how the step ended. Unset until state is COMPLETED.
-	Conclusion Conclusion `protobuf:"varint,4,opt,name=conclusion,proto3,enum=ermite.Conclusion" json:"conclusion,omitempty"`
+	Conclusion CiConclusion `protobuf:"varint,4,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
 	// StartedAt is when the step started. Unset while PENDING.
 	StartedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	// CompletedAt is when the step ended. Unset until COMPLETED.
@@ -535,11 +535,11 @@ func (x *Step) GetState() StepState {
 	return StepState_STEP_STATE_UNSPECIFIED
 }
 
-func (x *Step) GetConclusion() Conclusion {
+func (x *Step) GetConclusion() CiConclusion {
 	if x != nil {
 		return x.Conclusion
 	}
-	return Conclusion_CONCLUSION_UNSPECIFIED
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
 }
 
 func (x *Step) GetStartedAt() *timestamppb.Timestamp {
@@ -584,10 +584,10 @@ type Check struct {
 	// Name is the name of the check: the RunJob.name of the job.
 	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	// Status is where the check is.
-	Status RunStatus `protobuf:"varint,5,opt,name=status,proto3,enum=ermite.RunStatus" json:"status,omitempty"`
+	Status CiStatus `protobuf:"varint,5,opt,name=status,proto3,enum=ermite.CiStatus" json:"status,omitempty"`
 	// Conclusion is how the check ended. Unset until status is COMPLETED. The
 	// value "stale" of GitHub is never used.
-	Conclusion Conclusion `protobuf:"varint,6,opt,name=conclusion,proto3,enum=ermite.Conclusion" json:"conclusion,omitempty"`
+	Conclusion CiConclusion `protobuf:"varint,6,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
 	// RunId is the run of the job.
 	RunId int64 `protobuf:"varint,7,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// JobId is the RunJob.id of the job, to open its page and log.
@@ -662,18 +662,18 @@ func (x *Check) GetName() string {
 	return ""
 }
 
-func (x *Check) GetStatus() RunStatus {
+func (x *Check) GetStatus() CiStatus {
 	if x != nil {
 		return x.Status
 	}
-	return RunStatus_RUN_STATUS_UNSPECIFIED
+	return CiStatus_CI_STATUS_UNSPECIFIED
 }
 
-func (x *Check) GetConclusion() Conclusion {
+func (x *Check) GetConclusion() CiConclusion {
 	if x != nil {
 		return x.Conclusion
 	}
-	return Conclusion_CONCLUSION_UNSPECIFIED
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
 }
 
 func (x *Check) GetRunId() int64 {
@@ -870,9 +870,9 @@ type ListRunsRequest struct {
 	// "ci.runs.filters".
 	Branch string `protobuf:"bytes,5,opt,name=branch,proto3" json:"branch,omitempty"`
 	// Status restricts the result to the runs whose latest attempt has this
-	// status. RUN_STATUS_UNSPECIFIED means every status. Ignored by servers
+	// status. CI_STATUS_UNSPECIFIED means every status. Ignored by servers
 	// without "ci.runs.filters".
-	Status        RunStatus `protobuf:"varint,6,opt,name=status,proto3,enum=ermite.RunStatus" json:"status,omitempty"`
+	Status        CiStatus `protobuf:"varint,6,opt,name=status,proto3,enum=ermite.CiStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -942,11 +942,11 @@ func (x *ListRunsRequest) GetBranch() string {
 	return ""
 }
 
-func (x *ListRunsRequest) GetStatus() RunStatus {
+func (x *ListRunsRequest) GetStatus() CiStatus {
 	if x != nil {
 		return x.Status
 	}
-	return RunStatus_RUN_STATUS_UNSPECIFIED
+	return CiStatus_CI_STATUS_UNSPECIFIED
 }
 
 // ListRunsResponse is one page of runs.
@@ -1976,7 +1976,7 @@ var File_ermite_run_proto protoreflect.FileDescriptor
 
 const file_ermite_run_proto_rawDesc = "" +
 	"\n" +
-	"\x10ermite/run.proto\x12\x06ermite\x1a\x13ermite/runner.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb5\x04\n" +
+	"\x10ermite/run.proto\x12\x06ermite\x1a\x13ermite/runner.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb6\x04\n" +
 	"\x03Run\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\x03R\x02id\x12\x16\n" +
@@ -1989,27 +1989,27 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\x03ref\x18\t \x01(\tR\x03ref\x12\x10\n" +
 	"\x03sha\x18\n" +
 	" \x01(\tR\x03sha\x12\x14\n" +
-	"\x05actor\x18\v \x01(\tR\x05actor\x12)\n" +
-	"\x06status\x18\f \x01(\x0e2\x11.ermite.RunStatusR\x06status\x122\n" +
+	"\x05actor\x18\v \x01(\tR\x05actor\x12(\n" +
+	"\x06status\x18\f \x01(\x0e2\x10.ermite.CiStatusR\x06status\x124\n" +
 	"\n" +
-	"conclusion\x18\r \x01(\x0e2\x12.ermite.ConclusionR\n" +
+	"conclusion\x18\r \x01(\x0e2\x14.ermite.CiConclusionR\n" +
 	"conclusion\x12\x14\n" +
 	"\x05error\x18\x0e \x01(\tR\x05error\x129\n" +
 	"\n" +
 	"created_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"started_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
-	"\fcompleted_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xf4\x04\n" +
+	"\fcompleted_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xf5\x04\n" +
 	"\x06RunJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x18\n" +
 	"\aattempt\x18\x03 \x01(\x05R\aattempt\x12\x12\n" +
 	"\x04repo\x18\x04 \x01(\tR\x04repo\x12\x10\n" +
 	"\x03key\x18\x05 \x01(\tR\x03key\x12\x12\n" +
-	"\x04name\x18\x06 \x01(\tR\x04name\x12)\n" +
-	"\x06status\x18\a \x01(\x0e2\x11.ermite.RunStatusR\x06status\x122\n" +
+	"\x04name\x18\x06 \x01(\tR\x04name\x12(\n" +
+	"\x06status\x18\a \x01(\x0e2\x10.ermite.CiStatusR\x06status\x124\n" +
 	"\n" +
-	"conclusion\x18\b \x01(\x0e2\x12.ermite.ConclusionR\n" +
+	"conclusion\x18\b \x01(\x0e2\x14.ermite.CiConclusionR\n" +
 	"conclusion\x12\x14\n" +
 	"\x05error\x18\t \x01(\tR\x05error\x12\x16\n" +
 	"\x06labels\x18\n" +
@@ -2024,27 +2024,27 @@ const file_ermite_run_proto_rawDesc = "" +
 	"created_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"started_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
-	"\fcompleted_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xbf\x02\n" +
+	"\fcompleted_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xc1\x02\n" +
 	"\x04Step\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
-	"\x05state\x18\x03 \x01(\x0e2\x11.ermite.StepStateR\x05state\x122\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x11.ermite.StepStateR\x05state\x124\n" +
 	"\n" +
-	"conclusion\x18\x04 \x01(\x0e2\x12.ermite.ConclusionR\n" +
+	"conclusion\x18\x04 \x01(\x0e2\x14.ermite.CiConclusionR\n" +
 	"conclusion\x129\n" +
 	"\n" +
 	"started_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
 	"\fcompleted_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12\x1b\n" +
 	"\tlog_start\x18\a \x01(\x03R\blogStart\x12\x17\n" +
-	"\alog_end\x18\b \x01(\x03R\x06logEnd\"\x97\x03\n" +
+	"\alog_end\x18\b \x01(\x03R\x06logEnd\"\x98\x03\n" +
 	"\x05Check\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04repo\x18\x02 \x01(\tR\x04repo\x12\x10\n" +
 	"\x03sha\x18\x03 \x01(\tR\x03sha\x12\x12\n" +
-	"\x04name\x18\x04 \x01(\tR\x04name\x12)\n" +
-	"\x06status\x18\x05 \x01(\x0e2\x11.ermite.RunStatusR\x06status\x122\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12(\n" +
+	"\x06status\x18\x05 \x01(\x0e2\x10.ermite.CiStatusR\x06status\x124\n" +
 	"\n" +
-	"conclusion\x18\x06 \x01(\x0e2\x12.ermite.ConclusionR\n" +
+	"conclusion\x18\x06 \x01(\x0e2\x14.ermite.CiConclusionR\n" +
 	"conclusion\x12\x15\n" +
 	"\x06run_id\x18\a \x01(\x03R\x05runId\x12\x15\n" +
 	"\x06job_id\x18\b \x01(\tR\x05jobId\x12\x18\n" +
@@ -2065,15 +2065,15 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\rregistered_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\fregisteredAt\x127\n" +
 	"\tlast_seen\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\x12\x12\n" +
 	"\x04busy\x18\n" +
-	" \x01(\bR\x04busy\"\xc0\x01\n" +
+	" \x01(\bR\x04busy\"\xbf\x01\n" +
 	"\x0fListRunsRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x1a\n" +
 	"\bworkflow\x18\x04 \x01(\tR\bworkflow\x12\x16\n" +
-	"\x06branch\x18\x05 \x01(\tR\x06branch\x12)\n" +
-	"\x06status\x18\x06 \x01(\x0e2\x11.ermite.RunStatusR\x06status\"[\n" +
+	"\x06branch\x18\x05 \x01(\tR\x06branch\x12(\n" +
+	"\x06status\x18\x06 \x01(\x0e2\x10.ermite.CiStatusR\x06status\"[\n" +
 	"\x10ListRunsResponse\x12\x1f\n" +
 	"\x04runs\x18\x01 \x03(\v2\v.ermite.RunR\x04runs\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"T\n" +
@@ -2186,37 +2186,37 @@ var file_ermite_run_proto_goTypes = []any{
 	(*ListRunnersResponse)(nil),   // 21: ermite.ListRunnersResponse
 	(*RemoveRunnerRequest)(nil),   // 22: ermite.RemoveRunnerRequest
 	(*RemoveRunnerResponse)(nil),  // 23: ermite.RemoveRunnerResponse
-	(RunStatus)(0),                // 24: ermite.RunStatus
-	(Conclusion)(0),               // 25: ermite.Conclusion
+	(CiStatus)(0),                 // 24: ermite.CiStatus
+	(CiConclusion)(0),             // 25: ermite.CiConclusion
 	(*timestamppb.Timestamp)(nil), // 26: google.protobuf.Timestamp
 	(RunnerIsolation)(0),          // 27: ermite.RunnerIsolation
 	(StepState)(0),                // 28: ermite.StepState
 }
 var file_ermite_run_proto_depIdxs = []int32{
-	24, // 0: ermite.Run.status:type_name -> ermite.RunStatus
-	25, // 1: ermite.Run.conclusion:type_name -> ermite.Conclusion
+	24, // 0: ermite.Run.status:type_name -> ermite.CiStatus
+	25, // 1: ermite.Run.conclusion:type_name -> ermite.CiConclusion
 	26, // 2: ermite.Run.created_at:type_name -> google.protobuf.Timestamp
 	26, // 3: ermite.Run.started_at:type_name -> google.protobuf.Timestamp
 	26, // 4: ermite.Run.completed_at:type_name -> google.protobuf.Timestamp
-	24, // 5: ermite.RunJob.status:type_name -> ermite.RunStatus
-	25, // 6: ermite.RunJob.conclusion:type_name -> ermite.Conclusion
+	24, // 5: ermite.RunJob.status:type_name -> ermite.CiStatus
+	25, // 6: ermite.RunJob.conclusion:type_name -> ermite.CiConclusion
 	27, // 7: ermite.RunJob.isolation:type_name -> ermite.RunnerIsolation
 	2,  // 8: ermite.RunJob.steps:type_name -> ermite.Step
 	26, // 9: ermite.RunJob.created_at:type_name -> google.protobuf.Timestamp
 	26, // 10: ermite.RunJob.started_at:type_name -> google.protobuf.Timestamp
 	26, // 11: ermite.RunJob.completed_at:type_name -> google.protobuf.Timestamp
 	28, // 12: ermite.Step.state:type_name -> ermite.StepState
-	25, // 13: ermite.Step.conclusion:type_name -> ermite.Conclusion
+	25, // 13: ermite.Step.conclusion:type_name -> ermite.CiConclusion
 	26, // 14: ermite.Step.started_at:type_name -> google.protobuf.Timestamp
 	26, // 15: ermite.Step.completed_at:type_name -> google.protobuf.Timestamp
-	24, // 16: ermite.Check.status:type_name -> ermite.RunStatus
-	25, // 17: ermite.Check.conclusion:type_name -> ermite.Conclusion
+	24, // 16: ermite.Check.status:type_name -> ermite.CiStatus
+	25, // 17: ermite.Check.conclusion:type_name -> ermite.CiConclusion
 	26, // 18: ermite.Check.started_at:type_name -> google.protobuf.Timestamp
 	26, // 19: ermite.Check.completed_at:type_name -> google.protobuf.Timestamp
 	27, // 20: ermite.Runner.isolation:type_name -> ermite.RunnerIsolation
 	26, // 21: ermite.Runner.registered_at:type_name -> google.protobuf.Timestamp
 	26, // 22: ermite.Runner.last_seen:type_name -> google.protobuf.Timestamp
-	24, // 23: ermite.ListRunsRequest.status:type_name -> ermite.RunStatus
+	24, // 23: ermite.ListRunsRequest.status:type_name -> ermite.CiStatus
 	0,  // 24: ermite.ListRunsResponse.runs:type_name -> ermite.Run
 	0,  // 25: ermite.GetRunResponse.run:type_name -> ermite.Run
 	1,  // 26: ermite.GetRunResponse.jobs:type_name -> ermite.RunJob
