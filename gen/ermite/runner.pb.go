@@ -11,6 +11,7 @@ package ermite
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -287,8 +288,7 @@ func (RunnerIsolation) EnumDescriptor() ([]byte, []int) {
 type CancelReason int32
 
 const (
-	// Not set. A WatchJobResponse with this reason is a keep-alive and carries
-	// no request.
+	// Not set. Never sent in a CancelRequest.
 	CancelReason_CANCEL_REASON_UNSPECIFIED CancelReason = 0
 	// The owner cancelled the run (RunService.CancelRun, web or CLI). The job
 	// ends CI_CONCLUSION_CANCELLED.
@@ -296,8 +296,8 @@ const (
 	// Another job of the same matrix failed and the strategy has fail-fast. The
 	// job ends CI_CONCLUSION_CANCELLED.
 	CancelReason_CANCEL_REASON_FAIL_FAST CancelReason = 2
-	// The job exceeded its timeout_minutes without the runner ending it. The
-	// job ends CI_CONCLUSION_TIMED_OUT.
+	// The job exceeded its time budget (see Job.timeout_minutes). The job ends
+	// CI_CONCLUSION_TIMED_OUT.
 	CancelReason_CANCEL_REASON_TIMEOUT CancelReason = 3
 )
 
@@ -367,7 +367,14 @@ type RegisterRunnerRequest struct {
 	Arch string `protobuf:"bytes,5,opt,name=arch,proto3" json:"arch,omitempty"`
 	// Os is the operating system: "linux". Other values are invalid_argument
 	// (the set may grow with compatible additions).
-	Os            string `protobuf:"bytes,6,opt,name=os,proto3" json:"os,omitempty"`
+	Os string `protobuf:"bytes,6,opt,name=os,proto3" json:"os,omitempty"`
+	// Replace removes the runner that already has this name, if any, before
+	// registering this one: its runner token is revoked at once, as in
+	// RunService.RemoveRunner, and a job it is running is not affected. The new
+	// runner gets a new runner_id. Needs the same scope as registering. Without
+	// replace, a name in use is already_exists. It is how a runner re-registers
+	// after losing its state.
+	Replace       bool `protobuf:"varint,7,opt,name=replace,proto3" json:"replace,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -444,6 +451,13 @@ func (x *RegisterRunnerRequest) GetOs() string {
 	return ""
 }
 
+func (x *RegisterRunnerRequest) GetReplace() bool {
+	if x != nil {
+		return x.Replace
+	}
+	return false
+}
+
 // RegisterRunnerResponse holds the new runner and its secret.
 type RegisterRunnerResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -451,9 +465,10 @@ type RegisterRunnerResponse struct {
 	// a secret.
 	RunnerId string `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
 	// RunnerToken is the secret of the runner, to present as "Authorization:
-	// Bearer <runner_token>" to FetchJob. It starts with "ermiterun_" and is
-	// returned once: the server keeps only its SHA-256, the runner must store
-	// it (mode 0600). It stops working when the runner is removed.
+	// Bearer <runner_token>" to FetchJob: "ermiterun_" and 43 base64url
+	// characters (32 random bytes, no padding). It is returned once: the server
+	// keeps only its SHA-256, the runner must store it (mode 0600). It stops
+	// working when the runner is removed or replaced.
 	RunnerToken   string `protobuf:"bytes,2,opt,name=runner_token,json=runnerToken,proto3" json:"runner_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -510,7 +525,14 @@ type FetchJobRequest struct {
 	// labels of the runner, which is the normal case. Otherwise each one must be
 	// a label of the runner (invalid_argument if not) and only jobs whose runs-on
 	// labels are all among them are offered.
-	Labels        []string `protobuf:"bytes,1,rep,name=labels,proto3" json:"labels,omitempty"`
+	Labels []string `protobuf:"bytes,1,rep,name=labels,proto3" json:"labels,omitempty"`
+	// PollId identifies this poll, chosen by the client (for example 16 random
+	// bytes in base64url), 1 to 64 characters among letters, digits, "_" and
+	// "-". A client that retries a call whose response it did not get sends the
+	// same poll_id, and gets the assignment the first call made, if it made one
+	// (see FetchJob). A new poll uses a new id. Empty means no retry protection:
+	// a lost assignment is then recovered by the acknowledgement timeout alone.
+	PollId        string `protobuf:"bytes,2,opt,name=poll_id,json=pollId,proto3" json:"poll_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -552,12 +574,24 @@ func (x *FetchJobRequest) GetLabels() []string {
 	return nil
 }
 
+func (x *FetchJobRequest) GetPollId() string {
+	if x != nil {
+		return x.PollId
+	}
+	return ""
+}
+
 // FetchJobResponse holds the job given to the runner, if any.
 type FetchJobResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Job is the job to run. Unset when no job was available before the end of
 	// the poll.
-	Job           *Job `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	Job *Job `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	// RetryAfter is how long the client waits before its next FetchJob. Unset or
+	// zero means call again at once. The server sets it when it has no job for
+	// the runner and wants to slow polling down (load, shutdown in progress);
+	// clients obey it and may wait longer, never less. Unset when job is set.
+	RetryAfter    *durationpb.Duration `protobuf:"bytes,2,opt,name=retry_after,json=retryAfter,proto3" json:"retry_after,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -599,6 +633,13 @@ func (x *FetchJobResponse) GetJob() *Job {
 	return nil
 }
 
+func (x *FetchJobResponse) GetRetryAfter() *durationpb.Duration {
+	if x != nil {
+		return x.RetryAfter
+	}
+	return nil
+}
+
 // Job is a job given to a runner: everything needed to run it, nothing more.
 // The runner parses workflow_yaml itself; the protocol does not carry the
 // workflow model, so it does not change when the model grows.
@@ -615,10 +656,13 @@ type Job struct {
 	// one more after each RunService.RerunRun. It is the "github.run_attempt".
 	Attempt int32 `protobuf:"varint,3,opt,name=attempt,proto3" json:"attempt,omitempty"`
 	// JobToken is the secret that authenticates this job's UpdateJob,
-	// AppendLog, Heartbeat and WatchJob calls ("Authorization: Bearer
-	// <job_token>"). It is random, valid until the job ends, survives a server
-	// restart and is shown only in this response. It must stay in the runner
-	// host process and never reach the job's code.
+	// AppendLog, Heartbeat, WatchJob and CompleteJob calls ("Authorization:
+	// Bearer <job_token>"): "ermitejob_" and 43 base64url characters (32 random
+	// bytes, no padding). It is random, valid from the assignment until the job
+	// ends (and for CompleteJob 24 hours more), survives a server restart and
+	// is shown only in this response, or in a repeat of the same poll_id. It
+	// must stay in the runner host process and never reach the job's code. A new
+	// assignment of the same job has a new token.
 	JobToken string `protobuf:"bytes,4,opt,name=job_token,json=jobToken,proto3" json:"job_token,omitempty"`
 	// WorkflowPath is the path of the workflow file in the repository, for
 	// example ".github/workflows/ci.yml".
@@ -643,8 +687,11 @@ type Job struct {
 	Labels []string `protobuf:"bytes,10,rep,name=labels,proto3" json:"labels,omitempty"`
 	// TimeoutMinutes is the timeout of the job in minutes: the value of the
 	// workflow's timeout-minutes, or 360 when it has none. At least 1. The
-	// runner enforces it from the start of the job; the server ends a job that
-	// exceeds it by announcing CANCEL_REASON_TIMEOUT.
+	// runner enforces it from the moment it receives the job. The server counts
+	// from the moment of the assignment and adds 60 seconds of slack, so the
+	// runner's own timeout always comes first: when the server's deadline
+	// passes it announces CANCEL_REASON_TIMEOUT, and ends the job itself after
+	// 60 more seconds without a conclusion (see WatchJob).
 	TimeoutMinutes int32 `protobuf:"varint,11,opt,name=timeout_minutes,json=timeoutMinutes,proto3" json:"timeout_minutes,omitempty"`
 	// Repo is the name of the repository.
 	Repo string `protobuf:"bytes,12,opt,name=repo,proto3" json:"repo,omitempty"`
@@ -786,7 +833,7 @@ func (x *Job) GetRef() string {
 	return ""
 }
 
-// UpdateJobRequest reports the steps and, in the last call, the end of a job.
+// UpdateJobRequest reports the steps of a running job.
 type UpdateJobRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// JobId is the Job.job_id. It must be the job of the token.
@@ -796,31 +843,9 @@ type UpdateJobRequest struct {
 	// (invalid_argument beyond). Steps are numbered like GitHub's log: the
 	// implicit "Set up job" is 1, the steps of the workflow follow in order, and
 	// the implicit "Complete job" is last.
-	Steps []*StepUpdate `protobuf:"bytes,2,rep,name=steps,proto3" json:"steps,omitempty"`
-	// Outputs are the outputs of the job, evaluated by the runner. Only allowed
-	// in the call that carries the conclusion (invalid_argument otherwise).
-	// Names are 1 to 255 characters among letters, digits, "_" and "-" and
-	// begin with a letter or "_" and are case-insensitive: two names that
-	// differ only by case are invalid_argument. Each value is at most 1 MiB, and
-	// all names and values together at most 1 MiB (1,048,576 bytes); beyond that
-	// the whole call is rejected with invalid_argument and the runner reports
-	// the failure of the job without outputs, with a line in the log.
-	Outputs map[string]string `protobuf:"bytes,3,rep,name=outputs,proto3" json:"outputs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Conclusion ends the job when set. A runner reports CI_CONCLUSION_SUCCESS,
-	// CI_CONCLUSION_FAILURE, CI_CONCLUSION_CANCELLED or CI_CONCLUSION_TIMED_OUT; any
-	// other value is invalid_argument. CI_CONCLUSION_UNSPECIFIED means the job goes
-	// on. Steps that were not reported COMPLETED when the job ends are
-	// completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when they
-	// never started and the job did not fail by cancellation).
-	Conclusion CiConclusion `protobuf:"varint,4,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
-	// RunnerShutdown is true when the runner ends the job because it was told to
-	// stop (service stopped, signal). Only allowed with CI_CONCLUSION_CANCELLED.
-	// The server then annotates the job with GitHub's message "The runner has
-	// received a shutdown signal. This can happen when the runner service is
-	// stopped, or a manually started runner is canceled."
-	RunnerShutdown bool `protobuf:"varint,5,opt,name=runner_shutdown,json=runnerShutdown,proto3" json:"runner_shutdown,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	Steps         []*StepUpdate `protobuf:"bytes,2,rep,name=steps,proto3" json:"steps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateJobRequest) Reset() {
@@ -865,27 +890,6 @@ func (x *UpdateJobRequest) GetSteps() []*StepUpdate {
 		return x.Steps
 	}
 	return nil
-}
-
-func (x *UpdateJobRequest) GetOutputs() map[string]string {
-	if x != nil {
-		return x.Outputs
-	}
-	return nil
-}
-
-func (x *UpdateJobRequest) GetConclusion() CiConclusion {
-	if x != nil {
-		return x.Conclusion
-	}
-	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
-}
-
-func (x *UpdateJobRequest) GetRunnerShutdown() bool {
-	if x != nil {
-		return x.RunnerShutdown
-	}
-	return false
 }
 
 // StepUpdate is the state of one step as the runner knows it.
@@ -1023,14 +1027,237 @@ func (*UpdateJobResponse) Descriptor() ([]byte, []int) {
 	return file_ermite_runner_proto_rawDescGZIP(), []int{7}
 }
 
+// CompleteJobRequest ends a job.
+type CompleteJobRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// JobId is the Job.job_id. It must be the job of the token.
+	JobId string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	// Conclusion is how the job ended. Required: a runner reports
+	// CI_CONCLUSION_SUCCESS, CI_CONCLUSION_FAILURE, CI_CONCLUSION_CANCELLED or
+	// CI_CONCLUSION_TIMED_OUT; any other value is invalid_argument. Skipped is
+	// decided by the server and never reported by a runner.
+	Conclusion CiConclusion `protobuf:"varint,2,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
+	// Outputs are the outputs of the job, evaluated by the runner. Names are 1
+	// to 255 characters among letters, digits, "_" and "-" and begin with a
+	// letter or "_" and are case-insensitive: two names that differ only by case
+	// are invalid_argument. Each value is at most 1 MiB, and all names and
+	// values together at most 1 MiB (1,048,576 bytes); beyond that the whole call
+	// is rejected with invalid_argument and the runner reports the failure of
+	// the job without outputs, with a line in the log.
+	Outputs map[string]string `protobuf:"bytes,3,rep,name=outputs,proto3" json:"outputs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// RunnerShutdown is true when the runner ends the job because it was told to
+	// stop (service stopped, signal). Only allowed with CI_CONCLUSION_CANCELLED.
+	// The server then annotates the job with GitHub's message "The runner has
+	// received a shutdown signal. This can happen when the runner service is
+	// stopped, or a manually started runner is canceled." The conclusion
+	// CANCELLED for this case is to be verified against a recording of GitHub.
+	RunnerShutdown bool `protobuf:"varint,4,opt,name=runner_shutdown,json=runnerShutdown,proto3" json:"runner_shutdown,omitempty"`
+	// Steps are the final steps, with the same meaning as UpdateJobRequest.steps,
+	// applied in the same atomic step as the conclusion.
+	Steps         []*StepUpdate `protobuf:"bytes,5,rep,name=steps,proto3" json:"steps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteJobRequest) Reset() {
+	*x = CompleteJobRequest{}
+	mi := &file_ermite_runner_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteJobRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteJobRequest) ProtoMessage() {}
+
+func (x *CompleteJobRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteJobRequest.ProtoReflect.Descriptor instead.
+func (*CompleteJobRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CompleteJobRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *CompleteJobRequest) GetConclusion() CiConclusion {
+	if x != nil {
+		return x.Conclusion
+	}
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
+}
+
+func (x *CompleteJobRequest) GetOutputs() map[string]string {
+	if x != nil {
+		return x.Outputs
+	}
+	return nil
+}
+
+func (x *CompleteJobRequest) GetRunnerShutdown() bool {
+	if x != nil {
+		return x.RunnerShutdown
+	}
+	return false
+}
+
+func (x *CompleteJobRequest) GetSteps() []*StepUpdate {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+// CompleteJobResponse is the stored result of a job.
+type CompleteJobResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Conclusion is the conclusion of the job as the server stored it. It is the
+	// one of the request when applied is true.
+	Conclusion CiConclusion `protobuf:"varint,1,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
+	// Error is the error text stored with the job, as RunJob.error. Empty when
+	// there is none.
+	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	// Applied is true when this call ended the job, false when the job had
+	// already ended (a retry, or the server ended it first) and nothing changed.
+	Applied       bool `protobuf:"varint,3,opt,name=applied,proto3" json:"applied,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteJobResponse) Reset() {
+	*x = CompleteJobResponse{}
+	mi := &file_ermite_runner_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteJobResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteJobResponse) ProtoMessage() {}
+
+func (x *CompleteJobResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteJobResponse.ProtoReflect.Descriptor instead.
+func (*CompleteJobResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CompleteJobResponse) GetConclusion() CiConclusion {
+	if x != nil {
+		return x.Conclusion
+	}
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
+}
+
+func (x *CompleteJobResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *CompleteJobResponse) GetApplied() bool {
+	if x != nil {
+		return x.Applied
+	}
+	return false
+}
+
+// JobEnded says that a job has ended. It is sent in WatchJob and attached, as
+// an error detail, to the failed_precondition errors that RunnerService returns
+// for a job that has ended.
+type JobEnded struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Conclusion is how the job ended.
+	Conclusion CiConclusion `protobuf:"varint,1,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
+	// Error is the error text stored with the job, as RunJob.error. Empty when
+	// there is none.
+	Error         string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobEnded) Reset() {
+	*x = JobEnded{}
+	mi := &file_ermite_runner_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobEnded) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobEnded) ProtoMessage() {}
+
+func (x *JobEnded) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobEnded.ProtoReflect.Descriptor instead.
+func (*JobEnded) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *JobEnded) GetConclusion() CiConclusion {
+	if x != nil {
+		return x.Conclusion
+	}
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
+}
+
+func (x *JobEnded) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 // AppendLogRequest carries log lines of one step.
 type AppendLogRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// JobId is the Job.job_id. It must be the job of the token.
 	JobId string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
 	// Step is the number of the step the lines belong to (see
-	// UpdateJobRequest.steps), at least 1. A step that UpdateJob has not
-	// announced yet is created by the first lines.
+	// UpdateJobRequest.steps), at least 1, and at least the step of the last
+	// stored line. A step that UpdateJob has not announced yet is created by the
+	// first lines. See the rules on AppendLog.
 	Step int32 `protobuf:"varint,2,opt,name=step,proto3" json:"step,omitempty"`
 	// Offset is the number of the first line of the request in the log of the
 	// job, counted from 0 across all steps. See the rules on AppendLog.
@@ -1044,7 +1271,7 @@ type AppendLogRequest struct {
 
 func (x *AppendLogRequest) Reset() {
 	*x = AppendLogRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[8]
+	mi := &file_ermite_runner_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1056,7 +1283,7 @@ func (x *AppendLogRequest) String() string {
 func (*AppendLogRequest) ProtoMessage() {}
 
 func (x *AppendLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[8]
+	mi := &file_ermite_runner_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1069,7 +1296,7 @@ func (x *AppendLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendLogRequest.ProtoReflect.Descriptor instead.
 func (*AppendLogRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{8}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AppendLogRequest) GetJobId() string {
@@ -1110,14 +1337,23 @@ type LogLine struct {
 	// replaces invalid bytes with U+FFFD). It must not contain a line feed; a
 	// carriage return is kept. It is the line as GitHub's raw log has it,
 	// including "##[group]" and "##[endgroup]" markers and "##[error]" lines.
-	Text          string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	Text string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	// Continued is true when this line is the continuation of the line before
+	// it, which was too long to send whole. A runner cuts a line of more than
+	// 64 KiB into pieces at UTF-8 character boundaries, each piece of at most
+	// 64 KiB, and sets continued on every piece but the first. Each piece is one
+	// line for numbering and offsets; the server and the raw log join the
+	// pieces back, so the original line is rebuilt exactly. The first line of a
+	// job cannot be continued (invalid_argument) and a continued line is in
+	// the same step as the line before it (failed_precondition otherwise).
+	Continued     bool `protobuf:"varint,3,opt,name=continued,proto3" json:"continued,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LogLine) Reset() {
 	*x = LogLine{}
-	mi := &file_ermite_runner_proto_msgTypes[9]
+	mi := &file_ermite_runner_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1129,7 +1365,7 @@ func (x *LogLine) String() string {
 func (*LogLine) ProtoMessage() {}
 
 func (x *LogLine) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[9]
+	mi := &file_ermite_runner_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1142,7 +1378,7 @@ func (x *LogLine) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogLine.ProtoReflect.Descriptor instead.
 func (*LogLine) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{9}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *LogLine) GetTime() *timestamppb.Timestamp {
@@ -1159,6 +1395,13 @@ func (x *LogLine) GetText() string {
 	return ""
 }
 
+func (x *LogLine) GetContinued() bool {
+	if x != nil {
+		return x.Continued
+	}
+	return false
+}
+
 // AppendLogResponse tells how much of the log the server holds.
 type AppendLogResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1171,7 +1414,7 @@ type AppendLogResponse struct {
 
 func (x *AppendLogResponse) Reset() {
 	*x = AppendLogResponse{}
-	mi := &file_ermite_runner_proto_msgTypes[10]
+	mi := &file_ermite_runner_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1183,7 +1426,7 @@ func (x *AppendLogResponse) String() string {
 func (*AppendLogResponse) ProtoMessage() {}
 
 func (x *AppendLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[10]
+	mi := &file_ermite_runner_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1196,7 +1439,7 @@ func (x *AppendLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendLogResponse.ProtoReflect.Descriptor instead.
 func (*AppendLogResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{10}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AppendLogResponse) GetNextOffset() int64 {
@@ -1217,7 +1460,7 @@ type HeartbeatRequest struct {
 
 func (x *HeartbeatRequest) Reset() {
 	*x = HeartbeatRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[11]
+	mi := &file_ermite_runner_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1229,7 +1472,7 @@ func (x *HeartbeatRequest) String() string {
 func (*HeartbeatRequest) ProtoMessage() {}
 
 func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[11]
+	mi := &file_ermite_runner_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1242,7 +1485,7 @@ func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{11}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *HeartbeatRequest) GetJobId() string {
@@ -1261,7 +1504,7 @@ type HeartbeatResponse struct {
 
 func (x *HeartbeatResponse) Reset() {
 	*x = HeartbeatResponse{}
-	mi := &file_ermite_runner_proto_msgTypes[12]
+	mi := &file_ermite_runner_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1273,7 +1516,7 @@ func (x *HeartbeatResponse) String() string {
 func (*HeartbeatResponse) ProtoMessage() {}
 
 func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[12]
+	mi := &file_ermite_runner_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1286,7 +1529,7 @@ func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{12}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{15}
 }
 
 // WatchJobRequest names the job to watch.
@@ -1300,7 +1543,7 @@ type WatchJobRequest struct {
 
 func (x *WatchJobRequest) Reset() {
 	*x = WatchJobRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[13]
+	mi := &file_ermite_runner_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1312,7 +1555,7 @@ func (x *WatchJobRequest) String() string {
 func (*WatchJobRequest) ProtoMessage() {}
 
 func (x *WatchJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[13]
+	mi := &file_ermite_runner_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1325,7 +1568,7 @@ func (x *WatchJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchJobRequest.ProtoReflect.Descriptor instead.
 func (*WatchJobRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{13}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *WatchJobRequest) GetJobId() string {
@@ -1335,28 +1578,25 @@ func (x *WatchJobRequest) GetJobId() string {
 	return ""
 }
 
-// WatchJobResponse is one message of the stream: a request to cancel the job,
-// or a keep-alive.
+// WatchJobResponse is one message of the stream.
 type WatchJobResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Reason is why the job must stop. CANCEL_REASON_UNSPECIFIED marks a
-	// keep-alive: the other fields are empty and the client ignores it. New
-	// reasons may be added; a runner that does not know one cancels the job and
-	// reports CI_CONCLUSION_CANCELLED.
-	Reason CancelReason `protobuf:"varint,1,opt,name=reason,proto3,enum=ermite.CancelReason" json:"reason,omitempty"`
-	// Message is a short human-readable explanation, for the job log, for
-	// example "Canceled by the owner". At most 1,024 characters.
-	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	// RequestedAt is when the cancellation was requested, by the clock of the
-	// server.
-	RequestedAt   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=requested_at,json=requestedAt,proto3" json:"requested_at,omitempty"`
+	// Msg is what the message carries. New kinds may be added: a client ignores
+	// the ones it does not know.
+	//
+	// Types that are valid to be assigned to Msg:
+	//
+	//	*WatchJobResponse_Keepalive
+	//	*WatchJobResponse_Cancel
+	//	*WatchJobResponse_Ended
+	Msg           isWatchJobResponse_Msg `protobuf_oneof:"msg"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WatchJobResponse) Reset() {
 	*x = WatchJobResponse{}
-	mi := &file_ermite_runner_proto_msgTypes[14]
+	mi := &file_ermite_runner_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1368,7 +1608,7 @@ func (x *WatchJobResponse) String() string {
 func (*WatchJobResponse) ProtoMessage() {}
 
 func (x *WatchJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[14]
+	mi := &file_ermite_runner_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1381,24 +1621,167 @@ func (x *WatchJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchJobResponse.ProtoReflect.Descriptor instead.
 func (*WatchJobResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{14}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *WatchJobResponse) GetReason() CancelReason {
+func (x *WatchJobResponse) GetMsg() isWatchJobResponse_Msg {
+	if x != nil {
+		return x.Msg
+	}
+	return nil
+}
+
+func (x *WatchJobResponse) GetKeepalive() *Keepalive {
+	if x != nil {
+		if x, ok := x.Msg.(*WatchJobResponse_Keepalive); ok {
+			return x.Keepalive
+		}
+	}
+	return nil
+}
+
+func (x *WatchJobResponse) GetCancel() *CancelRequest {
+	if x != nil {
+		if x, ok := x.Msg.(*WatchJobResponse_Cancel); ok {
+			return x.Cancel
+		}
+	}
+	return nil
+}
+
+func (x *WatchJobResponse) GetEnded() *JobEnded {
+	if x != nil {
+		if x, ok := x.Msg.(*WatchJobResponse_Ended); ok {
+			return x.Ended
+		}
+	}
+	return nil
+}
+
+type isWatchJobResponse_Msg interface {
+	isWatchJobResponse_Msg()
+}
+
+type WatchJobResponse_Keepalive struct {
+	// Keepalive: nothing to do, the stream is alive.
+	Keepalive *Keepalive `protobuf:"bytes,1,opt,name=keepalive,proto3,oneof"`
+}
+
+type WatchJobResponse_Cancel struct {
+	// Cancel: the job must stop.
+	Cancel *CancelRequest `protobuf:"bytes,2,opt,name=cancel,proto3,oneof"`
+}
+
+type WatchJobResponse_Ended struct {
+	// Ended: the job has ended. The last message of a stream: a close without
+	// it means the client reconnects.
+	Ended *JobEnded `protobuf:"bytes,3,opt,name=ended,proto3,oneof"`
+}
+
+func (*WatchJobResponse_Keepalive) isWatchJobResponse_Msg() {}
+
+func (*WatchJobResponse_Cancel) isWatchJobResponse_Msg() {}
+
+func (*WatchJobResponse_Ended) isWatchJobResponse_Msg() {}
+
+// Keepalive has no fields.
+type Keepalive struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Keepalive) Reset() {
+	*x = Keepalive{}
+	mi := &file_ermite_runner_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Keepalive) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Keepalive) ProtoMessage() {}
+
+func (x *Keepalive) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Keepalive.ProtoReflect.Descriptor instead.
+func (*Keepalive) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{18}
+}
+
+// CancelRequest asks the runner to stop a job.
+type CancelRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Reason is why the job must stop. New reasons may be added; a runner that
+	// does not know one cancels the job and reports CI_CONCLUSION_CANCELLED.
+	Reason CancelReason `protobuf:"varint,1,opt,name=reason,proto3,enum=ermite.CancelReason" json:"reason,omitempty"`
+	// Message is a short human-readable explanation, for the job log, for
+	// example "Canceled by the owner". At most 1,024 characters.
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// RequestedAt is when the cancellation was requested, by the clock of the
+	// server.
+	RequestedAt   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=requested_at,json=requestedAt,proto3" json:"requested_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelRequest) Reset() {
+	*x = CancelRequest{}
+	mi := &file_ermite_runner_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelRequest) ProtoMessage() {}
+
+func (x *CancelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelRequest.ProtoReflect.Descriptor instead.
+func (*CancelRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *CancelRequest) GetReason() CancelReason {
 	if x != nil {
 		return x.Reason
 	}
 	return CancelReason_CANCEL_REASON_UNSPECIFIED
 }
 
-func (x *WatchJobResponse) GetMessage() string {
+func (x *CancelRequest) GetMessage() string {
 	if x != nil {
 		return x.Message
 	}
 	return ""
 }
 
-func (x *WatchJobResponse) GetRequestedAt() *timestamppb.Timestamp {
+func (x *CancelRequest) GetRequestedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.RequestedAt
 	}
@@ -1409,21 +1792,25 @@ var File_ermite_runner_proto protoreflect.FileDescriptor
 
 const file_ermite_runner_proto_rawDesc = "" +
 	"\n" +
-	"\x13ermite/runner.proto\x12\x06ermite\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb8\x01\n" +
+	"\x13ermite/runner.proto\x12\x06ermite\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd2\x01\n" +
 	"\x15RegisterRunnerRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06labels\x18\x02 \x03(\tR\x06labels\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x125\n" +
 	"\tisolation\x18\x04 \x01(\x0e2\x17.ermite.RunnerIsolationR\tisolation\x12\x12\n" +
 	"\x04arch\x18\x05 \x01(\tR\x04arch\x12\x0e\n" +
-	"\x02os\x18\x06 \x01(\tR\x02os\"X\n" +
+	"\x02os\x18\x06 \x01(\tR\x02os\x12\x18\n" +
+	"\areplace\x18\a \x01(\bR\areplace\"X\n" +
 	"\x16RegisterRunnerResponse\x12\x1b\n" +
 	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12!\n" +
-	"\frunner_token\x18\x02 \x01(\tR\vrunnerToken\")\n" +
+	"\frunner_token\x18\x02 \x01(\tR\vrunnerToken\"B\n" +
 	"\x0fFetchJobRequest\x12\x16\n" +
-	"\x06labels\x18\x01 \x03(\tR\x06labels\"1\n" +
+	"\x06labels\x18\x01 \x03(\tR\x06labels\x12\x17\n" +
+	"\apoll_id\x18\x02 \x01(\tR\x06pollId\"m\n" +
 	"\x10FetchJobResponse\x12\x1d\n" +
-	"\x03job\x18\x01 \x01(\v2\v.ermite.JobR\x03job\"\xfa\x02\n" +
+	"\x03job\x18\x01 \x01(\v2\v.ermite.JobR\x03job\x12:\n" +
+	"\vretry_after\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\n" +
+	"retryAfter\"\xfa\x02\n" +
 	"\x03Job\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x18\n" +
@@ -1439,18 +1826,10 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x0ftimeout_minutes\x18\v \x01(\x05R\x0etimeoutMinutes\x12\x12\n" +
 	"\x04repo\x18\f \x01(\tR\x04repo\x12\x10\n" +
 	"\x03sha\x18\r \x01(\tR\x03sha\x12\x10\n" +
-	"\x03ref\x18\x0e \x01(\tR\x03ref\"\xaf\x02\n" +
+	"\x03ref\x18\x0e \x01(\tR\x03ref\"S\n" +
 	"\x10UpdateJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12(\n" +
-	"\x05steps\x18\x02 \x03(\v2\x12.ermite.StepUpdateR\x05steps\x12?\n" +
-	"\aoutputs\x18\x03 \x03(\v2%.ermite.UpdateJobRequest.OutputsEntryR\aoutputs\x124\n" +
-	"\n" +
-	"conclusion\x18\x04 \x01(\x0e2\x14.ermite.CiConclusionR\n" +
-	"conclusion\x12'\n" +
-	"\x0frunner_shutdown\x18\x05 \x01(\bR\x0erunnerShutdown\x1a:\n" +
-	"\fOutputsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x91\x02\n" +
+	"\x05steps\x18\x02 \x03(\v2\x12.ermite.StepUpdateR\x05steps\"\x91\x02\n" +
 	"\n" +
 	"StepUpdate\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x12\n" +
@@ -1462,15 +1841,38 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
 	"\fcompleted_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\x13\n" +
-	"\x11UpdateJobResponse\"|\n" +
+	"\x11UpdateJobResponse\"\xb3\x02\n" +
+	"\x12CompleteJobRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x124\n" +
+	"\n" +
+	"conclusion\x18\x02 \x01(\x0e2\x14.ermite.CiConclusionR\n" +
+	"conclusion\x12A\n" +
+	"\aoutputs\x18\x03 \x03(\v2'.ermite.CompleteJobRequest.OutputsEntryR\aoutputs\x12'\n" +
+	"\x0frunner_shutdown\x18\x04 \x01(\bR\x0erunnerShutdown\x12(\n" +
+	"\x05steps\x18\x05 \x03(\v2\x12.ermite.StepUpdateR\x05steps\x1a:\n" +
+	"\fOutputsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"{\n" +
+	"\x13CompleteJobResponse\x124\n" +
+	"\n" +
+	"conclusion\x18\x01 \x01(\x0e2\x14.ermite.CiConclusionR\n" +
+	"conclusion\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\x12\x18\n" +
+	"\aapplied\x18\x03 \x01(\bR\aapplied\"V\n" +
+	"\bJobEnded\x124\n" +
+	"\n" +
+	"conclusion\x18\x01 \x01(\x0e2\x14.ermite.CiConclusionR\n" +
+	"conclusion\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"|\n" +
 	"\x10AppendLogRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x12\n" +
 	"\x04step\x18\x02 \x01(\x05R\x04step\x12\x16\n" +
 	"\x06offset\x18\x03 \x01(\x03R\x06offset\x12%\n" +
-	"\x05lines\x18\x04 \x03(\v2\x0f.ermite.LogLineR\x05lines\"M\n" +
+	"\x05lines\x18\x04 \x03(\v2\x0f.ermite.LogLineR\x05lines\"k\n" +
 	"\aLogLine\x12.\n" +
 	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x12\n" +
-	"\x04text\x18\x02 \x01(\tR\x04text\"4\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\x12\x1c\n" +
+	"\tcontinued\x18\x03 \x01(\bR\tcontinued\"4\n" +
 	"\x11AppendLogResponse\x12\x1f\n" +
 	"\vnext_offset\x18\x01 \x01(\x03R\n" +
 	"nextOffset\")\n" +
@@ -1478,8 +1880,14 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"\x13\n" +
 	"\x11HeartbeatResponse\"(\n" +
 	"\x0fWatchJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"\x99\x01\n" +
-	"\x10WatchJobResponse\x12,\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"\xa7\x01\n" +
+	"\x10WatchJobResponse\x121\n" +
+	"\tkeepalive\x18\x01 \x01(\v2\x11.ermite.KeepaliveH\x00R\tkeepalive\x12/\n" +
+	"\x06cancel\x18\x02 \x01(\v2\x15.ermite.CancelRequestH\x00R\x06cancel\x12(\n" +
+	"\x05ended\x18\x03 \x01(\v2\x10.ermite.JobEndedH\x00R\x05endedB\x05\n" +
+	"\x03msg\"\v\n" +
+	"\tKeepalive\"\x96\x01\n" +
+	"\rCancelRequest\x12,\n" +
 	"\x06reason\x18\x01 \x01(\x0e2\x14.ermite.CancelReasonR\x06reason\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12=\n" +
 	"\frequested_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vrequestedAt*o\n" +
@@ -1511,14 +1919,15 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x19CANCEL_REASON_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12CANCEL_REASON_USER\x10\x01\x12\x1b\n" +
 	"\x17CANCEL_REASON_FAIL_FAST\x10\x02\x12\x19\n" +
-	"\x15CANCEL_REASON_TIMEOUT\x10\x032\xa6\x03\n" +
+	"\x15CANCEL_REASON_TIMEOUT\x10\x032\xee\x03\n" +
 	"\rRunnerService\x12O\n" +
 	"\x0eRegisterRunner\x12\x1d.ermite.RegisterRunnerRequest\x1a\x1e.ermite.RegisterRunnerResponse\x12=\n" +
 	"\bFetchJob\x12\x17.ermite.FetchJobRequest\x1a\x18.ermite.FetchJobResponse\x12@\n" +
 	"\tUpdateJob\x12\x18.ermite.UpdateJobRequest\x1a\x19.ermite.UpdateJobResponse\x12@\n" +
 	"\tAppendLog\x12\x18.ermite.AppendLogRequest\x1a\x19.ermite.AppendLogResponse\x12@\n" +
 	"\tHeartbeat\x12\x18.ermite.HeartbeatRequest\x1a\x19.ermite.HeartbeatResponse\x12?\n" +
-	"\bWatchJob\x12\x17.ermite.WatchJobRequest\x1a\x18.ermite.WatchJobResponse0\x01Br\n" +
+	"\bWatchJob\x12\x17.ermite.WatchJobRequest\x1a\x18.ermite.WatchJobResponse0\x01\x12F\n" +
+	"\vCompleteJob\x12\x1a.ermite.CompleteJobRequest\x1a\x1b.ermite.CompleteJobResponseBr\n" +
 	"\n" +
 	"com.ermiteB\vRunnerProtoP\x01Z\x1fbnema.dev/ermite-api/gen/ermite\xa2\x02\x03EXX\xaa\x02\x06Ermite\xca\x02\x06Ermite\xe2\x02\x12Ermite\\GPBMetadata\xea\x02\x06Ermiteb\x06proto3"
 
@@ -1535,7 +1944,7 @@ func file_ermite_runner_proto_rawDescGZIP() []byte {
 }
 
 var file_ermite_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_ermite_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_ermite_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_ermite_runner_proto_goTypes = []any{
 	(CiStatus)(0),                  // 0: ermite.CiStatus
 	(CiConclusion)(0),              // 1: ermite.CiConclusion
@@ -1550,47 +1959,62 @@ var file_ermite_runner_proto_goTypes = []any{
 	(*UpdateJobRequest)(nil),       // 10: ermite.UpdateJobRequest
 	(*StepUpdate)(nil),             // 11: ermite.StepUpdate
 	(*UpdateJobResponse)(nil),      // 12: ermite.UpdateJobResponse
-	(*AppendLogRequest)(nil),       // 13: ermite.AppendLogRequest
-	(*LogLine)(nil),                // 14: ermite.LogLine
-	(*AppendLogResponse)(nil),      // 15: ermite.AppendLogResponse
-	(*HeartbeatRequest)(nil),       // 16: ermite.HeartbeatRequest
-	(*HeartbeatResponse)(nil),      // 17: ermite.HeartbeatResponse
-	(*WatchJobRequest)(nil),        // 18: ermite.WatchJobRequest
-	(*WatchJobResponse)(nil),       // 19: ermite.WatchJobResponse
-	nil,                            // 20: ermite.UpdateJobRequest.OutputsEntry
-	(*timestamppb.Timestamp)(nil),  // 21: google.protobuf.Timestamp
+	(*CompleteJobRequest)(nil),     // 13: ermite.CompleteJobRequest
+	(*CompleteJobResponse)(nil),    // 14: ermite.CompleteJobResponse
+	(*JobEnded)(nil),               // 15: ermite.JobEnded
+	(*AppendLogRequest)(nil),       // 16: ermite.AppendLogRequest
+	(*LogLine)(nil),                // 17: ermite.LogLine
+	(*AppendLogResponse)(nil),      // 18: ermite.AppendLogResponse
+	(*HeartbeatRequest)(nil),       // 19: ermite.HeartbeatRequest
+	(*HeartbeatResponse)(nil),      // 20: ermite.HeartbeatResponse
+	(*WatchJobRequest)(nil),        // 21: ermite.WatchJobRequest
+	(*WatchJobResponse)(nil),       // 22: ermite.WatchJobResponse
+	(*Keepalive)(nil),              // 23: ermite.Keepalive
+	(*CancelRequest)(nil),          // 24: ermite.CancelRequest
+	nil,                            // 25: ermite.CompleteJobRequest.OutputsEntry
+	(*durationpb.Duration)(nil),    // 26: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),  // 27: google.protobuf.Timestamp
 }
 var file_ermite_runner_proto_depIdxs = []int32{
 	3,  // 0: ermite.RegisterRunnerRequest.isolation:type_name -> ermite.RunnerIsolation
 	9,  // 1: ermite.FetchJobResponse.job:type_name -> ermite.Job
-	11, // 2: ermite.UpdateJobRequest.steps:type_name -> ermite.StepUpdate
-	20, // 3: ermite.UpdateJobRequest.outputs:type_name -> ermite.UpdateJobRequest.OutputsEntry
-	1,  // 4: ermite.UpdateJobRequest.conclusion:type_name -> ermite.CiConclusion
-	2,  // 5: ermite.StepUpdate.state:type_name -> ermite.StepState
-	1,  // 6: ermite.StepUpdate.conclusion:type_name -> ermite.CiConclusion
-	21, // 7: ermite.StepUpdate.started_at:type_name -> google.protobuf.Timestamp
-	21, // 8: ermite.StepUpdate.completed_at:type_name -> google.protobuf.Timestamp
-	14, // 9: ermite.AppendLogRequest.lines:type_name -> ermite.LogLine
-	21, // 10: ermite.LogLine.time:type_name -> google.protobuf.Timestamp
-	4,  // 11: ermite.WatchJobResponse.reason:type_name -> ermite.CancelReason
-	21, // 12: ermite.WatchJobResponse.requested_at:type_name -> google.protobuf.Timestamp
-	5,  // 13: ermite.RunnerService.RegisterRunner:input_type -> ermite.RegisterRunnerRequest
-	7,  // 14: ermite.RunnerService.FetchJob:input_type -> ermite.FetchJobRequest
-	10, // 15: ermite.RunnerService.UpdateJob:input_type -> ermite.UpdateJobRequest
-	13, // 16: ermite.RunnerService.AppendLog:input_type -> ermite.AppendLogRequest
-	16, // 17: ermite.RunnerService.Heartbeat:input_type -> ermite.HeartbeatRequest
-	18, // 18: ermite.RunnerService.WatchJob:input_type -> ermite.WatchJobRequest
-	6,  // 19: ermite.RunnerService.RegisterRunner:output_type -> ermite.RegisterRunnerResponse
-	8,  // 20: ermite.RunnerService.FetchJob:output_type -> ermite.FetchJobResponse
-	12, // 21: ermite.RunnerService.UpdateJob:output_type -> ermite.UpdateJobResponse
-	15, // 22: ermite.RunnerService.AppendLog:output_type -> ermite.AppendLogResponse
-	17, // 23: ermite.RunnerService.Heartbeat:output_type -> ermite.HeartbeatResponse
-	19, // 24: ermite.RunnerService.WatchJob:output_type -> ermite.WatchJobResponse
-	19, // [19:25] is the sub-list for method output_type
-	13, // [13:19] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	26, // 2: ermite.FetchJobResponse.retry_after:type_name -> google.protobuf.Duration
+	11, // 3: ermite.UpdateJobRequest.steps:type_name -> ermite.StepUpdate
+	2,  // 4: ermite.StepUpdate.state:type_name -> ermite.StepState
+	1,  // 5: ermite.StepUpdate.conclusion:type_name -> ermite.CiConclusion
+	27, // 6: ermite.StepUpdate.started_at:type_name -> google.protobuf.Timestamp
+	27, // 7: ermite.StepUpdate.completed_at:type_name -> google.protobuf.Timestamp
+	1,  // 8: ermite.CompleteJobRequest.conclusion:type_name -> ermite.CiConclusion
+	25, // 9: ermite.CompleteJobRequest.outputs:type_name -> ermite.CompleteJobRequest.OutputsEntry
+	11, // 10: ermite.CompleteJobRequest.steps:type_name -> ermite.StepUpdate
+	1,  // 11: ermite.CompleteJobResponse.conclusion:type_name -> ermite.CiConclusion
+	1,  // 12: ermite.JobEnded.conclusion:type_name -> ermite.CiConclusion
+	17, // 13: ermite.AppendLogRequest.lines:type_name -> ermite.LogLine
+	27, // 14: ermite.LogLine.time:type_name -> google.protobuf.Timestamp
+	23, // 15: ermite.WatchJobResponse.keepalive:type_name -> ermite.Keepalive
+	24, // 16: ermite.WatchJobResponse.cancel:type_name -> ermite.CancelRequest
+	15, // 17: ermite.WatchJobResponse.ended:type_name -> ermite.JobEnded
+	4,  // 18: ermite.CancelRequest.reason:type_name -> ermite.CancelReason
+	27, // 19: ermite.CancelRequest.requested_at:type_name -> google.protobuf.Timestamp
+	5,  // 20: ermite.RunnerService.RegisterRunner:input_type -> ermite.RegisterRunnerRequest
+	7,  // 21: ermite.RunnerService.FetchJob:input_type -> ermite.FetchJobRequest
+	10, // 22: ermite.RunnerService.UpdateJob:input_type -> ermite.UpdateJobRequest
+	16, // 23: ermite.RunnerService.AppendLog:input_type -> ermite.AppendLogRequest
+	19, // 24: ermite.RunnerService.Heartbeat:input_type -> ermite.HeartbeatRequest
+	21, // 25: ermite.RunnerService.WatchJob:input_type -> ermite.WatchJobRequest
+	13, // 26: ermite.RunnerService.CompleteJob:input_type -> ermite.CompleteJobRequest
+	6,  // 27: ermite.RunnerService.RegisterRunner:output_type -> ermite.RegisterRunnerResponse
+	8,  // 28: ermite.RunnerService.FetchJob:output_type -> ermite.FetchJobResponse
+	12, // 29: ermite.RunnerService.UpdateJob:output_type -> ermite.UpdateJobResponse
+	18, // 30: ermite.RunnerService.AppendLog:output_type -> ermite.AppendLogResponse
+	20, // 31: ermite.RunnerService.Heartbeat:output_type -> ermite.HeartbeatResponse
+	22, // 32: ermite.RunnerService.WatchJob:output_type -> ermite.WatchJobResponse
+	14, // 33: ermite.RunnerService.CompleteJob:output_type -> ermite.CompleteJobResponse
+	27, // [27:34] is the sub-list for method output_type
+	20, // [20:27] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_ermite_runner_proto_init() }
@@ -1598,13 +2022,18 @@ func file_ermite_runner_proto_init() {
 	if File_ermite_runner_proto != nil {
 		return
 	}
+	file_ermite_runner_proto_msgTypes[17].OneofWrappers = []any{
+		(*WatchJobResponse_Keepalive)(nil),
+		(*WatchJobResponse_Cancel)(nil),
+		(*WatchJobResponse_Ended)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_runner_proto_rawDesc), len(file_ermite_runner_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   16,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

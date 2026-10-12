@@ -48,6 +48,9 @@ const (
 	RunnerServiceHeartbeatProcedure = "/ermite.RunnerService/Heartbeat"
 	// RunnerServiceWatchJobProcedure is the fully-qualified name of the RunnerService's WatchJob RPC.
 	RunnerServiceWatchJobProcedure = "/ermite.RunnerService/WatchJob"
+	// RunnerServiceCompleteJobProcedure is the fully-qualified name of the RunnerService's CompleteJob
+	// RPC.
+	RunnerServiceCompleteJobProcedure = "/ermite.RunnerService/CompleteJob"
 )
 
 // RunnerServiceClient is a client for the ermite.RunnerService service.
@@ -58,37 +61,54 @@ type RunnerServiceClient interface {
 	// (a runner serves every repository), or the root token. Fails with
 	// unauthenticated without a valid token, permission_denied without the
 	// scope or with a repository-restricted token, invalid_argument if a field
-	// breaks a rule, and already_exists if name is taken by another runner.
+	// breaks a rule, and already_exists if name is taken by another runner and
+	// replace is not set.
 	RegisterRunner(context.Context, *connect.Request[ermite.RegisterRunnerRequest]) (*connect.Response[ermite.RegisterRunnerResponse], error)
 	// FetchJob asks for a job to run (long poll). The server holds the call
 	// until a queued job matches the runner, or about 50 seconds (never more
 	// than 50) pass, then answers; without a job the response has no job and the
-	// runner calls again at once. Clients set a call timeout above 50 seconds
-	// (60 is suggested) and must not poll when they have no free capacity.
+	// runner calls again after retry_after. Clients set a call timeout above 50
+	// seconds (60 is suggested) and must not poll when they have no free
+	// capacity.
 	//
 	// A job matches when every label of its runs-on is among the labels of the
 	// runner (case-insensitive). A job is given to exactly one runner, even when
 	// many runners and many polls compete; the assignment is recorded before
-	// the response is sent, and the job is then in progress. If the response is
-	// lost the job is not offered again: with no Heartbeat for 2 minutes the
-	// server fails it as a lost runner.
+	// the response is sent. The job stays QUEUED for the owner until it is
+	// acknowledged.
+	//
+	// Acknowledgement. The runner's first Heartbeat for the job is the
+	// acknowledgement, and the runner sends it as soon as it has the job, before
+	// anything else. If none arrives within 30 seconds of the assignment (the
+	// response was lost, or the runner died), the server cancels the assignment:
+	// the job token is revoked, the job goes back to QUEUED with a fresh token
+	// and can be given to any runner, the same one included; nothing the old
+	// assignment stored is kept. This is not a failure of the job. A job whose
+	// assignment is cancelled 3 times in a row is failed with CI_CONCLUSION_FAILURE
+	// and an error saying so.
+	//
+	// Retry after a lost response. poll_id lets a client retry a poll safely:
+	// a call with the same poll_id as an earlier call of the same runner that
+	// assigned a job returns that same assignment (same Job, same token) as long
+	// as it has not been acknowledged or cancelled, instead of taking another.
+	//
+	// A runner that crashed or whose host restarted cannot resume a job: it does
+	// not keep the job token, so the job fails with the lost-runner error after
+	// the heartbeat timeout (see Heartbeat).
 	//
 	// Needs the runner token. Fails with unauthenticated when the runner was
 	// removed (also ending a call in progress) and invalid_argument if labels
-	// breaks a rule.
+	// or poll_id break a rule.
 	FetchJob(context.Context, *connect.Request[ermite.FetchJobRequest]) (*connect.Response[ermite.FetchJobResponse], error)
-	// UpdateJob reports the state of the steps of a job and, once, how the job
-	// ended. Needs the job token. Each call is applied whole or not at all, and
-	// repeating an identical call changes nothing, so a runner may retry after a
-	// network error.
+	// UpdateJob reports the state of the steps of a job while it runs. Needs the
+	// job token. Each call is applied whole or not at all, and repeating an
+	// identical call changes nothing, so a runner may retry after a network
+	// error. To end the job use CompleteJob.
 	//
-	// Fails with invalid_argument if a rule is broken (including the output
-	// limits), and with failed_precondition if a step goes back (a COMPLETED
-	// step cannot change, a step cannot go from IN_PROGRESS to PENDING).
-	// The call that carries a conclusion ends the job: its job token stops
-	// working, the server completes the job and no further call is accepted,
-	// so a retry of that last call after a lost response gets unauthenticated,
-	// which means it was applied.
+	// Fails with invalid_argument if a rule is broken, with failed_precondition
+	// if a step goes back (a COMPLETED step cannot change, a step cannot go from
+	// IN_PROGRESS to PENDING) and with failed_precondition and a JobEnded detail
+	// if the job has ended.
 	UpdateJob(context.Context, *connect.Request[ermite.UpdateJobRequest]) (*connect.Response[ermite.UpdateJobResponse], error)
 	// AppendLog appends lines to the log of a job. Needs the job token.
 	//
@@ -100,46 +120,102 @@ type RunnerServiceClient interface {
 	//   - offset equal to the server's line count: the lines are appended;
 	//   - offset below it: the first (count - offset) lines were already stored
 	//     (a retry after a lost response) and are skipped, and the rest is
-	//     appended; a request entirely stored changes nothing;
+	//     appended; a request entirely stored changes nothing. The skipped lines
+	//     are not compared with the stored ones: a retry whose lines differ from
+	//     the first attempt is silently dropped, so a client must resend the
+	//     same lines at the same offset;
 	//   - offset above it: out_of_range (a gap is a bug of the client; the
 	//     message gives the line count the server holds).
 	//
 	// The response gives the line count after the call, so a client can check
-	// itself. A request has at most 1,000 lines whose text adds up to at most
-	// 64 KiB (65,536 bytes), all in the same step; more is invalid_argument. A
-	// line of more than 64 KiB is cut by the client into several lines.
+	// itself. Offsets resume only after a network error within the same runner
+	// process; they are not a way to resume a job after a crash.
+	//
+	// A request has at most 1,000 lines whose text adds up to at most 64 KiB
+	// (65,536 bytes), all in the same step; more is invalid_argument. A line
+	// longer than that is cut by the client into pieces, see LogLine.continued.
+	//
+	// Steps. The step of a request must be at least the step of the last line
+	// the server holds, because the log is ordered by step (applied lines only:
+	// lines skipped as already stored are not checked); a lower step is
+	// failed_precondition. Lines for a step that UpdateJob has not announced
+	// create it: it starts IN_PROGRESS at the time of its first line, with an
+	// empty name until an UpdateJob gives one.
 	//
 	// The log of a job is limited to 512 MiB (536,870,912 bytes) as stored by
 	// the server (text, timestamps and separators). The call that would exceed
 	// it appends nothing; the server adds a last line saying that the limit was
 	// reached, ends the job with CI_CONCLUSION_FAILURE and RunJob.error set, and
-	// answers resource_exhausted. The runner then stops the job and sends
-	// nothing more: its calls get unauthenticated.
+	// answers failed_precondition with a JobEnded detail like any call after the
+	// end of a job. The runner then stops the job.
+	//
+	// Lines sent after the end of the job are rejected, so a runner flushes all
+	// its AppendLog lines before it calls CompleteJob.
 	//
 	// Fails with invalid_argument if a rule is broken (step number, text with a
-	// line feed or invalid UTF-8, missing time).
+	// line feed or invalid UTF-8, missing time, a continued first line).
 	AppendLog(context.Context, *connect.Request[ermite.AppendLogRequest]) (*connect.Response[ermite.AppendLogResponse], error)
 	// Heartbeat tells the server that the runner is alive and still working on
-	// the job. Needs the job token. The runner calls it every 30 seconds for as
-	// long as the job runs, from assignment to the end. Without a heartbeat for
-	// 2 minutes the server ends the job with CI_CONCLUSION_FAILURE and the message
-	// "The self-hosted runner: <name> lost communication with the server...".
-	// Only Heartbeat counts: other calls do not keep a job alive.
+	// the job. Needs the job token. The first one acknowledges the assignment
+	// (see FetchJob). The runner then calls it every 30 seconds for as long as
+	// the job runs. The deadline is 2 minutes after the later of the last
+	// heartbeat and the start of the server (so a server restart does not fail
+	// the jobs of runners that could not reach it): past it the server ends the
+	// job with CI_CONCLUSION_FAILURE and the message "The self-hosted runner:
+	// <name> lost communication with the server...". Only Heartbeat counts:
+	// other calls do not keep a job alive.
+	//
+	// A runner that gets unavailable (or any network error) retries Heartbeat
+	// every 5 seconds until it succeeds, instead of waiting for its next 30
+	// second tick, and keeps the job running meanwhile.
 	Heartbeat(context.Context, *connect.Request[ermite.HeartbeatRequest]) (*connect.Response[ermite.HeartbeatResponse], error)
-	// WatchJob streams the requests to stop a job. Needs the job token. The
+	// WatchJob streams what the runner must react to. Needs the job token. The
 	// runner opens it when it starts the job and keeps it open; it reopens it
-	// after any error other than unauthenticated.
+	// after any error other than unauthenticated and the failed_precondition
+	// that says the job ended, and after a clean close of
+	// the stream that did not end with a JobEnded message.
 	//
 	// When the stream opens and a cancellation has already been requested, the
 	// first message is that request, so a reconnect never misses one. Only the
 	// first reason is sent: a job already cancelled by the owner does not get a
-	// second message when its timeout expires. The server also sends a
-	// keep-alive message (reason CANCEL_REASON_UNSPECIFIED) at least every 30
-	// seconds, which the client ignores. The stream ends without error when
-	// the job ends. The runner stops the job as the official runner does
+	// second message when its time budget expires. The server also sends a
+	// Keepalive at least every 30 seconds, which the client ignores. When the
+	// job ends the server sends JobEnded, then closes the stream without error.
+	// On a job that has already ended the call fails like the other RPCs
+	// (failed_precondition with a JobEnded detail).
+	//
+	// On a CancelRequest the runner stops the job as the official runner does
 	// (interrupt, then terminate, then kill) and reports the conclusion given
-	// for the reason with UpdateJob.
+	// for the reason with CompleteJob.
+	//
+	// The server does not trust the runner to obey. If no conclusion arrives
+	// within 60 seconds after a cancellation request, whatever the reason (user,
+	// fail-fast, timeout), the server ends the job itself: CI_CONCLUSION_CANCELLED
+	// for user and fail-fast, CI_CONCLUSION_TIMED_OUT for timeout, with an error
+	// saying that the runner did not answer, and the steps not completed are
+	// completed as cancelled. The runner's later CompleteJob returns that result.
 	WatchJob(context.Context, *connect.Request[ermite.WatchJobRequest]) (*connect.ServerStreamForClient[ermite.WatchJobResponse], error)
+	// CompleteJob ends a job: it reports the final steps, the outputs and the
+	// conclusion. Needs the job token, which stays valid for this RPC for 24
+	// hours after the end of the job, however it ended. The call is applied whole
+	// or not at all. Once the job has ended, the token works for no other RPC
+	// (they answer failed_precondition with a JobEnded detail).
+	//
+	// It is idempotent. The first call that finds the job running ends it and
+	// answers applied = true. Any later call, a retry after a lost response or a
+	// call after the server ended the job itself, is not validated and changes
+	// nothing: it answers OK with the stored conclusion and error and
+	// applied = false (a runner whose conclusion differs from the stored one
+	// simply logs it; the outputs it sent are dropped).
+	//
+	// Lines sent with AppendLog after this call are rejected: a runner flushes
+	// all its log lines first. Steps that were not reported COMPLETED when the job
+	// ends are completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when
+	// they never started and the job did not end by cancellation).
+	//
+	// Fails with invalid_argument if a rule is broken (including the output
+	// limits) and failed_precondition if a step goes back, as in UpdateJob.
+	CompleteJob(context.Context, *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error)
 }
 
 // NewRunnerServiceClient constructs a client for the ermite.RunnerService service. By default, it
@@ -189,6 +265,12 @@ func NewRunnerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(runnerServiceMethods.ByName("WatchJob")),
 			connect.WithClientOptions(opts...),
 		),
+		completeJob: connect.NewClient[ermite.CompleteJobRequest, ermite.CompleteJobResponse](
+			httpClient,
+			baseURL+RunnerServiceCompleteJobProcedure,
+			connect.WithSchema(runnerServiceMethods.ByName("CompleteJob")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -200,6 +282,7 @@ type runnerServiceClient struct {
 	appendLog      *connect.Client[ermite.AppendLogRequest, ermite.AppendLogResponse]
 	heartbeat      *connect.Client[ermite.HeartbeatRequest, ermite.HeartbeatResponse]
 	watchJob       *connect.Client[ermite.WatchJobRequest, ermite.WatchJobResponse]
+	completeJob    *connect.Client[ermite.CompleteJobRequest, ermite.CompleteJobResponse]
 }
 
 // RegisterRunner calls ermite.RunnerService.RegisterRunner.
@@ -232,6 +315,11 @@ func (c *runnerServiceClient) WatchJob(ctx context.Context, req *connect.Request
 	return c.watchJob.CallServerStream(ctx, req)
 }
 
+// CompleteJob calls ermite.RunnerService.CompleteJob.
+func (c *runnerServiceClient) CompleteJob(ctx context.Context, req *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error) {
+	return c.completeJob.CallUnary(ctx, req)
+}
+
 // RunnerServiceHandler is an implementation of the ermite.RunnerService service.
 type RunnerServiceHandler interface {
 	// RegisterRunner registers a runner and returns its runner token, which is
@@ -240,37 +328,54 @@ type RunnerServiceHandler interface {
 	// (a runner serves every repository), or the root token. Fails with
 	// unauthenticated without a valid token, permission_denied without the
 	// scope or with a repository-restricted token, invalid_argument if a field
-	// breaks a rule, and already_exists if name is taken by another runner.
+	// breaks a rule, and already_exists if name is taken by another runner and
+	// replace is not set.
 	RegisterRunner(context.Context, *connect.Request[ermite.RegisterRunnerRequest]) (*connect.Response[ermite.RegisterRunnerResponse], error)
 	// FetchJob asks for a job to run (long poll). The server holds the call
 	// until a queued job matches the runner, or about 50 seconds (never more
 	// than 50) pass, then answers; without a job the response has no job and the
-	// runner calls again at once. Clients set a call timeout above 50 seconds
-	// (60 is suggested) and must not poll when they have no free capacity.
+	// runner calls again after retry_after. Clients set a call timeout above 50
+	// seconds (60 is suggested) and must not poll when they have no free
+	// capacity.
 	//
 	// A job matches when every label of its runs-on is among the labels of the
 	// runner (case-insensitive). A job is given to exactly one runner, even when
 	// many runners and many polls compete; the assignment is recorded before
-	// the response is sent, and the job is then in progress. If the response is
-	// lost the job is not offered again: with no Heartbeat for 2 minutes the
-	// server fails it as a lost runner.
+	// the response is sent. The job stays QUEUED for the owner until it is
+	// acknowledged.
+	//
+	// Acknowledgement. The runner's first Heartbeat for the job is the
+	// acknowledgement, and the runner sends it as soon as it has the job, before
+	// anything else. If none arrives within 30 seconds of the assignment (the
+	// response was lost, or the runner died), the server cancels the assignment:
+	// the job token is revoked, the job goes back to QUEUED with a fresh token
+	// and can be given to any runner, the same one included; nothing the old
+	// assignment stored is kept. This is not a failure of the job. A job whose
+	// assignment is cancelled 3 times in a row is failed with CI_CONCLUSION_FAILURE
+	// and an error saying so.
+	//
+	// Retry after a lost response. poll_id lets a client retry a poll safely:
+	// a call with the same poll_id as an earlier call of the same runner that
+	// assigned a job returns that same assignment (same Job, same token) as long
+	// as it has not been acknowledged or cancelled, instead of taking another.
+	//
+	// A runner that crashed or whose host restarted cannot resume a job: it does
+	// not keep the job token, so the job fails with the lost-runner error after
+	// the heartbeat timeout (see Heartbeat).
 	//
 	// Needs the runner token. Fails with unauthenticated when the runner was
 	// removed (also ending a call in progress) and invalid_argument if labels
-	// breaks a rule.
+	// or poll_id break a rule.
 	FetchJob(context.Context, *connect.Request[ermite.FetchJobRequest]) (*connect.Response[ermite.FetchJobResponse], error)
-	// UpdateJob reports the state of the steps of a job and, once, how the job
-	// ended. Needs the job token. Each call is applied whole or not at all, and
-	// repeating an identical call changes nothing, so a runner may retry after a
-	// network error.
+	// UpdateJob reports the state of the steps of a job while it runs. Needs the
+	// job token. Each call is applied whole or not at all, and repeating an
+	// identical call changes nothing, so a runner may retry after a network
+	// error. To end the job use CompleteJob.
 	//
-	// Fails with invalid_argument if a rule is broken (including the output
-	// limits), and with failed_precondition if a step goes back (a COMPLETED
-	// step cannot change, a step cannot go from IN_PROGRESS to PENDING).
-	// The call that carries a conclusion ends the job: its job token stops
-	// working, the server completes the job and no further call is accepted,
-	// so a retry of that last call after a lost response gets unauthenticated,
-	// which means it was applied.
+	// Fails with invalid_argument if a rule is broken, with failed_precondition
+	// if a step goes back (a COMPLETED step cannot change, a step cannot go from
+	// IN_PROGRESS to PENDING) and with failed_precondition and a JobEnded detail
+	// if the job has ended.
 	UpdateJob(context.Context, *connect.Request[ermite.UpdateJobRequest]) (*connect.Response[ermite.UpdateJobResponse], error)
 	// AppendLog appends lines to the log of a job. Needs the job token.
 	//
@@ -282,46 +387,102 @@ type RunnerServiceHandler interface {
 	//   - offset equal to the server's line count: the lines are appended;
 	//   - offset below it: the first (count - offset) lines were already stored
 	//     (a retry after a lost response) and are skipped, and the rest is
-	//     appended; a request entirely stored changes nothing;
+	//     appended; a request entirely stored changes nothing. The skipped lines
+	//     are not compared with the stored ones: a retry whose lines differ from
+	//     the first attempt is silently dropped, so a client must resend the
+	//     same lines at the same offset;
 	//   - offset above it: out_of_range (a gap is a bug of the client; the
 	//     message gives the line count the server holds).
 	//
 	// The response gives the line count after the call, so a client can check
-	// itself. A request has at most 1,000 lines whose text adds up to at most
-	// 64 KiB (65,536 bytes), all in the same step; more is invalid_argument. A
-	// line of more than 64 KiB is cut by the client into several lines.
+	// itself. Offsets resume only after a network error within the same runner
+	// process; they are not a way to resume a job after a crash.
+	//
+	// A request has at most 1,000 lines whose text adds up to at most 64 KiB
+	// (65,536 bytes), all in the same step; more is invalid_argument. A line
+	// longer than that is cut by the client into pieces, see LogLine.continued.
+	//
+	// Steps. The step of a request must be at least the step of the last line
+	// the server holds, because the log is ordered by step (applied lines only:
+	// lines skipped as already stored are not checked); a lower step is
+	// failed_precondition. Lines for a step that UpdateJob has not announced
+	// create it: it starts IN_PROGRESS at the time of its first line, with an
+	// empty name until an UpdateJob gives one.
 	//
 	// The log of a job is limited to 512 MiB (536,870,912 bytes) as stored by
 	// the server (text, timestamps and separators). The call that would exceed
 	// it appends nothing; the server adds a last line saying that the limit was
 	// reached, ends the job with CI_CONCLUSION_FAILURE and RunJob.error set, and
-	// answers resource_exhausted. The runner then stops the job and sends
-	// nothing more: its calls get unauthenticated.
+	// answers failed_precondition with a JobEnded detail like any call after the
+	// end of a job. The runner then stops the job.
+	//
+	// Lines sent after the end of the job are rejected, so a runner flushes all
+	// its AppendLog lines before it calls CompleteJob.
 	//
 	// Fails with invalid_argument if a rule is broken (step number, text with a
-	// line feed or invalid UTF-8, missing time).
+	// line feed or invalid UTF-8, missing time, a continued first line).
 	AppendLog(context.Context, *connect.Request[ermite.AppendLogRequest]) (*connect.Response[ermite.AppendLogResponse], error)
 	// Heartbeat tells the server that the runner is alive and still working on
-	// the job. Needs the job token. The runner calls it every 30 seconds for as
-	// long as the job runs, from assignment to the end. Without a heartbeat for
-	// 2 minutes the server ends the job with CI_CONCLUSION_FAILURE and the message
-	// "The self-hosted runner: <name> lost communication with the server...".
-	// Only Heartbeat counts: other calls do not keep a job alive.
+	// the job. Needs the job token. The first one acknowledges the assignment
+	// (see FetchJob). The runner then calls it every 30 seconds for as long as
+	// the job runs. The deadline is 2 minutes after the later of the last
+	// heartbeat and the start of the server (so a server restart does not fail
+	// the jobs of runners that could not reach it): past it the server ends the
+	// job with CI_CONCLUSION_FAILURE and the message "The self-hosted runner:
+	// <name> lost communication with the server...". Only Heartbeat counts:
+	// other calls do not keep a job alive.
+	//
+	// A runner that gets unavailable (or any network error) retries Heartbeat
+	// every 5 seconds until it succeeds, instead of waiting for its next 30
+	// second tick, and keeps the job running meanwhile.
 	Heartbeat(context.Context, *connect.Request[ermite.HeartbeatRequest]) (*connect.Response[ermite.HeartbeatResponse], error)
-	// WatchJob streams the requests to stop a job. Needs the job token. The
+	// WatchJob streams what the runner must react to. Needs the job token. The
 	// runner opens it when it starts the job and keeps it open; it reopens it
-	// after any error other than unauthenticated.
+	// after any error other than unauthenticated and the failed_precondition
+	// that says the job ended, and after a clean close of
+	// the stream that did not end with a JobEnded message.
 	//
 	// When the stream opens and a cancellation has already been requested, the
 	// first message is that request, so a reconnect never misses one. Only the
 	// first reason is sent: a job already cancelled by the owner does not get a
-	// second message when its timeout expires. The server also sends a
-	// keep-alive message (reason CANCEL_REASON_UNSPECIFIED) at least every 30
-	// seconds, which the client ignores. The stream ends without error when
-	// the job ends. The runner stops the job as the official runner does
+	// second message when its time budget expires. The server also sends a
+	// Keepalive at least every 30 seconds, which the client ignores. When the
+	// job ends the server sends JobEnded, then closes the stream without error.
+	// On a job that has already ended the call fails like the other RPCs
+	// (failed_precondition with a JobEnded detail).
+	//
+	// On a CancelRequest the runner stops the job as the official runner does
 	// (interrupt, then terminate, then kill) and reports the conclusion given
-	// for the reason with UpdateJob.
+	// for the reason with CompleteJob.
+	//
+	// The server does not trust the runner to obey. If no conclusion arrives
+	// within 60 seconds after a cancellation request, whatever the reason (user,
+	// fail-fast, timeout), the server ends the job itself: CI_CONCLUSION_CANCELLED
+	// for user and fail-fast, CI_CONCLUSION_TIMED_OUT for timeout, with an error
+	// saying that the runner did not answer, and the steps not completed are
+	// completed as cancelled. The runner's later CompleteJob returns that result.
 	WatchJob(context.Context, *connect.Request[ermite.WatchJobRequest], *connect.ServerStream[ermite.WatchJobResponse]) error
+	// CompleteJob ends a job: it reports the final steps, the outputs and the
+	// conclusion. Needs the job token, which stays valid for this RPC for 24
+	// hours after the end of the job, however it ended. The call is applied whole
+	// or not at all. Once the job has ended, the token works for no other RPC
+	// (they answer failed_precondition with a JobEnded detail).
+	//
+	// It is idempotent. The first call that finds the job running ends it and
+	// answers applied = true. Any later call, a retry after a lost response or a
+	// call after the server ended the job itself, is not validated and changes
+	// nothing: it answers OK with the stored conclusion and error and
+	// applied = false (a runner whose conclusion differs from the stored one
+	// simply logs it; the outputs it sent are dropped).
+	//
+	// Lines sent with AppendLog after this call are rejected: a runner flushes
+	// all its log lines first. Steps that were not reported COMPLETED when the job
+	// ends are completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when
+	// they never started and the job did not end by cancellation).
+	//
+	// Fails with invalid_argument if a rule is broken (including the output
+	// limits) and failed_precondition if a step goes back, as in UpdateJob.
+	CompleteJob(context.Context, *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error)
 }
 
 // NewRunnerServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -367,6 +528,12 @@ func NewRunnerServiceHandler(svc RunnerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(runnerServiceMethods.ByName("WatchJob")),
 		connect.WithHandlerOptions(opts...),
 	)
+	runnerServiceCompleteJobHandler := connect.NewUnaryHandler(
+		RunnerServiceCompleteJobProcedure,
+		svc.CompleteJob,
+		connect.WithSchema(runnerServiceMethods.ByName("CompleteJob")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ermite.RunnerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RunnerServiceRegisterRunnerProcedure:
@@ -381,6 +548,8 @@ func NewRunnerServiceHandler(svc RunnerServiceHandler, opts ...connect.HandlerOp
 			runnerServiceHeartbeatHandler.ServeHTTP(w, r)
 		case RunnerServiceWatchJobProcedure:
 			runnerServiceWatchJobHandler.ServeHTTP(w, r)
+		case RunnerServiceCompleteJobProcedure:
+			runnerServiceCompleteJobHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -412,4 +581,8 @@ func (UnimplementedRunnerServiceHandler) Heartbeat(context.Context, *connect.Req
 
 func (UnimplementedRunnerServiceHandler) WatchJob(context.Context, *connect.Request[ermite.WatchJobRequest], *connect.ServerStream[ermite.WatchJobResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.WatchJob is not implemented"))
+}
+
+func (UnimplementedRunnerServiceHandler) CompleteJob(context.Context, *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.CompleteJob is not implemented"))
 }

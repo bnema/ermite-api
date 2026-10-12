@@ -853,7 +853,7 @@ func (x *CommentAdded) GetComment() *Comment {
 // Gap tells the client that events were lost: the requested resume point is
 // older than the server's buffer. It has no fields. The client should reload
 // the state it displays (repositories, refs, merge requests and their
-// comments) and carry on with the next events.
+// comments, CI runs and their jobs) and carry on with the next events.
 type Gap struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields

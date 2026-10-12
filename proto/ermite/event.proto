@@ -26,8 +26,10 @@ service EventService {
   // "home"), subject to the same visibility. They carry the state after the
   // change and are published when a run or a job is created, changes status
   // or conclusion, or when one of its steps starts or ends (never per log
-  // line: follow a log with RunService.GetJobLog). A job update is published
-  // before the update of its run. There is no event for a change of title or
+  // line: follow a log with RunService.GetJobLog). The order of these events
+  // is not guaranteed, between jobs and runs or between two updates of the same
+  // one: a client keeps the copy with the higher Run.version or
+  // RunJob.version and drops the other. There is no event for a change of title or
   // description, nor for a resolved comment: after a gap, or to see such
   // changes, clients read the merge request again. A merge publishes
   // merge_request_merged, then pushed for the target branch.
@@ -171,7 +173,7 @@ message CommentAdded {
 // Gap tells the client that events were lost: the requested resume point is
 // older than the server's buffer. It has no fields. The client should reload
 // the state it displays (repositories, refs, merge requests and their
-// comments) and carry on with the next events.
+// comments, CI runs and their jobs) and carry on with the next events.
 message Gap {}
 
 // RunUpdated reports a CI run that was created or whose status, conclusion or

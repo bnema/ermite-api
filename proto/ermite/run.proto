@@ -68,6 +68,11 @@ message Run {
   google.protobuf.Timestamp started_at = 16;
   // CompletedAt is when this attempt completed. Unset until then.
   google.protobuf.Timestamp completed_at = 17;
+  // Version counts the changes of this run on the server: it grows by at least
+  // one at every change and never goes back, also across attempts. Events are
+  // not delivered in order, and a client that holds two copies of a run keeps
+  // the one with the higher version and drops the other.
+  int64 version = 18;
 }
 
 // RunJob is a job of a run as people see it: the state of one job instance
@@ -127,6 +132,11 @@ message RunJob {
   google.protobuf.Timestamp started_at = 17;
   // CompletedAt is when the job completed. Unset until then.
   google.protobuf.Timestamp completed_at = 18;
+  // Version counts the changes of this job on the server (status, conclusion,
+  // runner, steps, with any attempt): it grows by at least one at every change
+  // and never goes back. A client that holds two copies of a job keeps the
+  // one with the higher version and drops the other, as for Run.version.
+  int64 version = 19;
 }
 
 // Step is one step of a job, with where its lines are in the job log.
@@ -405,6 +415,12 @@ message JobLogLine {
   // Text is the line without its terminator, as in LogLine.text, including the
   // "##[group]" and "##[endgroup]" markers. Clients show it escaped.
   string text = 3;
+  // Continued is true when the line continues the line before it, which was
+  // too long for the runner to send whole (see LogLine.continued). Pieces keep
+  // their own line numbers, so offsets are the same as the runner's; a client
+  // that shows lines joins a continued line to the previous one. The raw log
+  // file already has them joined.
+  bool continued = 4;
 }
 
 // CancelRunRequest names the run to cancel.

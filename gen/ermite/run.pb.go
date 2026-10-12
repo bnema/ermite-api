@@ -85,7 +85,12 @@ type Run struct {
 	// Unset until then.
 	StartedAt *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	// CompletedAt is when this attempt completed. Unset until then.
-	CompletedAt   *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	CompletedAt *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	// Version counts the changes of this run on the server: it grows by at least
+	// one at every change and never goes back, also across attempts. Events are
+	// not delivered in order, and a client that holds two copies of a run keeps
+	// the one with the higher version and drops the other.
+	Version       int64 `protobuf:"varint,18,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -239,6 +244,13 @@ func (x *Run) GetCompletedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Run) GetVersion() int64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
 // RunJob is a job of a run as people see it: the state of one job instance
 // (one matrix combination is one job) in one attempt. It is not Job, which is
 // what a runner receives.
@@ -296,7 +308,12 @@ type RunJob struct {
 	// StartedAt is when the job was given to a runner. Unset until then.
 	StartedAt *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	// CompletedAt is when the job completed. Unset until then.
-	CompletedAt   *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	CompletedAt *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	// Version counts the changes of this job on the server (status, conclusion,
+	// runner, steps, with any attempt): it grows by at least one at every change
+	// and never goes back. A client that holds two copies of a job keeps the
+	// one with the higher version and drops the other, as for Run.version.
+	Version       int64 `protobuf:"varint,19,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -455,6 +472,13 @@ func (x *RunJob) GetCompletedAt() *timestamppb.Timestamp {
 		return x.CompletedAt
 	}
 	return nil
+}
+
+func (x *RunJob) GetVersion() int64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
 }
 
 // Step is one step of a job, with where its lines are in the job log.
@@ -1394,7 +1418,13 @@ type JobLogLine struct {
 	Time *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=time,proto3" json:"time,omitempty"`
 	// Text is the line without its terminator, as in LogLine.text, including the
 	// "##[group]" and "##[endgroup]" markers. Clients show it escaped.
-	Text          string `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	Text string `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	// Continued is true when the line continues the line before it, which was
+	// too long for the runner to send whole (see LogLine.continued). Pieces keep
+	// their own line numbers, so offsets are the same as the runner's; a client
+	// that shows lines joins a continued line to the previous one. The raw log
+	// file already has them joined.
+	Continued     bool `protobuf:"varint,4,opt,name=continued,proto3" json:"continued,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1448,6 +1478,13 @@ func (x *JobLogLine) GetText() string {
 		return x.Text
 	}
 	return ""
+}
+
+func (x *JobLogLine) GetContinued() bool {
+	if x != nil {
+		return x.Continued
+	}
+	return false
 }
 
 // CancelRunRequest names the run to cancel.
@@ -1976,7 +2013,7 @@ var File_ermite_run_proto protoreflect.FileDescriptor
 
 const file_ermite_run_proto_rawDesc = "" +
 	"\n" +
-	"\x10ermite/run.proto\x12\x06ermite\x1a\x13ermite/runner.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb6\x04\n" +
+	"\x10ermite/run.proto\x12\x06ermite\x1a\x13ermite/runner.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd0\x04\n" +
 	"\x03Run\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\x03R\x02id\x12\x16\n" +
@@ -1999,7 +2036,8 @@ const file_ermite_run_proto_rawDesc = "" +
 	"created_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"started_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
-	"\fcompleted_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xf5\x04\n" +
+	"\fcompleted_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12\x18\n" +
+	"\aversion\x18\x12 \x01(\x03R\aversion\"\x8f\x05\n" +
 	"\x06RunJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x18\n" +
@@ -2024,7 +2062,8 @@ const file_ermite_run_proto_rawDesc = "" +
 	"created_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"started_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
-	"\fcompleted_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xc1\x02\n" +
+	"\fcompleted_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12\x18\n" +
+	"\aversion\x18\x13 \x01(\x03R\aversion\"\xc1\x02\n" +
 	"\x04Step\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
@@ -2099,12 +2138,13 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\x06follow\x18\x05 \x01(\bR\x06follow\"U\n" +
 	"\x11GetJobLogResponse\x12\x16\n" +
 	"\x06offset\x18\x01 \x01(\x03R\x06offset\x12(\n" +
-	"\x05lines\x18\x02 \x03(\v2\x12.ermite.JobLogLineR\x05lines\"d\n" +
+	"\x05lines\x18\x02 \x03(\v2\x12.ermite.JobLogLineR\x05lines\"\x82\x01\n" +
 	"\n" +
 	"JobLogLine\x12\x12\n" +
 	"\x04step\x18\x01 \x01(\x05R\x04step\x12.\n" +
 	"\x04time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x12\n" +
-	"\x04text\x18\x03 \x01(\tR\x04text\"=\n" +
+	"\x04text\x18\x03 \x01(\tR\x04text\x12\x1c\n" +
+	"\tcontinued\x18\x04 \x01(\bR\tcontinued\"=\n" +
 	"\x10CancelRunRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\x03R\x05runId\"2\n" +
