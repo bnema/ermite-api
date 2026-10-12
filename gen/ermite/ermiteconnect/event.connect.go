@@ -49,7 +49,17 @@ type EventServiceClient interface {
 	// for merge requests, merge_request_opened, merge_request_merged,
 	// merge_request_closed and comment_added. Each one is delivered on the
 	// "repo:<name>" topic of its repository and on "home", subject to the
-	// visibility of the repository. There is no event for a change of title or
+	// visibility of the repository.
+	//
+	// Servers with the feature "ci.runs" also publish run_updated and
+	// job_updated, only on the "repo:<name>" topic of their repository (never on
+	// "home"), subject to the same visibility. They carry the state after the
+	// change and are published when a run or a job is created, changes status
+	// or conclusion, or when one of its steps starts or ends (never per log
+	// line: follow a log with RunService.GetJobLog). The order of these events
+	// is not guaranteed, between jobs and runs or between two updates of the same
+	// one: a client keeps the copy with the higher Run.version or
+	// RunJob.version and drops the other. There is no event for a change of title or
 	// description, nor for a resolved comment: after a gap, or to see such
 	// changes, clients read the merge request again. A merge publishes
 	// merge_request_merged, then pushed for the target branch.
@@ -111,7 +121,17 @@ type EventServiceHandler interface {
 	// for merge requests, merge_request_opened, merge_request_merged,
 	// merge_request_closed and comment_added. Each one is delivered on the
 	// "repo:<name>" topic of its repository and on "home", subject to the
-	// visibility of the repository. There is no event for a change of title or
+	// visibility of the repository.
+	//
+	// Servers with the feature "ci.runs" also publish run_updated and
+	// job_updated, only on the "repo:<name>" topic of their repository (never on
+	// "home"), subject to the same visibility. They carry the state after the
+	// change and are published when a run or a job is created, changes status
+	// or conclusion, or when one of its steps starts or ends (never per log
+	// line: follow a log with RunService.GetJobLog). The order of these events
+	// is not guaranteed, between jobs and runs or between two updates of the same
+	// one: a client keeps the copy with the higher Run.version or
+	// RunJob.version and drops the other. There is no event for a change of title or
 	// description, nor for a resolved comment: after a gap, or to see such
 	// changes, clients read the merge request again. A merge publishes
 	// merge_request_merged, then pushed for the target branch.

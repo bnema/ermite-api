@@ -3,9 +3,13 @@
 package api_test
 
 import (
+	"errors"
 	"testing"
 
+	"connectrpc.com/connect"
+
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"bnema.dev/ermite-api/gen/ermite"
@@ -43,6 +47,22 @@ func TestProcedures(t *testing.T) {
 		{ermiteconnect.SessionServiceSignOutEverywhereProcedure, "/ermite.SessionService/SignOutEverywhere"},
 		{ermiteconnect.ServerServiceGetVersionProcedure, "/ermite.ServerService/GetVersion"},
 		{ermiteconnect.ServerServiceGetSigningKeyProcedure, "/ermite.ServerService/GetSigningKey"},
+		{ermiteconnect.RunnerServiceRegisterRunnerProcedure, "/ermite.RunnerService/RegisterRunner"},
+		{ermiteconnect.RunnerServiceFetchJobProcedure, "/ermite.RunnerService/FetchJob"},
+		{ermiteconnect.RunnerServiceUpdateJobProcedure, "/ermite.RunnerService/UpdateJob"},
+		{ermiteconnect.RunnerServiceAppendLogProcedure, "/ermite.RunnerService/AppendLog"},
+		{ermiteconnect.RunnerServiceHeartbeatProcedure, "/ermite.RunnerService/Heartbeat"},
+		{ermiteconnect.RunnerServiceWatchJobProcedure, "/ermite.RunnerService/WatchJob"},
+		{ermiteconnect.RunnerServiceCompleteJobProcedure, "/ermite.RunnerService/CompleteJob"},
+		{ermiteconnect.RunServiceListRunsProcedure, "/ermite.RunService/ListRuns"},
+		{ermiteconnect.RunServiceGetRunProcedure, "/ermite.RunService/GetRun"},
+		{ermiteconnect.RunServiceGetJobProcedure, "/ermite.RunService/GetJob"},
+		{ermiteconnect.RunServiceGetJobLogProcedure, "/ermite.RunService/GetJobLog"},
+		{ermiteconnect.RunServiceCancelRunProcedure, "/ermite.RunService/CancelRun"},
+		{ermiteconnect.RunServiceRerunRunProcedure, "/ermite.RunService/RerunRun"},
+		{ermiteconnect.RunServiceListChecksProcedure, "/ermite.RunService/ListChecks"},
+		{ermiteconnect.RunServiceListRunnersProcedure, "/ermite.RunService/ListRunners"},
+		{ermiteconnect.RunServiceRemoveRunnerProcedure, "/ermite.RunService/RemoveRunner"},
 	}
 	for _, tt := range tests {
 		if tt.got != tt.want {
@@ -70,6 +90,41 @@ func TestEnumNumbers(t *testing.T) {
 	}
 	if got := ermite.DiffSide_DIFF_SIDE_NEW; got != 2 {
 		t.Errorf("DIFF_SIDE_NEW = %d, want 2", got)
+	}
+	enums := []struct {
+		name string
+		got  int32
+		want int32
+	}{
+		{"CI_STATUS_UNSPECIFIED", int32(ermite.CiStatus_CI_STATUS_UNSPECIFIED), 0},
+		{"CI_STATUS_QUEUED", int32(ermite.CiStatus_CI_STATUS_QUEUED), 1},
+		{"CI_STATUS_IN_PROGRESS", int32(ermite.CiStatus_CI_STATUS_IN_PROGRESS), 2},
+		{"CI_STATUS_COMPLETED", int32(ermite.CiStatus_CI_STATUS_COMPLETED), 3},
+		{"CI_CONCLUSION_UNSPECIFIED", int32(ermite.CiConclusion_CI_CONCLUSION_UNSPECIFIED), 0},
+		{"CI_CONCLUSION_SUCCESS", int32(ermite.CiConclusion_CI_CONCLUSION_SUCCESS), 1},
+		{"CI_CONCLUSION_FAILURE", int32(ermite.CiConclusion_CI_CONCLUSION_FAILURE), 2},
+		{"CI_CONCLUSION_CANCELLED", int32(ermite.CiConclusion_CI_CONCLUSION_CANCELLED), 3},
+		{"CI_CONCLUSION_SKIPPED", int32(ermite.CiConclusion_CI_CONCLUSION_SKIPPED), 4},
+		{"CI_CONCLUSION_TIMED_OUT", int32(ermite.CiConclusion_CI_CONCLUSION_TIMED_OUT), 5},
+		{"CI_CONCLUSION_NEUTRAL", int32(ermite.CiConclusion_CI_CONCLUSION_NEUTRAL), 6},
+		{"CI_CONCLUSION_ACTION_REQUIRED", int32(ermite.CiConclusion_CI_CONCLUSION_ACTION_REQUIRED), 7},
+		{"STEP_STATE_UNSPECIFIED", int32(ermite.StepState_STEP_STATE_UNSPECIFIED), 0},
+		{"STEP_STATE_PENDING", int32(ermite.StepState_STEP_STATE_PENDING), 1},
+		{"STEP_STATE_IN_PROGRESS", int32(ermite.StepState_STEP_STATE_IN_PROGRESS), 2},
+		{"STEP_STATE_COMPLETED", int32(ermite.StepState_STEP_STATE_COMPLETED), 3},
+		{"RUNNER_ISOLATION_UNSPECIFIED", int32(ermite.RunnerIsolation_RUNNER_ISOLATION_UNSPECIFIED), 0},
+		{"RUNNER_ISOLATION_VM", int32(ermite.RunnerIsolation_RUNNER_ISOLATION_VM), 1},
+		{"RUNNER_ISOLATION_CONTAINER_SYSBOX", int32(ermite.RunnerIsolation_RUNNER_ISOLATION_CONTAINER_SYSBOX), 2},
+		{"RUNNER_ISOLATION_CONTAINER_PRIVILEGED", int32(ermite.RunnerIsolation_RUNNER_ISOLATION_CONTAINER_PRIVILEGED), 3},
+		{"CANCEL_REASON_UNSPECIFIED", int32(ermite.CancelReason_CANCEL_REASON_UNSPECIFIED), 0},
+		{"CANCEL_REASON_USER", int32(ermite.CancelReason_CANCEL_REASON_USER), 1},
+		{"CANCEL_REASON_FAIL_FAST", int32(ermite.CancelReason_CANCEL_REASON_FAIL_FAST), 2},
+		{"CANCEL_REASON_TIMEOUT", int32(ermite.CancelReason_CANCEL_REASON_TIMEOUT), 3},
+	}
+	for _, e := range enums {
+		if e.got != e.want {
+			t.Errorf("%s = %d, want %d", e.name, e.got, e.want)
+		}
 	}
 }
 
@@ -150,5 +205,127 @@ func TestMergeRequestEventRoundTrip(t *testing.T) {
 	}
 	if got := req.GetSettings().GetAllowedMergeModes(); len(got) != 1 || got[0] != ermite.MergeMode_MERGE_MODE_SQUASH {
 		t.Errorf("modes = %v", got)
+	}
+}
+
+// TestCIEventRoundTrip checks that the CI event kinds keep their field numbers
+// and survive the wire.
+func TestCIEventRoundTrip(t *testing.T) {
+	in := &ermite.WatchResponse{Event: &ermite.Event{
+		Id: "44",
+		Kind: &ermite.Event_JobUpdated{JobUpdated: &ermite.JobUpdated{Job: &ermite.RunJob{
+			Id:         "j1",
+			RunId:      9,
+			Attempt:    2,
+			Status:     ermite.CiStatus_CI_STATUS_COMPLETED,
+			Conclusion: ermite.CiConclusion_CI_CONCLUSION_TIMED_OUT,
+			Isolation:  ermite.RunnerIsolation_RUNNER_ISOLATION_VM,
+			Steps:      []*ermite.Step{{Number: 1, Name: "Set up job", LogStart: 0, LogEnd: 3}},
+		}}},
+	}}
+	b, err := proto.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out ermite.WatchResponse
+	if err := proto.Unmarshal(b, &out); err != nil {
+		t.Fatal(err)
+	}
+	if !proto.Equal(in, &out) {
+		t.Errorf("round trip mismatch: %v != %v", &out, in)
+	}
+	f := (&ermite.Event{}).ProtoReflect().Descriptor().Fields()
+	for name, num := range map[string]int{"run_updated": 12, "job_updated": 13} {
+		if fd := f.ByName(protoreflect.Name(name)); fd == nil || int(fd.Number()) != num {
+			t.Errorf("event field %s: %v, want number %d", name, fd, num)
+		}
+	}
+}
+
+// TestJobRoundTrip checks the job handed to a runner survives the wire.
+func TestJobRoundTrip(t *testing.T) {
+	in := &ermite.FetchJobResponse{Job: &ermite.Job{
+		JobId: "j1", RunId: 9, Attempt: 1, JobToken: "tok", WorkflowPath: ".github/workflows/ci.yml",
+		WorkflowYaml: "on: push", JobKey: "build", Matrix: "{}", Contexts: "{}",
+		Labels: []string{"self-hosted"}, TimeoutMinutes: 360, Repo: "ermite",
+		Sha: "0123456789012345678901234567890123456789", Ref: "refs/heads/main",
+	}}
+	b, err := proto.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out ermite.FetchJobResponse
+	if err := proto.Unmarshal(b, &out); err != nil {
+		t.Fatal(err)
+	}
+	if !proto.Equal(in, &out) {
+		t.Errorf("round trip mismatch: %v != %v", &out, in)
+	}
+}
+
+// TestWatchJobRoundTrip checks the three kinds of WatchJob message and the
+// JobEnded detail.
+func TestWatchJobRoundTrip(t *testing.T) {
+	msgs := []*ermite.WatchJobResponse{
+		{Msg: &ermite.WatchJobResponse_Keepalive{Keepalive: &ermite.Keepalive{}}},
+		{Msg: &ermite.WatchJobResponse_Cancel{Cancel: &ermite.CancelRequest{
+			Reason: ermite.CancelReason_CANCEL_REASON_FAIL_FAST, Message: "m",
+		}}},
+		{Msg: &ermite.WatchJobResponse_Ended{Ended: &ermite.JobEnded{
+			Conclusion: ermite.CiConclusion_CI_CONCLUSION_CANCELLED, Error: "e",
+		}}},
+	}
+	for _, in := range msgs {
+		b, err := proto.Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out ermite.WatchJobResponse
+		if err := proto.Unmarshal(b, &out); err != nil {
+			t.Fatal(err)
+		}
+		if !proto.Equal(in, &out) {
+			t.Errorf("round trip mismatch: %v != %v", &out, in)
+		}
+	}
+	// The detail travels in a Connect error.
+	d, err := connect.NewErrorDetail(&ermite.JobEnded{Conclusion: ermite.CiConclusion_CI_CONCLUSION_TIMED_OUT})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cerr := connect.NewError(connect.CodeFailedPrecondition, errors.New("job ended"))
+	cerr.AddDetail(d)
+	v, err := cerr.Details()[0].Value()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := v.(*ermite.JobEnded).GetConclusion(); got != ermite.CiConclusion_CI_CONCLUSION_TIMED_OUT {
+		t.Errorf("detail conclusion = %v", got)
+	}
+}
+
+// TestCompleteJobRoundTrip checks the final report of a job and its answer.
+func TestCompleteJobRoundTrip(t *testing.T) {
+	in := &ermite.CompleteJobRequest{
+		JobId:          "j1",
+		Conclusion:     ermite.CiConclusion_CI_CONCLUSION_CANCELLED,
+		Outputs:        map[string]string{"a": "b"},
+		RunnerShutdown: true,
+		Steps:          []*ermite.StepUpdate{{Number: 2, State: ermite.StepState_STEP_STATE_COMPLETED}},
+	}
+	b, err := proto.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out ermite.CompleteJobRequest
+	if err := proto.Unmarshal(b, &out); err != nil {
+		t.Fatal(err)
+	}
+	if !proto.Equal(in, &out) {
+		t.Errorf("round trip mismatch: %v != %v", &out, in)
+	}
+	r := &ermite.CompleteJobResponse{Applied: false, Conclusion: ermite.CiConclusion_CI_CONCLUSION_TIMED_OUT}
+	if r.GetApplied() || r.GetConclusion() != ermite.CiConclusion_CI_CONCLUSION_TIMED_OUT {
+		t.Errorf("unexpected response %v", r)
 	}
 }

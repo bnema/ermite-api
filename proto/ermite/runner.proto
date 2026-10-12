@@ -1,0 +1,622 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// CiStatus is where a run, a job or a check is in its life. It is the same
+// as GitHub's status, without the rarely used values.
+enum CiStatus {
+  // Not set. In a filter it means every status. Never returned by the server.
+  CI_STATUS_UNSPECIFIED = 0;
+  // Waiting: for a runner, for the jobs it needs, or for its turn
+  // (max-parallel).
+  CI_STATUS_QUEUED = 1;
+  // At least one job has been given to a runner and has not ended.
+  CI_STATUS_IN_PROGRESS = 2;
+  // Over. The conclusion says how it ended.
+  CI_STATUS_COMPLETED = 3;
+}
+
+// CiConclusion is how a run, a job, a step or a check ended, with GitHub's
+// values and meaning. It is unset (CI_CONCLUSION_UNSPECIFIED) until the status is
+// COMPLETED.
+enum CiConclusion {
+  // Not completed yet. Never returned by the server for a completed item.
+  CI_CONCLUSION_UNSPECIFIED = 0;
+  // Everything it ran succeeded.
+  CI_CONCLUSION_SUCCESS = 1;
+  // A step failed, or the job failed for another reason described in
+  // RunJob.error (runner lost, queue timeout, log limit, feature not
+  // supported yet, invalid workflow file).
+  CI_CONCLUSION_FAILURE = 2;
+  // Cancelled by the owner, or by fail-fast, or because the runner shut down.
+  CI_CONCLUSION_CANCELLED = 3;
+  // Never ran: its "if" was false, or a job it needs did not succeed, or it was
+  // not selected. Never reported by a runner.
+  CI_CONCLUSION_SKIPPED = 4;
+  // Exceeded its timeout.
+  CI_CONCLUSION_TIMED_OUT = 5;
+  // Neither a success nor a failure. Defined for parity with GitHub; no
+  // workflow job ends this way yet. For merging it counts as a success.
+  CI_CONCLUSION_NEUTRAL = 6;
+  // Waits for a human action (for example the approval of an environment).
+  // Defined for parity with GitHub; the server does not produce it before
+  // environments exist. For merging it counts as a failure.
+  CI_CONCLUSION_ACTION_REQUIRED = 7;
+}
+
+// StepState is where a step is in its life.
+enum StepState {
+  // Not set. Rejected in requests, never returned by the server.
+  STEP_STATE_UNSPECIFIED = 0;
+  // Known but not started.
+  STEP_STATE_PENDING = 1;
+  // Running.
+  STEP_STATE_IN_PROGRESS = 2;
+  // Over. The conclusion says how it ended. A step that did not run because
+  // of its "if" or an earlier failure is COMPLETED with CI_CONCLUSION_SKIPPED.
+  STEP_STATE_COMPLETED = 3;
+}
+
+// RunnerIsolation is how a runner isolates each job from the host and from
+// other jobs. The runner chooses it (auto-detection included) and reports it
+// at registration; the job page shows it.
+enum RunnerIsolation {
+  // Not set. Rejected at registration, never returned by the server.
+  RUNNER_ISOLATION_UNSPECIFIED = 0;
+  // One micro-VM per job, destroyed at the end.
+  RUNNER_ISOLATION_VM = 1;
+  // One container per job with its own Docker daemon, run by the sysbox
+  // runtime. Shares the host kernel.
+  RUNNER_ISOLATION_CONTAINER_SYSBOX = 2;
+  // One privileged container per job with its own Docker daemon. Shares the
+  // host kernel and is equivalent to root on the host: the weakest mode.
+  RUNNER_ISOLATION_CONTAINER_PRIVILEGED = 3;
+}
+
+// CancelReason says why the server asks a runner to stop a job.
+enum CancelReason {
+  // Not set. Never sent in a CancelRequest.
+  CANCEL_REASON_UNSPECIFIED = 0;
+  // The owner cancelled the run (RunService.CancelRun, web or CLI). The job
+  // ends CI_CONCLUSION_CANCELLED.
+  CANCEL_REASON_USER = 1;
+  // Another job of the same matrix failed and the strategy has fail-fast. The
+  // job ends CI_CONCLUSION_CANCELLED.
+  CANCEL_REASON_FAIL_FAST = 2;
+  // The job exceeded its time budget (see Job.timeout_minutes). The job ends
+  // CI_CONCLUSION_TIMED_OUT.
+  CANCEL_REASON_TIMEOUT = 3;
+}
+
+// RunnerService is what a CI runner (ermite-runner) calls to get jobs and
+// report on them. It is not for people: owners use RunService.
+//
+// Three credentials are used, each by different RPCs. All are sent as
+// "Authorization: Bearer <secret>":
+//
+//   - RegisterRunner: a stored token with the runner:register scope, or the
+//     root token.
+//   - FetchJob: the runner token returned by RegisterRunner. It identifies the
+//     runner and only works for FetchJob. It is "ermiterun_" followed by 43
+//     base64url characters (32 random bytes, no padding).
+//   - UpdateJob, AppendLog, Heartbeat, WatchJob, CompleteJob: the job token of
+//     the Job that FetchJob returned. It is valid for that one job and that
+//     one assignment. It is "ermitejob_" followed by 43 base64url characters
+//     (32 random bytes, no padding). The job_id of the request must be the
+//     one of the token.
+//
+// Errors. unauthenticated means only that the credential is bad: missing,
+// unknown, expired, revoked, of the wrong kind for the RPC, or a job token
+// that was replaced (the job was given again, see FetchJob) or is older than
+// the 24 hours below. A runner that gets it for a job abandons the job at
+// once. A job token that is valid but belongs to another job than the job_id
+// of the request gets permission_denied. Repeated failed authentications are
+// rate limited per client address.
+//
+// The end of a job. A job ends when its conclusion is set, by CompleteJob or
+// by the server (cancellation not honoured, lost runner, log limit, queue
+// timeout). From then on UpdateJob, AppendLog, Heartbeat and WatchJob answer
+// failed_precondition with a JobEnded error detail (a JobEnded message in the
+// Connect error details) that gives the conclusion; the runner stops the job
+// and sends nothing more. The job token is still recognised for 24 hours after
+// the end, so that these calls can say so and so that CompleteJob, the only
+// call that still does something, returns the stored result to a runner that
+// lost the answer of its last call or that was cut off by the server. After
+// the 24 hours every call gets unauthenticated.
+//
+// Secrets and trust. Runner tokens and job tokens are secrets: the server
+// never logs them and clients must not log them. The job token stays in the
+// runner host process; it is never given to the sandbox that runs the job's
+// code. A runner receives the jobs of every repository, with their workflow
+// files, contexts and (from CI-2) their code, and from CI-3 their secrets: the
+// runner:register scope therefore effectively gives read access to the code
+// and the secrets of every repository, private ones included. Give it only to
+// runners you operate.
+//
+// Servers that implement this service list "ci.runners" in
+// GetVersionResponse.features.
+service RunnerService {
+  // RegisterRunner registers a runner and returns its runner token, which is
+  // shown only in this response; the runner keeps it. The caller needs the
+  // runner:register scope on a token that is not restricted to repositories
+  // (a runner serves every repository), or the root token. Fails with
+  // unauthenticated without a valid token, permission_denied without the
+  // scope or with a repository-restricted token, invalid_argument if a field
+  // breaks a rule, and already_exists if name is taken by another runner and
+  // replace is not set.
+  rpc RegisterRunner(RegisterRunnerRequest) returns (RegisterRunnerResponse);
+  // FetchJob asks for a job to run (long poll). The server holds the call
+  // until a queued job matches the runner, or about 50 seconds (never more
+  // than 50) pass, then answers; without a job the response has no job and the
+  // runner calls again after retry_after. Clients set a call timeout above 50
+  // seconds (60 is suggested) and must not poll when they have no free
+  // capacity.
+  //
+  // A job matches when every label of its runs-on is among the labels of the
+  // runner (case-insensitive). A job is given to exactly one runner, even when
+  // many runners and many polls compete; the assignment is recorded before
+  // the response is sent. The job stays QUEUED for the owner until it is
+  // acknowledged.
+  //
+  // Acknowledgement. The runner's first Heartbeat for the job is the
+  // acknowledgement, and the runner sends it as soon as it has the job, before
+  // anything else. If none arrives within 30 seconds of the assignment (the
+  // response was lost, or the runner died), the server cancels the assignment:
+  // the job token is revoked, the job goes back to QUEUED with a fresh token
+  // and can be given to any runner, the same one included; nothing the old
+  // assignment stored is kept. This is not a failure of the job. A job whose
+  // assignment is cancelled 3 times in a row is failed with CI_CONCLUSION_FAILURE
+  // and an error saying so.
+  //
+  // Retry after a lost response. poll_id lets a client retry a poll safely:
+  // a call with the same poll_id as an earlier call of the same runner that
+  // assigned a job returns that same assignment (same Job, same token) as long
+  // as it has not been acknowledged or cancelled, instead of taking another.
+  //
+  // A runner that crashed or whose host restarted cannot resume a job: it does
+  // not keep the job token, so the job fails with the lost-runner error after
+  // the heartbeat timeout (see Heartbeat).
+  //
+  // Needs the runner token. Fails with unauthenticated when the runner was
+  // removed (also ending a call in progress) and invalid_argument if labels
+  // or poll_id break a rule.
+  rpc FetchJob(FetchJobRequest) returns (FetchJobResponse);
+  // UpdateJob reports the state of the steps of a job while it runs. Needs the
+  // job token. Each call is applied whole or not at all, and repeating an
+  // identical call changes nothing, so a runner may retry after a network
+  // error. To end the job use CompleteJob.
+  //
+  // Fails with invalid_argument if a rule is broken, with failed_precondition
+  // if a step goes back (a COMPLETED step cannot change, a step cannot go from
+  // IN_PROGRESS to PENDING) and with failed_precondition and a JobEnded detail
+  // if the job has ended.
+  rpc UpdateJob(UpdateJobRequest) returns (UpdateJobResponse);
+  // AppendLog appends lines to the log of a job. Needs the job token.
+  //
+  // The log of a job is one sequence of lines, numbered from 0 across all
+  // steps; offset is the number of lines the server holds when the request is
+  // applied, that is the number of the first line of the request. Calls must
+  // go in order, one at a time, and are idempotent:
+  //
+  //   - offset equal to the server's line count: the lines are appended;
+  //   - offset below it: the first (count - offset) lines were already stored
+  //     (a retry after a lost response) and are skipped, and the rest is
+  //     appended; a request entirely stored changes nothing. The skipped lines
+  //     are not compared with the stored ones: a retry whose lines differ from
+  //     the first attempt is silently dropped, so a client must resend the
+  //     same lines at the same offset;
+  //   - offset above it: out_of_range (a gap is a bug of the client; the
+  //     message gives the line count the server holds).
+  //
+  // The response gives the line count after the call, so a client can check
+  // itself. Offsets resume only after a network error within the same runner
+  // process; they are not a way to resume a job after a crash.
+  //
+  // A request has at most 1,000 lines whose text adds up to at most 64 KiB
+  // (65,536 bytes), all in the same step; more is invalid_argument. A line
+  // longer than that is cut by the client into pieces, see LogLine.continued.
+  //
+  // Steps. The step of a request must be at least the step of the last line
+  // the server holds, because the log is ordered by step (applied lines only:
+  // lines skipped as already stored are not checked); a lower step is
+  // failed_precondition. Lines for a step that UpdateJob has not announced
+  // create it: it starts IN_PROGRESS at the time of its first line, with an
+  // empty name until an UpdateJob gives one.
+  //
+  // The log of a job is limited to 512 MiB (536,870,912 bytes) as stored by
+  // the server (text, timestamps and separators). The call that would exceed
+  // it appends nothing; the server adds a last line saying that the limit was
+  // reached, ends the job with CI_CONCLUSION_FAILURE and RunJob.error set, and
+  // answers failed_precondition with a JobEnded detail like any call after the
+  // end of a job. The runner then stops the job.
+  //
+  // Lines sent after the end of the job are rejected, so a runner flushes all
+  // its AppendLog lines before it calls CompleteJob.
+  //
+  // Fails with invalid_argument if a rule is broken (step number, text with a
+  // line feed or invalid UTF-8, missing time, a continued first line).
+  rpc AppendLog(AppendLogRequest) returns (AppendLogResponse);
+  // Heartbeat tells the server that the runner is alive and still working on
+  // the job. Needs the job token. The first one acknowledges the assignment
+  // (see FetchJob). The runner then calls it every 30 seconds for as long as
+  // the job runs. The deadline is 2 minutes after the later of the last
+  // heartbeat and the start of the server (so a server restart does not fail
+  // the jobs of runners that could not reach it): past it the server ends the
+  // job with CI_CONCLUSION_FAILURE and the message "The self-hosted runner:
+  // <name> lost communication with the server...". Only Heartbeat counts:
+  // other calls do not keep a job alive.
+  //
+  // A runner that gets unavailable (or any network error) retries Heartbeat
+  // every 5 seconds until it succeeds, instead of waiting for its next 30
+  // second tick, and keeps the job running meanwhile.
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  // WatchJob streams what the runner must react to. Needs the job token. The
+  // runner opens it when it starts the job and keeps it open; it reopens it
+  // after any error other than unauthenticated and the failed_precondition
+  // that says the job ended, and after a clean close of
+  // the stream that did not end with a JobEnded message.
+  //
+  // When the stream opens and a cancellation has already been requested, the
+  // first message is that request, so a reconnect never misses one. Only the
+  // first reason is sent: a job already cancelled by the owner does not get a
+  // second message when its time budget expires. The server also sends a
+  // Keepalive at least every 30 seconds, which the client ignores. When the
+  // job ends the server sends JobEnded, then closes the stream without error.
+  // On a job that has already ended the call fails like the other RPCs
+  // (failed_precondition with a JobEnded detail).
+  //
+  // On a CancelRequest the runner stops the job as the official runner does
+  // (interrupt, then terminate, then kill) and reports the conclusion given
+  // for the reason with CompleteJob.
+  //
+  // The server does not trust the runner to obey. If no conclusion arrives
+  // within 60 seconds after a cancellation request, whatever the reason (user,
+  // fail-fast, timeout), the server ends the job itself: CI_CONCLUSION_CANCELLED
+  // for user and fail-fast, CI_CONCLUSION_TIMED_OUT for timeout, with an error
+  // saying that the runner did not answer, and the steps not completed are
+  // completed as cancelled. The runner's later CompleteJob returns that result.
+  rpc WatchJob(WatchJobRequest) returns (stream WatchJobResponse);
+  // CompleteJob ends a job: it reports the final steps, the outputs and the
+  // conclusion. Needs the job token, which stays valid for this RPC for 24
+  // hours after the end of the job, however it ended. The call is applied whole
+  // or not at all. Once the job has ended, the token works for no other RPC
+  // (they answer failed_precondition with a JobEnded detail).
+  //
+  // It is idempotent. The first call that finds the job running ends it and
+  // answers applied = true. Any later call, a retry after a lost response or a
+  // call after the server ended the job itself, is not validated and changes
+  // nothing: it answers OK with the stored conclusion and error and
+  // applied = false (a runner whose conclusion differs from the stored one
+  // simply logs it; the outputs it sent are dropped).
+  //
+  // Lines sent with AppendLog after this call are rejected: a runner flushes
+  // all its log lines first. Steps that were not reported COMPLETED when the job
+  // ends are completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when
+  // they never started and the job did not end by cancellation).
+  //
+  // Fails with invalid_argument if a rule is broken (including the output
+  // limits) and failed_precondition if a step goes back, as in UpdateJob.
+  rpc CompleteJob(CompleteJobRequest) returns (CompleteJobResponse);
+}
+
+// RegisterRunnerRequest describes the runner to register.
+message RegisterRunnerRequest {
+  // Name identifies the runner for people (job page, logs, ListRunners) and is
+  // unique: 1 to 64 characters among letters, digits, ".", "_" and "-". It is
+  // not a label and never matches runs-on.
+  string name = 1;
+  // Labels are the labels the runner adds to its implicit ones: at most 64,
+  // each 1 to 64 characters among letters, digits, ".", "_" and "-", for
+  // example "ubuntu-latest". Comparison is case-insensitive and duplicates
+  // are removed. The server adds the implicit labels "self-hosted", the os
+  // and the arch ("linux", "x64" or "arm64"); the runner name is not a label.
+  repeated string labels = 2;
+  // Version is the release of the runner, for example "v0.1.0", or "devel".
+  // Informational, at most 64 characters.
+  string version = 3;
+  // Isolation is how the runner isolates jobs. Required.
+  RunnerIsolation isolation = 4;
+  // Arch is the CPU architecture, in GitHub's names: "x64" or "arm64". Other
+  // values are invalid_argument (the set may grow with compatible additions).
+  string arch = 5;
+  // Os is the operating system: "linux". Other values are invalid_argument
+  // (the set may grow with compatible additions).
+  string os = 6;
+  // Replace removes the runner that already has this name, if any, before
+  // registering this one: its runner token is revoked at once, as in
+  // RunService.RemoveRunner, and a job it is running is not affected. The new
+  // runner gets a new runner_id. Needs the same scope as registering. Without
+  // replace, a name in use is already_exists. It is how a runner re-registers
+  // after losing its state.
+  bool replace = 7;
+}
+
+// RegisterRunnerResponse holds the new runner and its secret.
+message RegisterRunnerResponse {
+  // RunnerId identifies the runner in ListRunners and RemoveRunner. It is not
+  // a secret.
+  string runner_id = 1;
+  // RunnerToken is the secret of the runner, to present as "Authorization:
+  // Bearer <runner_token>" to FetchJob: "ermiterun_" and 43 base64url
+  // characters (32 random bytes, no padding). It is returned once: the server
+  // keeps only its SHA-256, the runner must store it (mode 0600). It stops
+  // working when the runner is removed or replaced.
+  string runner_token = 2;
+}
+
+// FetchJobRequest asks for a job.
+message FetchJobRequest {
+  // Labels narrows the labels offered for this call. Empty means all the
+  // labels of the runner, which is the normal case. Otherwise each one must be
+  // a label of the runner (invalid_argument if not) and only jobs whose runs-on
+  // labels are all among them are offered.
+  repeated string labels = 1;
+  // PollId identifies this poll, chosen by the client (for example 16 random
+  // bytes in base64url), 1 to 64 characters among letters, digits, "_" and
+  // "-". A client that retries a call whose response it did not get sends the
+  // same poll_id, and gets the assignment the first call made, if it made one
+  // (see FetchJob). A new poll uses a new id. Empty means no retry protection:
+  // a lost assignment is then recovered by the acknowledgement timeout alone.
+  string poll_id = 2;
+}
+
+// FetchJobResponse holds the job given to the runner, if any.
+message FetchJobResponse {
+  // Job is the job to run. Unset when no job was available before the end of
+  // the poll.
+  Job job = 1;
+  // RetryAfter is how long the client waits before its next FetchJob. Unset or
+  // zero means call again at once. The server sets it when it has no job for
+  // the runner and wants to slow polling down (load, shutdown in progress);
+  // clients obey it and may wait longer, never less. Unset when job is set.
+  google.protobuf.Duration retry_after = 2;
+}
+
+// Job is a job given to a runner: everything needed to run it, nothing more.
+// The runner parses workflow_yaml itself; the protocol does not carry the
+// workflow model, so it does not change when the model grows.
+message Job {
+  // JobId identifies the job on the server. It is opaque, unique across
+  // repositories and runs, and the same for every attempt of the job. With
+  // attempt it names one execution.
+  string job_id = 1;
+  // RunId is the run the job belongs to, the "github.run_id". It is global to
+  // the server.
+  int64 run_id = 2;
+  // Attempt is the attempt of the run this job executes: 1 for the first, and
+  // one more after each RunService.RerunRun. It is the "github.run_attempt".
+  int32 attempt = 3;
+  // JobToken is the secret that authenticates this job's UpdateJob,
+  // AppendLog, Heartbeat, WatchJob and CompleteJob calls ("Authorization:
+  // Bearer <job_token>"): "ermitejob_" and 43 base64url characters (32 random
+  // bytes, no padding). It is random, valid from the assignment until the job
+  // ends (and for CompleteJob 24 hours more), survives a server restart and
+  // is shown only in this response, or in a repeat of the same poll_id. It
+  // must stay in the runner host process and never reach the job's code. A new
+  // assignment of the same job has a new token.
+  string job_token = 4;
+  // WorkflowPath is the path of the workflow file in the repository, for
+  // example ".github/workflows/ci.yml".
+  string workflow_path = 5;
+  // WorkflowYaml is the content of that file at sha, as is, at most 1 MiB
+  // (larger files fail at planning).
+  string workflow_yaml = 6;
+  // JobKey is the key of the job under "jobs:" in the workflow, the
+  // "github.job".
+  string job_key = 7;
+  // Matrix is the JSON object of the matrix values of this instance of the
+  // job, for example {"os":"linux","go":"1.27"}. "{}" when the job has no
+  // matrix. It is the "matrix" context.
+  string matrix = 8;
+  // Contexts is a JSON object with the contexts that the server computed for
+  // this job: "github", "needs", "strategy", "matrix", "inputs" and "vars", in
+  // the shape GitHub gives them. The contexts "job", "runner", "steps" and
+  // "env" belong to the runner and are not in it. Other keys may be added
+  // later; clients ignore those they do not know.
+  string contexts = 9;
+  // Labels are the runs-on labels of the job, evaluated.
+  repeated string labels = 10;
+  // TimeoutMinutes is the timeout of the job in minutes: the value of the
+  // workflow's timeout-minutes, or 360 when it has none. At least 1. The
+  // runner enforces it from the moment it receives the job. The server counts
+  // from the moment of the assignment and adds 60 seconds of slack, so the
+  // runner's own timeout always comes first: when the server's deadline
+  // passes it announces CANCEL_REASON_TIMEOUT, and ends the job itself after
+  // 60 more seconds without a conclusion (see WatchJob).
+  int32 timeout_minutes = 11;
+  // Repo is the name of the repository.
+  string repo = 12;
+  // Sha is the full id of the commit the run is for, 40 lowercase
+  // hexadecimal characters for SHA-1. The runner reads the code at it.
+  string sha = 13;
+  // Ref is the full ref name that triggered the run, for example
+  // "refs/heads/main" or "refs/tags/v1.0.0".
+  string ref = 14;
+}
+
+// UpdateJobRequest reports the steps of a running job.
+message UpdateJobRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // Steps are the steps whose state changed or that are new. Each one is a
+  // full snapshot of its step, applied by number. At most 1,000 steps per job
+  // (invalid_argument beyond). Steps are numbered like GitHub's log: the
+  // implicit "Set up job" is 1, the steps of the workflow follow in order, and
+  // the implicit "Complete job" is last.
+  repeated StepUpdate steps = 2;
+}
+
+// StepUpdate is the state of one step as the runner knows it.
+message StepUpdate {
+  // Number is the 1-based number of the step in the job. It is the number
+  // used by AppendLog.
+  int32 number = 1;
+  // Name is the display name of the step, evaluated: the "name" of the
+  // workflow step, or "Run <first line of the script>", as GitHub shows it.
+  // At most 1,024 characters; the server cuts longer names.
+  string name = 2;
+  // State is where the step is.
+  StepState state = 3;
+  // Conclusion is how the step ended. Required (not UNSPECIFIED) when state is
+  // COMPLETED, must be UNSPECIFIED otherwise. Allowed values: success,
+  // failure, cancelled, skipped.
+  CiConclusion conclusion = 4;
+  // StartedAt is when the step started, by the clock of the runner. Required
+  // from IN_PROGRESS on.
+  google.protobuf.Timestamp started_at = 5;
+  // CompletedAt is when the step ended, by the clock of the runner. Required
+  // when state is COMPLETED.
+  google.protobuf.Timestamp completed_at = 6;
+}
+
+// UpdateJobResponse is empty.
+message UpdateJobResponse {}
+
+// CompleteJobRequest ends a job.
+message CompleteJobRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // Conclusion is how the job ended. Required: a runner reports
+  // CI_CONCLUSION_SUCCESS, CI_CONCLUSION_FAILURE, CI_CONCLUSION_CANCELLED or
+  // CI_CONCLUSION_TIMED_OUT; any other value is invalid_argument. Skipped is
+  // decided by the server and never reported by a runner.
+  CiConclusion conclusion = 2;
+  // Outputs are the outputs of the job, evaluated by the runner. Names are 1
+  // to 255 characters among letters, digits, "_" and "-" and begin with a
+  // letter or "_" and are case-insensitive: two names that differ only by case
+  // are invalid_argument. Each value is at most 1 MiB, and all names and
+  // values together at most 1 MiB (1,048,576 bytes); beyond that the whole call
+  // is rejected with invalid_argument and the runner reports the failure of
+  // the job without outputs, with a line in the log.
+  map<string, string> outputs = 3;
+  // RunnerShutdown is true when the runner ends the job because it was told to
+  // stop (service stopped, signal). Only allowed with CI_CONCLUSION_CANCELLED.
+  // The server then annotates the job with GitHub's message "The runner has
+  // received a shutdown signal. This can happen when the runner service is
+  // stopped, or a manually started runner is canceled." The conclusion
+  // CANCELLED for this case is to be verified against a recording of GitHub.
+  bool runner_shutdown = 4;
+  // Steps are the final steps, with the same meaning as UpdateJobRequest.steps,
+  // applied in the same atomic step as the conclusion.
+  repeated StepUpdate steps = 5;
+}
+
+// CompleteJobResponse is the stored result of a job.
+message CompleteJobResponse {
+  // Conclusion is the conclusion of the job as the server stored it. It is the
+  // one of the request when applied is true.
+  CiConclusion conclusion = 1;
+  // Error is the error text stored with the job, as RunJob.error. Empty when
+  // there is none.
+  string error = 2;
+  // Applied is true when this call ended the job, false when the job had
+  // already ended (a retry, or the server ended it first) and nothing changed.
+  bool applied = 3;
+}
+
+// JobEnded says that a job has ended. It is sent in WatchJob and attached, as
+// an error detail, to the failed_precondition errors that RunnerService returns
+// for a job that has ended.
+message JobEnded {
+  // Conclusion is how the job ended.
+  CiConclusion conclusion = 1;
+  // Error is the error text stored with the job, as RunJob.error. Empty when
+  // there is none.
+  string error = 2;
+}
+
+// AppendLogRequest carries log lines of one step.
+message AppendLogRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // Step is the number of the step the lines belong to (see
+  // UpdateJobRequest.steps), at least 1, and at least the step of the last
+  // stored line. A step that UpdateJob has not announced yet is created by the
+  // first lines. See the rules on AppendLog.
+  int32 step = 2;
+  // Offset is the number of the first line of the request in the log of the
+  // job, counted from 0 across all steps. See the rules on AppendLog.
+  int64 offset = 3;
+  // Lines are the lines to append, in order: at most 1,000, at most 64 KiB of
+  // text in total.
+  repeated LogLine lines = 4;
+}
+
+// LogLine is one line of a job log.
+message LogLine {
+  // Time is when the line was produced, by the clock of the runner. The server
+  // keeps it with nanosecond precision (RFC 3339) and does not reorder lines.
+  google.protobuf.Timestamp time = 1;
+  // Text is the line without its line terminator, valid UTF-8 (the client
+  // replaces invalid bytes with U+FFFD). It must not contain a line feed; a
+  // carriage return is kept. It is the line as GitHub's raw log has it,
+  // including "##[group]" and "##[endgroup]" markers and "##[error]" lines.
+  string text = 2;
+  // Continued is true when this line is the continuation of the line before
+  // it, which was too long to send whole. A runner cuts a line of more than
+  // 64 KiB into pieces at UTF-8 character boundaries, each piece of at most
+  // 64 KiB, and sets continued on every piece but the first. Each piece is one
+  // line for numbering and offsets; the server and the raw log join the
+  // pieces back, so the original line is rebuilt exactly. The first line of a
+  // job cannot be continued (invalid_argument) and a continued line is in
+  // the same step as the line before it (failed_precondition otherwise).
+  bool continued = 3;
+}
+
+// AppendLogResponse tells how much of the log the server holds.
+message AppendLogResponse {
+  // NextOffset is the number of lines of the job log after the call, which is
+  // the offset of the next request.
+  int64 next_offset = 1;
+}
+
+// HeartbeatRequest names the job that is alive.
+message HeartbeatRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+}
+
+// HeartbeatResponse is empty.
+message HeartbeatResponse {}
+
+// WatchJobRequest names the job to watch.
+message WatchJobRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+}
+
+// WatchJobResponse is one message of the stream.
+message WatchJobResponse {
+  // Msg is what the message carries. New kinds may be added: a client ignores
+  // the ones it does not know.
+  oneof msg {
+    // Keepalive: nothing to do, the stream is alive.
+    Keepalive keepalive = 1;
+    // Cancel: the job must stop.
+    CancelRequest cancel = 2;
+    // Ended: the job has ended. The last message of a stream: a close without
+    // it means the client reconnects.
+    JobEnded ended = 3;
+  }
+}
+
+// Keepalive has no fields.
+message Keepalive {}
+
+// CancelRequest asks the runner to stop a job.
+message CancelRequest {
+  // Reason is why the job must stop. New reasons may be added; a runner that
+  // does not know one cancels the job and reports CI_CONCLUSION_CANCELLED.
+  CancelReason reason = 1;
+  // Message is a short human-readable explanation, for the job log, for
+  // example "Canceled by the owner". At most 1,024 characters.
+  string message = 2;
+  // RequestedAt is when the cancellation was requested, by the clock of the
+  // server.
+  google.protobuf.Timestamp requested_at = 3;
+}

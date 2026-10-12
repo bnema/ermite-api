@@ -152,6 +152,8 @@ type Event struct {
 	//	*Event_MergeRequestMerged
 	//	*Event_MergeRequestClosed
 	//	*Event_CommentAdded
+	//	*Event_RunUpdated
+	//	*Event_JobUpdated
 	Kind          isEvent_Kind `protobuf_oneof:"kind"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -289,6 +291,24 @@ func (x *Event) GetCommentAdded() *CommentAdded {
 	return nil
 }
 
+func (x *Event) GetRunUpdated() *RunUpdated {
+	if x != nil {
+		if x, ok := x.Kind.(*Event_RunUpdated); ok {
+			return x.RunUpdated
+		}
+	}
+	return nil
+}
+
+func (x *Event) GetJobUpdated() *JobUpdated {
+	if x != nil {
+		if x, ok := x.Kind.(*Event_JobUpdated); ok {
+			return x.JobUpdated
+		}
+	}
+	return nil
+}
+
 type isEvent_Kind interface {
 	isEvent_Kind()
 }
@@ -338,6 +358,16 @@ type Event_CommentAdded struct {
 	CommentAdded *CommentAdded `protobuf:"bytes,11,opt,name=comment_added,json=commentAdded,proto3,oneof"`
 }
 
+type Event_RunUpdated struct {
+	// RunUpdated: a CI run was created or changed.
+	RunUpdated *RunUpdated `protobuf:"bytes,12,opt,name=run_updated,json=runUpdated,proto3,oneof"`
+}
+
+type Event_JobUpdated struct {
+	// JobUpdated: a CI job was created or changed.
+	JobUpdated *JobUpdated `protobuf:"bytes,13,opt,name=job_updated,json=jobUpdated,proto3,oneof"`
+}
+
 func (*Event_RepoCreated) isEvent_Kind() {}
 
 func (*Event_RepoUpdated) isEvent_Kind() {}
@@ -355,6 +385,10 @@ func (*Event_MergeRequestMerged) isEvent_Kind() {}
 func (*Event_MergeRequestClosed) isEvent_Kind() {}
 
 func (*Event_CommentAdded) isEvent_Kind() {}
+
+func (*Event_RunUpdated) isEvent_Kind() {}
+
+func (*Event_JobUpdated) isEvent_Kind() {}
 
 // RepoCreated reports a new repository.
 type RepoCreated struct {
@@ -819,7 +853,7 @@ func (x *CommentAdded) GetComment() *Comment {
 // Gap tells the client that events were lost: the requested resume point is
 // older than the server's buffer. It has no fields. The client should reload
 // the state it displays (repositories, refs, merge requests and their
-// comments) and carry on with the next events.
+// comments, CI runs and their jobs) and carry on with the next events.
 type Gap struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -856,16 +890,110 @@ func (*Gap) Descriptor() ([]byte, []int) {
 	return file_ermite_event_proto_rawDescGZIP(), []int{12}
 }
 
+// RunUpdated reports a CI run that was created or whose status, conclusion or
+// timestamps changed. It is delivered on the "repo:<name>" topic only.
+type RunUpdated struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Run is the run after the change, as of its latest attempt, without jobs.
+	Run           *Run `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunUpdated) Reset() {
+	*x = RunUpdated{}
+	mi := &file_ermite_event_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunUpdated) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunUpdated) ProtoMessage() {}
+
+func (x *RunUpdated) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_event_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunUpdated.ProtoReflect.Descriptor instead.
+func (*RunUpdated) Descriptor() ([]byte, []int) {
+	return file_ermite_event_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RunUpdated) GetRun() *Run {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
+// JobUpdated reports a CI job that was created or whose status, conclusion,
+// runner or steps changed. It is delivered on the "repo:<name>" topic only.
+type JobUpdated struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Job is the job after the change, with its steps.
+	Job           *RunJob `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobUpdated) Reset() {
+	*x = JobUpdated{}
+	mi := &file_ermite_event_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobUpdated) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobUpdated) ProtoMessage() {}
+
+func (x *JobUpdated) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_event_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobUpdated.ProtoReflect.Descriptor instead.
+func (*JobUpdated) Descriptor() ([]byte, []int) {
+	return file_ermite_event_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *JobUpdated) GetJob() *RunJob {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
 var File_ermite_event_proto protoreflect.FileDescriptor
 
 const file_ermite_event_proto_rawDesc = "" +
 	"\n" +
-	"\x12ermite/event.proto\x12\x06ermite\x1a\x1aermite/merge_request.proto\x1a\x11ermite/repo.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"I\n" +
+	"\x12ermite/event.proto\x12\x06ermite\x1a\x1aermite/merge_request.proto\x1a\x11ermite/repo.proto\x1a\x10ermite/run.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"I\n" +
 	"\fWatchRequest\x12\x16\n" +
 	"\x06topics\x18\x01 \x03(\tR\x06topics\x12!\n" +
 	"\fresume_after\x18\x02 \x01(\tR\vresumeAfter\"4\n" +
 	"\rWatchResponse\x12#\n" +
-	"\x05event\x18\x01 \x01(\v2\r.ermite.EventR\x05event\"\xf5\x04\n" +
+	"\x05event\x18\x01 \x01(\v2\r.ermite.EventR\x05event\"\xe3\x05\n" +
 	"\x05Event\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\x04time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x128\n" +
@@ -878,7 +1006,11 @@ const file_ermite_event_proto_rawDesc = "" +
 	"\x14merge_request_merged\x18\t \x01(\v2\x1a.ermite.MergeRequestMergedH\x00R\x12mergeRequestMerged\x12N\n" +
 	"\x14merge_request_closed\x18\n" +
 	" \x01(\v2\x1a.ermite.MergeRequestClosedH\x00R\x12mergeRequestClosed\x12;\n" +
-	"\rcomment_added\x18\v \x01(\v2\x14.ermite.CommentAddedH\x00R\fcommentAddedB\x06\n" +
+	"\rcomment_added\x18\v \x01(\v2\x14.ermite.CommentAddedH\x00R\fcommentAdded\x125\n" +
+	"\vrun_updated\x18\f \x01(\v2\x12.ermite.RunUpdatedH\x00R\n" +
+	"runUpdated\x125\n" +
+	"\vjob_updated\x18\r \x01(\v2\x12.ermite.JobUpdatedH\x00R\n" +
+	"jobUpdatedB\x06\n" +
 	"\x04kind\"/\n" +
 	"\vRepoCreated\x12 \n" +
 	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"/\n" +
@@ -904,7 +1036,13 @@ const file_ermite_event_proto_rawDesc = "" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
 	"\x06number\x18\x02 \x01(\x03R\x06number\x12)\n" +
 	"\acomment\x18\x03 \x01(\v2\x0f.ermite.CommentR\acomment\"\x05\n" +
-	"\x03Gap2F\n" +
+	"\x03Gap\"+\n" +
+	"\n" +
+	"RunUpdated\x12\x1d\n" +
+	"\x03run\x18\x01 \x01(\v2\v.ermite.RunR\x03run\".\n" +
+	"\n" +
+	"JobUpdated\x12 \n" +
+	"\x03job\x18\x01 \x01(\v2\x0e.ermite.RunJobR\x03job2F\n" +
 	"\fEventService\x126\n" +
 	"\x05Watch\x12\x14.ermite.WatchRequest\x1a\x15.ermite.WatchResponse0\x01Bq\n" +
 	"\n" +
@@ -923,7 +1061,7 @@ func file_ermite_event_proto_rawDescGZIP() []byte {
 	return file_ermite_event_proto_rawDescData
 }
 
-var file_ermite_event_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_ermite_event_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_ermite_event_proto_goTypes = []any{
 	(*WatchRequest)(nil),          // 0: ermite.WatchRequest
 	(*WatchResponse)(nil),         // 1: ermite.WatchResponse
@@ -938,14 +1076,18 @@ var file_ermite_event_proto_goTypes = []any{
 	(*MergeRequestClosed)(nil),    // 10: ermite.MergeRequestClosed
 	(*CommentAdded)(nil),          // 11: ermite.CommentAdded
 	(*Gap)(nil),                   // 12: ermite.Gap
-	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
-	(*Repo)(nil),                  // 14: ermite.Repo
-	(*MergeRequest)(nil),          // 15: ermite.MergeRequest
-	(*Comment)(nil),               // 16: ermite.Comment
+	(*RunUpdated)(nil),            // 13: ermite.RunUpdated
+	(*JobUpdated)(nil),            // 14: ermite.JobUpdated
+	(*timestamppb.Timestamp)(nil), // 15: google.protobuf.Timestamp
+	(*Repo)(nil),                  // 16: ermite.Repo
+	(*MergeRequest)(nil),          // 17: ermite.MergeRequest
+	(*Comment)(nil),               // 18: ermite.Comment
+	(*Run)(nil),                   // 19: ermite.Run
+	(*RunJob)(nil),                // 20: ermite.RunJob
 }
 var file_ermite_event_proto_depIdxs = []int32{
 	2,  // 0: ermite.WatchResponse.event:type_name -> ermite.Event
-	13, // 1: ermite.Event.time:type_name -> google.protobuf.Timestamp
+	15, // 1: ermite.Event.time:type_name -> google.protobuf.Timestamp
 	3,  // 2: ermite.Event.repo_created:type_name -> ermite.RepoCreated
 	4,  // 3: ermite.Event.repo_updated:type_name -> ermite.RepoUpdated
 	5,  // 4: ermite.Event.repo_deleted:type_name -> ermite.RepoDeleted
@@ -955,20 +1097,24 @@ var file_ermite_event_proto_depIdxs = []int32{
 	9,  // 8: ermite.Event.merge_request_merged:type_name -> ermite.MergeRequestMerged
 	10, // 9: ermite.Event.merge_request_closed:type_name -> ermite.MergeRequestClosed
 	11, // 10: ermite.Event.comment_added:type_name -> ermite.CommentAdded
-	14, // 11: ermite.RepoCreated.repo:type_name -> ermite.Repo
-	14, // 12: ermite.RepoUpdated.repo:type_name -> ermite.Repo
-	7,  // 13: ermite.Pushed.ref_updates:type_name -> ermite.RefUpdate
-	15, // 14: ermite.MergeRequestOpened.merge_request:type_name -> ermite.MergeRequest
-	15, // 15: ermite.MergeRequestMerged.merge_request:type_name -> ermite.MergeRequest
-	15, // 16: ermite.MergeRequestClosed.merge_request:type_name -> ermite.MergeRequest
-	16, // 17: ermite.CommentAdded.comment:type_name -> ermite.Comment
-	0,  // 18: ermite.EventService.Watch:input_type -> ermite.WatchRequest
-	1,  // 19: ermite.EventService.Watch:output_type -> ermite.WatchResponse
-	19, // [19:20] is the sub-list for method output_type
-	18, // [18:19] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	13, // 11: ermite.Event.run_updated:type_name -> ermite.RunUpdated
+	14, // 12: ermite.Event.job_updated:type_name -> ermite.JobUpdated
+	16, // 13: ermite.RepoCreated.repo:type_name -> ermite.Repo
+	16, // 14: ermite.RepoUpdated.repo:type_name -> ermite.Repo
+	7,  // 15: ermite.Pushed.ref_updates:type_name -> ermite.RefUpdate
+	17, // 16: ermite.MergeRequestOpened.merge_request:type_name -> ermite.MergeRequest
+	17, // 17: ermite.MergeRequestMerged.merge_request:type_name -> ermite.MergeRequest
+	17, // 18: ermite.MergeRequestClosed.merge_request:type_name -> ermite.MergeRequest
+	18, // 19: ermite.CommentAdded.comment:type_name -> ermite.Comment
+	19, // 20: ermite.RunUpdated.run:type_name -> ermite.Run
+	20, // 21: ermite.JobUpdated.job:type_name -> ermite.RunJob
+	0,  // 22: ermite.EventService.Watch:input_type -> ermite.WatchRequest
+	1,  // 23: ermite.EventService.Watch:output_type -> ermite.WatchResponse
+	23, // [23:24] is the sub-list for method output_type
+	22, // [22:23] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_ermite_event_proto_init() }
@@ -978,6 +1124,7 @@ func file_ermite_event_proto_init() {
 	}
 	file_ermite_merge_request_proto_init()
 	file_ermite_repo_proto_init()
+	file_ermite_run_proto_init()
 	file_ermite_event_proto_msgTypes[2].OneofWrappers = []any{
 		(*Event_RepoCreated)(nil),
 		(*Event_RepoUpdated)(nil),
@@ -988,6 +1135,8 @@ func file_ermite_event_proto_init() {
 		(*Event_MergeRequestMerged)(nil),
 		(*Event_MergeRequestClosed)(nil),
 		(*Event_CommentAdded)(nil),
+		(*Event_RunUpdated)(nil),
+		(*Event_JobUpdated)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -995,7 +1144,7 @@ func file_ermite_event_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_event_proto_rawDesc), len(file_ermite_event_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -71,7 +71,11 @@ type GetVersionResponse struct {
 	// that this server implements, for example "repo.update" or
 	// "events.resume". A client that needs a capability missing from this list
 	// should warn instead of failing on an unimplemented RPC or ignored field.
-	// Identifiers are lowercase, dot-separated and never reused.
+	// Identifiers are lowercase, dot-separated and never reused. The CI
+	// identifiers are "ci.runs" (RunService runs, jobs, logs, checks, and the
+	// run_updated and job_updated events), "ci.runs.filters" (ListRuns honours
+	// its filters) and "ci.runners" (RunnerService, and RunService.ListRunners
+	// and RemoveRunner).
 	Features      []string `protobuf:"bytes,2,rep,name=features,proto3" json:"features,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
