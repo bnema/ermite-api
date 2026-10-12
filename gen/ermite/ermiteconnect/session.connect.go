@@ -41,6 +41,12 @@ const (
 	// SessionServiceSignOutEverywhereProcedure is the fully-qualified name of the SessionService's
 	// SignOutEverywhere RPC.
 	SessionServiceSignOutEverywhereProcedure = "/ermite.SessionService/SignOutEverywhere"
+	// SessionServiceListPasskeysProcedure is the fully-qualified name of the SessionService's
+	// ListPasskeys RPC.
+	SessionServiceListPasskeysProcedure = "/ermite.SessionService/ListPasskeys"
+	// SessionServiceRemovePasskeyProcedure is the fully-qualified name of the SessionService's
+	// RemovePasskey RPC.
+	SessionServiceRemovePasskeyProcedure = "/ermite.SessionService/RemovePasskey"
 )
 
 // SessionServiceClient is a client for the ermite.SessionService service.
@@ -56,6 +62,14 @@ type SessionServiceClient interface {
 	// other devices. Pending login links are not affected. Tokens are not
 	// affected either: revoke them with TokenService.
 	SignOutEverywhere(context.Context, *connect.Request[ermite.SignOutEverywhereRequest]) (*connect.Response[ermite.SignOutEverywhereResponse], error)
+	// ListPasskeys lists the owner's registered passkeys, oldest first. Fails
+	// with failed_precondition when the server has passkeys disabled.
+	ListPasskeys(context.Context, *connect.Request[ermite.ListPasskeysRequest]) (*connect.Response[ermite.ListPasskeysResponse], error)
+	// RemovePasskey removes one passkey. It also signs out every browser
+	// session, on every device, like SignOutEverywhere. Fails with not_found
+	// for an unknown id, invalid_argument for an id that is not base64url, and
+	// failed_precondition when the server has passkeys disabled.
+	RemovePasskey(context.Context, *connect.Request[ermite.RemovePasskeyRequest]) (*connect.Response[ermite.RemovePasskeyResponse], error)
 }
 
 // NewSessionServiceClient constructs a client for the ermite.SessionService service. By default, it
@@ -81,6 +95,18 @@ func NewSessionServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(sessionServiceMethods.ByName("SignOutEverywhere")),
 			connect.WithClientOptions(opts...),
 		),
+		listPasskeys: connect.NewClient[ermite.ListPasskeysRequest, ermite.ListPasskeysResponse](
+			httpClient,
+			baseURL+SessionServiceListPasskeysProcedure,
+			connect.WithSchema(sessionServiceMethods.ByName("ListPasskeys")),
+			connect.WithClientOptions(opts...),
+		),
+		removePasskey: connect.NewClient[ermite.RemovePasskeyRequest, ermite.RemovePasskeyResponse](
+			httpClient,
+			baseURL+SessionServiceRemovePasskeyProcedure,
+			connect.WithSchema(sessionServiceMethods.ByName("RemovePasskey")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -88,6 +114,8 @@ func NewSessionServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 type sessionServiceClient struct {
 	createLoginLink   *connect.Client[ermite.CreateLoginLinkRequest, ermite.CreateLoginLinkResponse]
 	signOutEverywhere *connect.Client[ermite.SignOutEverywhereRequest, ermite.SignOutEverywhereResponse]
+	listPasskeys      *connect.Client[ermite.ListPasskeysRequest, ermite.ListPasskeysResponse]
+	removePasskey     *connect.Client[ermite.RemovePasskeyRequest, ermite.RemovePasskeyResponse]
 }
 
 // CreateLoginLink calls ermite.SessionService.CreateLoginLink.
@@ -98,6 +126,16 @@ func (c *sessionServiceClient) CreateLoginLink(ctx context.Context, req *connect
 // SignOutEverywhere calls ermite.SessionService.SignOutEverywhere.
 func (c *sessionServiceClient) SignOutEverywhere(ctx context.Context, req *connect.Request[ermite.SignOutEverywhereRequest]) (*connect.Response[ermite.SignOutEverywhereResponse], error) {
 	return c.signOutEverywhere.CallUnary(ctx, req)
+}
+
+// ListPasskeys calls ermite.SessionService.ListPasskeys.
+func (c *sessionServiceClient) ListPasskeys(ctx context.Context, req *connect.Request[ermite.ListPasskeysRequest]) (*connect.Response[ermite.ListPasskeysResponse], error) {
+	return c.listPasskeys.CallUnary(ctx, req)
+}
+
+// RemovePasskey calls ermite.SessionService.RemovePasskey.
+func (c *sessionServiceClient) RemovePasskey(ctx context.Context, req *connect.Request[ermite.RemovePasskeyRequest]) (*connect.Response[ermite.RemovePasskeyResponse], error) {
+	return c.removePasskey.CallUnary(ctx, req)
 }
 
 // SessionServiceHandler is an implementation of the ermite.SessionService service.
@@ -113,6 +151,14 @@ type SessionServiceHandler interface {
 	// other devices. Pending login links are not affected. Tokens are not
 	// affected either: revoke them with TokenService.
 	SignOutEverywhere(context.Context, *connect.Request[ermite.SignOutEverywhereRequest]) (*connect.Response[ermite.SignOutEverywhereResponse], error)
+	// ListPasskeys lists the owner's registered passkeys, oldest first. Fails
+	// with failed_precondition when the server has passkeys disabled.
+	ListPasskeys(context.Context, *connect.Request[ermite.ListPasskeysRequest]) (*connect.Response[ermite.ListPasskeysResponse], error)
+	// RemovePasskey removes one passkey. It also signs out every browser
+	// session, on every device, like SignOutEverywhere. Fails with not_found
+	// for an unknown id, invalid_argument for an id that is not base64url, and
+	// failed_precondition when the server has passkeys disabled.
+	RemovePasskey(context.Context, *connect.Request[ermite.RemovePasskeyRequest]) (*connect.Response[ermite.RemovePasskeyResponse], error)
 }
 
 // NewSessionServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -134,12 +180,28 @@ func NewSessionServiceHandler(svc SessionServiceHandler, opts ...connect.Handler
 		connect.WithSchema(sessionServiceMethods.ByName("SignOutEverywhere")),
 		connect.WithHandlerOptions(opts...),
 	)
+	sessionServiceListPasskeysHandler := connect.NewUnaryHandler(
+		SessionServiceListPasskeysProcedure,
+		svc.ListPasskeys,
+		connect.WithSchema(sessionServiceMethods.ByName("ListPasskeys")),
+		connect.WithHandlerOptions(opts...),
+	)
+	sessionServiceRemovePasskeyHandler := connect.NewUnaryHandler(
+		SessionServiceRemovePasskeyProcedure,
+		svc.RemovePasskey,
+		connect.WithSchema(sessionServiceMethods.ByName("RemovePasskey")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ermite.SessionService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SessionServiceCreateLoginLinkProcedure:
 			sessionServiceCreateLoginLinkHandler.ServeHTTP(w, r)
 		case SessionServiceSignOutEverywhereProcedure:
 			sessionServiceSignOutEverywhereHandler.ServeHTTP(w, r)
+		case SessionServiceListPasskeysProcedure:
+			sessionServiceListPasskeysHandler.ServeHTTP(w, r)
+		case SessionServiceRemovePasskeyProcedure:
+			sessionServiceRemovePasskeyHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -155,4 +217,12 @@ func (UnimplementedSessionServiceHandler) CreateLoginLink(context.Context, *conn
 
 func (UnimplementedSessionServiceHandler) SignOutEverywhere(context.Context, *connect.Request[ermite.SignOutEverywhereRequest]) (*connect.Response[ermite.SignOutEverywhereResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.SessionService.SignOutEverywhere is not implemented"))
+}
+
+func (UnimplementedSessionServiceHandler) ListPasskeys(context.Context, *connect.Request[ermite.ListPasskeysRequest]) (*connect.Response[ermite.ListPasskeysResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.SessionService.ListPasskeys is not implemented"))
+}
+
+func (UnimplementedSessionServiceHandler) RemovePasskey(context.Context, *connect.Request[ermite.RemovePasskeyRequest]) (*connect.Response[ermite.RemovePasskeyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.SessionService.RemovePasskey is not implemented"))
 }

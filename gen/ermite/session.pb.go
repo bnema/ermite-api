@@ -192,6 +192,259 @@ func (*SignOutEverywhereResponse) Descriptor() ([]byte, []int) {
 	return file_ermite_session_proto_rawDescGZIP(), []int{3}
 }
 
+// Passkey is a WebAuthn credential that can sign the owner in. It never
+// carries key material.
+type Passkey struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Id is the credential id, base64url without padding. Pass it to
+	// RemovePasskey.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Name is the label the owner gave the passkey when registering it.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// CreatedAt is when the passkey was registered.
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// LastUsedAt is when the passkey last signed the owner in. It is unset
+	// when the passkey was never used.
+	LastUsedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
+	// Synced is true when the authenticator reports the credential as backed
+	// up (the backup state flag), for example a passkey synced by a platform or
+	// a password manager.
+	Synced        bool `protobuf:"varint,5,opt,name=synced,proto3" json:"synced,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Passkey) Reset() {
+	*x = Passkey{}
+	mi := &file_ermite_session_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Passkey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Passkey) ProtoMessage() {}
+
+func (x *Passkey) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_session_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Passkey.ProtoReflect.Descriptor instead.
+func (*Passkey) Descriptor() ([]byte, []int) {
+	return file_ermite_session_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Passkey) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Passkey) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Passkey) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Passkey) GetLastUsedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastUsedAt
+	}
+	return nil
+}
+
+func (x *Passkey) GetSynced() bool {
+	if x != nil {
+		return x.Synced
+	}
+	return false
+}
+
+// ListPasskeysRequest is empty.
+type ListPasskeysRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPasskeysRequest) Reset() {
+	*x = ListPasskeysRequest{}
+	mi := &file_ermite_session_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPasskeysRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPasskeysRequest) ProtoMessage() {}
+
+func (x *ListPasskeysRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_session_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPasskeysRequest.ProtoReflect.Descriptor instead.
+func (*ListPasskeysRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_session_proto_rawDescGZIP(), []int{5}
+}
+
+// ListPasskeysResponse holds the passkeys.
+type ListPasskeysResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Passkeys are the registered passkeys, oldest first.
+	Passkeys      []*Passkey `protobuf:"bytes,1,rep,name=passkeys,proto3" json:"passkeys,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPasskeysResponse) Reset() {
+	*x = ListPasskeysResponse{}
+	mi := &file_ermite_session_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPasskeysResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPasskeysResponse) ProtoMessage() {}
+
+func (x *ListPasskeysResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_session_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPasskeysResponse.ProtoReflect.Descriptor instead.
+func (*ListPasskeysResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_session_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListPasskeysResponse) GetPasskeys() []*Passkey {
+	if x != nil {
+		return x.Passkeys
+	}
+	return nil
+}
+
+// RemovePasskeyRequest names the passkey to remove.
+type RemovePasskeyRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Id is the credential id from Passkey.id.
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemovePasskeyRequest) Reset() {
+	*x = RemovePasskeyRequest{}
+	mi := &file_ermite_session_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemovePasskeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemovePasskeyRequest) ProtoMessage() {}
+
+func (x *RemovePasskeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_session_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemovePasskeyRequest.ProtoReflect.Descriptor instead.
+func (*RemovePasskeyRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_session_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RemovePasskeyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// RemovePasskeyResponse is empty.
+type RemovePasskeyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemovePasskeyResponse) Reset() {
+	*x = RemovePasskeyResponse{}
+	mi := &file_ermite_session_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemovePasskeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemovePasskeyResponse) ProtoMessage() {}
+
+func (x *RemovePasskeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_session_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemovePasskeyResponse.ProtoReflect.Descriptor instead.
+func (*RemovePasskeyResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_session_proto_rawDescGZIP(), []int{8}
+}
+
 var File_ermite_session_proto protoreflect.FileDescriptor
 
 const file_ermite_session_proto_rawDesc = "" +
@@ -203,10 +456,26 @@ const file_ermite_session_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"\x1a\n" +
 	"\x18SignOutEverywhereRequest\"\x1b\n" +
-	"\x19SignOutEverywhereResponse2\xbe\x01\n" +
+	"\x19SignOutEverywhereResponse\"\xbe\x01\n" +
+	"\aPasskey\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x129\n" +
+	"\n" +
+	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
+	"\flast_used_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"lastUsedAt\x12\x16\n" +
+	"\x06synced\x18\x05 \x01(\bR\x06synced\"\x15\n" +
+	"\x13ListPasskeysRequest\"C\n" +
+	"\x14ListPasskeysResponse\x12+\n" +
+	"\bpasskeys\x18\x01 \x03(\v2\x0f.ermite.PasskeyR\bpasskeys\"&\n" +
+	"\x14RemovePasskeyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
+	"\x15RemovePasskeyResponse2\xd7\x02\n" +
 	"\x0eSessionService\x12R\n" +
 	"\x0fCreateLoginLink\x12\x1e.ermite.CreateLoginLinkRequest\x1a\x1f.ermite.CreateLoginLinkResponse\x12X\n" +
-	"\x11SignOutEverywhere\x12 .ermite.SignOutEverywhereRequest\x1a!.ermite.SignOutEverywhereResponseBs\n" +
+	"\x11SignOutEverywhere\x12 .ermite.SignOutEverywhereRequest\x1a!.ermite.SignOutEverywhereResponse\x12I\n" +
+	"\fListPasskeys\x12\x1b.ermite.ListPasskeysRequest\x1a\x1c.ermite.ListPasskeysResponse\x12L\n" +
+	"\rRemovePasskey\x12\x1c.ermite.RemovePasskeyRequest\x1a\x1d.ermite.RemovePasskeyResponseBs\n" +
 	"\n" +
 	"com.ermiteB\fSessionProtoP\x01Z\x1fbnema.dev/ermite-api/gen/ermite\xa2\x02\x03EXX\xaa\x02\x06Ermite\xca\x02\x06Ermite\xe2\x02\x12Ermite\\GPBMetadata\xea\x02\x06Ermiteb\x06proto3"
 
@@ -222,25 +491,37 @@ func file_ermite_session_proto_rawDescGZIP() []byte {
 	return file_ermite_session_proto_rawDescData
 }
 
-var file_ermite_session_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ermite_session_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ermite_session_proto_goTypes = []any{
 	(*CreateLoginLinkRequest)(nil),    // 0: ermite.CreateLoginLinkRequest
 	(*CreateLoginLinkResponse)(nil),   // 1: ermite.CreateLoginLinkResponse
 	(*SignOutEverywhereRequest)(nil),  // 2: ermite.SignOutEverywhereRequest
 	(*SignOutEverywhereResponse)(nil), // 3: ermite.SignOutEverywhereResponse
-	(*timestamppb.Timestamp)(nil),     // 4: google.protobuf.Timestamp
+	(*Passkey)(nil),                   // 4: ermite.Passkey
+	(*ListPasskeysRequest)(nil),       // 5: ermite.ListPasskeysRequest
+	(*ListPasskeysResponse)(nil),      // 6: ermite.ListPasskeysResponse
+	(*RemovePasskeyRequest)(nil),      // 7: ermite.RemovePasskeyRequest
+	(*RemovePasskeyResponse)(nil),     // 8: ermite.RemovePasskeyResponse
+	(*timestamppb.Timestamp)(nil),     // 9: google.protobuf.Timestamp
 }
 var file_ermite_session_proto_depIdxs = []int32{
-	4, // 0: ermite.CreateLoginLinkResponse.expires_at:type_name -> google.protobuf.Timestamp
-	0, // 1: ermite.SessionService.CreateLoginLink:input_type -> ermite.CreateLoginLinkRequest
-	2, // 2: ermite.SessionService.SignOutEverywhere:input_type -> ermite.SignOutEverywhereRequest
-	1, // 3: ermite.SessionService.CreateLoginLink:output_type -> ermite.CreateLoginLinkResponse
-	3, // 4: ermite.SessionService.SignOutEverywhere:output_type -> ermite.SignOutEverywhereResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	9, // 0: ermite.CreateLoginLinkResponse.expires_at:type_name -> google.protobuf.Timestamp
+	9, // 1: ermite.Passkey.created_at:type_name -> google.protobuf.Timestamp
+	9, // 2: ermite.Passkey.last_used_at:type_name -> google.protobuf.Timestamp
+	4, // 3: ermite.ListPasskeysResponse.passkeys:type_name -> ermite.Passkey
+	0, // 4: ermite.SessionService.CreateLoginLink:input_type -> ermite.CreateLoginLinkRequest
+	2, // 5: ermite.SessionService.SignOutEverywhere:input_type -> ermite.SignOutEverywhereRequest
+	5, // 6: ermite.SessionService.ListPasskeys:input_type -> ermite.ListPasskeysRequest
+	7, // 7: ermite.SessionService.RemovePasskey:input_type -> ermite.RemovePasskeyRequest
+	1, // 8: ermite.SessionService.CreateLoginLink:output_type -> ermite.CreateLoginLinkResponse
+	3, // 9: ermite.SessionService.SignOutEverywhere:output_type -> ermite.SignOutEverywhereResponse
+	6, // 10: ermite.SessionService.ListPasskeys:output_type -> ermite.ListPasskeysResponse
+	8, // 11: ermite.SessionService.RemovePasskey:output_type -> ermite.RemovePasskeyResponse
+	8, // [8:12] is the sub-list for method output_type
+	4, // [4:8] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ermite_session_proto_init() }
@@ -254,7 +535,7 @@ func file_ermite_session_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_session_proto_rawDesc), len(file_ermite_session_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
