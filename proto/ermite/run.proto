@@ -1,0 +1,487 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "ermite/runner.proto";
+import "google/protobuf/timestamp.proto";
+
+// Run is one execution of one workflow file for one event, like a GitHub
+// workflow run. A re-run keeps the run and adds an attempt.
+message Run {
+  // Repo is the name of the repository.
+  string repo = 1;
+  // Id identifies the run on the whole server: it is the "github.run_id".
+  // Increasing, never reused.
+  int64 id = 2;
+  // Number counts the runs of the same workflow file in the repository,
+  // starting at 1, never reused: it is the "github.run_number". It does not
+  // change on a re-run.
+  int64 number = 3;
+  // Attempt is the attempt this message describes: 1 for the first, one more
+  // after each RerunRun. ListRuns and events describe the latest attempt;
+  // GetRun can ask for another one.
+  int32 attempt = 4;
+  // WorkflowPath is the path of the workflow file at sha, for example
+  // ".github/workflows/ci.yml".
+  string workflow_path = 5;
+  // WorkflowName is the "name" of the workflow, or workflow_path when it has
+  // none (as GitHub does).
+  string workflow_name = 6;
+  // Title is the first line of the message of the commit sha, at most 256
+  // characters (GitHub's display title).
+  string title = 7;
+  // Event is the event that triggered the run, in GitHub's name: "push" (the
+  // only one for now; push to a branch or a tag, and merge of a merge
+  // request). New values may be added; clients show the ones they do not
+  // know as they are.
+  string event = 8;
+  // Ref is the full ref name that was pushed, for example "refs/heads/main"
+  // or "refs/tags/v1.0.0".
+  string ref = 9;
+  // Sha is the full id of the commit the run is for.
+  string sha = 10;
+  // Actor names who triggered the run: the label of the token that pushed, or
+  // "root", or "owner" (a web session, a merge of the web UI), as
+  // MergeRequest.author. It is informational.
+  string actor = 11;
+  // Status is where this attempt is: QUEUED until a job starts, IN_PROGRESS
+  // while jobs run or wait, COMPLETED when every job is over.
+  RunStatus status = 12;
+  // Conclusion is how this attempt ended, from its jobs' conclusions like
+  // GitHub: CANCELLED if it was cancelled, else FAILURE if a job failed or
+  // timed out, else SUCCESS (also when jobs were skipped). Unset until
+  // status is COMPLETED.
+  Conclusion conclusion = 13;
+  // Error is set when the run failed without running a job because the
+  // workflow could not be used: an invalid workflow file (the run then has
+  // no jobs and conclusion FAILURE), as GitHub's "Invalid workflow file".
+  // It holds the errors with their positions, one per line, at most 8 KiB.
+  // Empty otherwise.
+  string error = 14;
+  // CreatedAt is when this attempt was created: for attempt 1 when the
+  // trigger was planned, for later ones when RerunRun was called.
+  google.protobuf.Timestamp created_at = 15;
+  // StartedAt is when the first job of this attempt was given to a runner.
+  // Unset until then.
+  google.protobuf.Timestamp started_at = 16;
+  // CompletedAt is when this attempt completed. Unset until then.
+  google.protobuf.Timestamp completed_at = 17;
+}
+
+// RunJob is a job of a run as people see it: the state of one job instance
+// (one matrix combination is one job) in one attempt. It is not Job, which is
+// what a runner receives.
+message RunJob {
+  // Id is the Job.job_id. It is the same in every attempt.
+  string id = 1;
+  // RunId is the run the job belongs to.
+  int64 run_id = 2;
+  // Attempt is the attempt of the run in which this job executed. It is lower
+  // than the attempt of the run when the job was kept from an earlier attempt
+  // by a re-run of the failed jobs only; the log and steps are then those of
+  // that earlier attempt. Pass it to GetJob and GetJobLog.
+  int32 attempt = 3;
+  // Repo is the name of the repository.
+  string repo = 4;
+  // Key is the key of the job under "jobs:" in the workflow (the
+  // "github.job"). Matrix instances of one job share it.
+  string key = 5;
+  // Name is the display name of the job, evaluated, with the matrix suffix as
+  // GitHub names them, for example "build (linux, 1.27)". It is also the
+  // name of the job's check.
+  string name = 6;
+  // Status is where the job is. A job waits QUEUED for a runner and for the
+  // jobs it needs.
+  RunStatus status = 7;
+  // Conclusion is how the job ended. Unset until status is COMPLETED.
+  Conclusion conclusion = 8;
+  // Error explains a FAILURE, CANCELLED or TIMED_OUT that no step explains, in
+  // GitHub's words where it has them: the runner was lost ("The self-hosted
+  // runner: <name> lost communication with the server..."), it received a
+  // shutdown signal, no runner took the job within 24 hours, the log limit
+  // was reached, the workflow uses a feature that is not supported yet
+  // ("not supported yet: <feature>"). At most 4 KiB. Empty otherwise.
+  string error = 9;
+  // Labels are the runs-on labels of the job, evaluated. Empty while the job
+  // is not planned yet.
+  repeated string labels = 10;
+  // Needs are the keys of the jobs this job needs, for drawing the graph.
+  repeated string needs = 11;
+  // RunnerId is the id of the runner that executed or is executing the job.
+  // Empty while queued, and when the runner has since been removed (runner_name
+  // and isolation are kept).
+  string runner_id = 12;
+  // RunnerName is the name of that runner. Empty while queued.
+  string runner_name = 13;
+  // Isolation is how that runner isolated the job. UNSPECIFIED while queued.
+  RunnerIsolation isolation = 14;
+  // Steps are the steps reported so far, ordered by number, including the
+  // implicit "Set up job" and "Complete job". Empty while queued. Always
+  // set, including in JobUpdated events.
+  repeated Step steps = 15;
+  // CreatedAt is when the job was created (planned).
+  google.protobuf.Timestamp created_at = 16;
+  // StartedAt is when the job was given to a runner. Unset until then.
+  google.protobuf.Timestamp started_at = 17;
+  // CompletedAt is when the job completed. Unset until then.
+  google.protobuf.Timestamp completed_at = 18;
+}
+
+// Step is one step of a job, with where its lines are in the job log.
+message Step {
+  // Number is the 1-based number of the step in the job, the one the runner
+  // uses in UpdateJob and AppendLog.
+  int32 number = 1;
+  // Name is the display name of the step.
+  string name = 2;
+  // State is where the step is.
+  StepState state = 3;
+  // Conclusion is how the step ended. Unset until state is COMPLETED.
+  Conclusion conclusion = 4;
+  // StartedAt is when the step started. Unset while PENDING.
+  google.protobuf.Timestamp started_at = 5;
+  // CompletedAt is when the step ended. Unset until COMPLETED.
+  google.protobuf.Timestamp completed_at = 6;
+  // LogStart is the number of the first line of the step in the job log (the
+  // offset of GetJobLogRequest and AppendLogRequest), counted from 0.
+  int64 log_start = 7;
+  // LogEnd is the number of the line after the last one of the step. For an
+  // IN_PROGRESS step it is the number of lines held at the time of the
+  // call and grows; for a step without a line it equals log_start.
+  int64 log_end = 8;
+}
+
+// Check is the result of one job on one commit, the unit shown next to a
+// commit or a merge request and counted by the merge rules. There is one per
+// job instance, named like GitHub's checks.
+message Check {
+  // Id identifies the check. It is opaque and stable across attempts.
+  string id = 1;
+  // Repo is the name of the repository.
+  string repo = 2;
+  // Sha is the full id of the commit.
+  string sha = 3;
+  // Name is the name of the check: the RunJob.name of the job.
+  string name = 4;
+  // Status is where the check is.
+  RunStatus status = 5;
+  // Conclusion is how the check ended. Unset until status is COMPLETED. The
+  // value "stale" of GitHub is never used.
+  Conclusion conclusion = 6;
+  // RunId is the run of the job.
+  int64 run_id = 7;
+  // JobId is the RunJob.id of the job, to open its page and log.
+  string job_id = 8;
+  // Attempt is the attempt the check describes: the latest attempt of the run.
+  int32 attempt = 9;
+  // WorkflowName is the Run.workflow_name of the run.
+  string workflow_name = 10;
+  // StartedAt is when the job was given to a runner. Unset while queued.
+  google.protobuf.Timestamp started_at = 11;
+  // CompletedAt is when the job completed. Unset until then.
+  google.protobuf.Timestamp completed_at = 12;
+}
+
+// Runner is a registered CI runner. It never contains the runner token nor its
+// hash.
+message Runner {
+  // Id identifies the runner in RemoveRunner. It is not a secret.
+  string id = 1;
+  // Name is the unique name chosen at registration.
+  string name = 2;
+  // Labels are all the labels the runner can match: the ones chosen at
+  // registration plus the implicit ones ("self-hosted", the os and the arch),
+  // lowercase, sorted.
+  repeated string labels = 3;
+  // Isolation is how the runner isolates jobs.
+  RunnerIsolation isolation = 4;
+  // Version is the version of the runner software.
+  string version = 5;
+  // Arch is "x64" or "arm64".
+  string arch = 6;
+  // Os is "linux".
+  string os = 7;
+  // RegisteredAt is when the runner was registered.
+  google.protobuf.Timestamp registered_at = 8;
+  // LastSeen is when the server last heard from the runner: a FetchJob poll or
+  // a heartbeat of one of its jobs. Unset if never. It may lag behind the real
+  // time by a short delay. A runner not seen for more than about 2 minutes is
+  // offline.
+  google.protobuf.Timestamp last_seen = 9;
+  // Busy is true while the runner has a job in progress.
+  bool busy = 10;
+}
+
+// RunService reads and controls CI runs, like `gh run` does on GitHub. It is for
+// owners and their tools; runners use RunnerService.
+//
+// Runs, jobs, checks and logs belong to a repository, and reading them needs
+// the same access as reading it: nothing for a public repository, the
+// repo:read scope for a private one. A repository that does not exist or that
+// the caller cannot read gives not_found; so does a run or a job that belongs
+// to another repository than the one named (ids are global but are always
+// checked against the repository). Cancelling and re-running need the ci:write
+// scope on the repository (a token restricted to other repositories gets
+// permission_denied). The runner RPCs (ListRunners, RemoveRunner) are not about
+// a repository and need the runner:register scope on a token that is not
+// restricted to repositories, or the root token. A caller without the needed
+// scope gets permission_denied.
+//
+// Page sizes and page tokens work as in the other services: page_size 0 is the
+// server default, larger values are lowered to the server maximum, and a
+// page_token is the next_page_token of a previous response for the same
+// request (other fields must be unchanged).
+//
+// Servers that implement the runs side (every RPC but ListRunners and
+// RemoveRunner) list "ci.runs" in GetVersionResponse.features; those that
+// implement the runners side list "ci.runners", as RunnerService does. A server
+// that honours the filters of ListRunsRequest also lists "ci.runs.filters".
+service RunService {
+  // ListRuns lists the runs of a repository, highest id (newest) first. Each
+  // run is described by its latest attempt. The filters narrow the result; a
+  // server without the feature "ci.runs.filters" ignores them and returns
+  // every run, so a client that needs them checks the feature. Fails with
+  // invalid_argument if a filter is malformed.
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse);
+  // GetRun returns a run with its jobs and their steps, for the latest attempt
+  // or for the one asked. Fails with not_found if the run or the attempt does
+  // not exist.
+  rpc GetRun(GetRunRequest) returns (GetRunResponse);
+  // GetJob returns one job with its steps. Fails with not_found if the job
+  // or the attempt does not exist.
+  rpc GetJob(GetJobRequest) returns (GetJobResponse);
+  // GetJobLog streams the lines of the log of a job, from a line number. The
+  // server sends them in order in messages of at most 1,000 lines and 64 KiB of
+  // text each.
+  //
+  // Without follow, the stream ends after the last line stored when the call
+  // was made. With follow, it goes on as lines arrive, with at most 1 second of
+  // delay after the runner's AppendLog, and ends without error once the job has
+  // completed and all its lines were sent; on a completed job follow changes
+  // nothing. A client that loses the stream calls again with the offset after
+  // the last line it received. The client may cancel at any time.
+  //
+  // Fails with not_found if the job, the attempt or its log does not exist (the
+  // log is removed by the retention sweep, and a queued job has none: with
+  // follow, the call waits for the first line instead), with out_of_range if
+  // offset is beyond the end of the log of a job without follow, and with
+  // resource_exhausted when there are too many concurrent log streams, in
+  // total or from one client. Like Watch, a stream ends with unauthenticated
+  // when the token was revoked or expired.
+  rpc GetJobLog(GetJobLogRequest) returns (stream GetJobLogResponse);
+  // CancelRun asks to cancel the latest attempt of a run. Needs the ci:write
+  // scope. Jobs that have not started are cancelled at once; jobs in progress
+  // get a CANCEL_REASON_USER request through WatchJob, and the run completes
+  // when they have ended, so the returned run may still be IN_PROGRESS.
+  // Cancelling a run that already has a cancellation requested succeeds and
+  // changes nothing. Fails with failed_precondition if the run has completed.
+  rpc CancelRun(CancelRunRequest) returns (CancelRunResponse);
+  // RerunRun starts a new attempt of a completed run: same run id and number,
+  // attempt + 1, same commit and same workflow file as at the original run (the
+  // file of the repository is not read again). Needs the ci:write scope. Fails
+  // with failed_precondition if the latest attempt has not completed, or if
+  // failed_only is set and no job failed. The new attempt is returned QUEUED.
+  rpc RerunRun(RerunRunRequest) returns (RerunRunResponse);
+  // ListChecks lists the checks of a commit: for each job of each run on that
+  // sha, the one of the latest attempt, ordered by creation time then name.
+  // A commit without a run has no check: the list is empty, which is not an
+  // error, and the server does not verify that the commit exists. Returns at
+  // most 1,000 checks (truncated tells).
+  rpc ListChecks(ListChecksRequest) returns (ListChecksResponse);
+  // ListRunners lists the registered runners, ordered by name. Needs the
+  // runner:register scope.
+  rpc ListRunners(ListRunnersRequest) returns (ListRunnersResponse);
+  // RemoveRunner removes a runner: its runner token stops working at once (a
+  // FetchJob in progress ends with unauthenticated) and it no longer gets
+  // jobs. A job it is running is not affected: it ends normally, or fails as
+  // a lost runner without heartbeats. Needs the runner:register scope. Fails
+  // with not_found if the id is unknown.
+  rpc RemoveRunner(RemoveRunnerRequest) returns (RemoveRunnerResponse);
+}
+
+// ListRunsRequest selects a page of runs.
+message ListRunsRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // PageSize is the maximum number of runs to return.
+  int32 page_size = 2;
+  // PageToken is the next_page_token of a previous response. Empty for the
+  // first page.
+  string page_token = 3;
+  // Workflow restricts the result to one workflow file: its path
+  // (".github/workflows/ci.yml") or its file name ("ci.yml"). Empty means
+  // every workflow. Ignored by servers without "ci.runs.filters".
+  string workflow = 4;
+  // Branch restricts the result to the runs whose ref is this branch, by
+  // short name ("main"). Empty means every ref. Ignored by servers without
+  // "ci.runs.filters".
+  string branch = 5;
+  // Status restricts the result to the runs whose latest attempt has this
+  // status. RUN_STATUS_UNSPECIFIED means every status. Ignored by servers
+  // without "ci.runs.filters".
+  RunStatus status = 6;
+}
+
+// ListRunsResponse is one page of runs.
+message ListRunsResponse {
+  // Runs are the runs of this page, highest id first, without jobs.
+  repeated Run runs = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// GetRunRequest selects a run.
+message GetRunRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // RunId is the Run.id.
+  int64 run_id = 2;
+  // Attempt is the attempt to read. 0 means the latest.
+  int32 attempt = 3;
+}
+
+// GetRunResponse holds a run with its jobs.
+message GetRunResponse {
+  // Run is the run, as of the attempt asked.
+  Run run = 1;
+  // Jobs are the jobs of that attempt, with their steps, in the order of the
+  // workflow file (matrix instances in the order of the matrix). Jobs kept from
+  // an earlier attempt by a re-run of failed jobs are included, with their own
+  // RunJob.attempt. Empty for a run that failed on an invalid workflow file.
+  repeated RunJob jobs = 2;
+  // LatestAttempt is the latest attempt of the run, to offer the other ones.
+  int32 latest_attempt = 3;
+}
+
+// GetJobRequest selects a job.
+message GetJobRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // JobId is the RunJob.id.
+  string job_id = 2;
+  // Attempt is the RunJob.attempt to read. 0 means the latest.
+  int32 attempt = 3;
+}
+
+// GetJobResponse holds a job.
+message GetJobResponse {
+  // Job is the job with its steps.
+  RunJob job = 1;
+}
+
+// GetJobLogRequest selects the lines to stream.
+message GetJobLogRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // JobId is the RunJob.id.
+  string job_id = 2;
+  // Attempt is the RunJob.attempt whose log to read. 0 means the latest.
+  int32 attempt = 3;
+  // Offset is the number of the first line to send, counted from 0 across all
+  // steps (see Step.log_start). Negative is invalid_argument.
+  int64 offset = 4;
+  // Follow keeps the stream open while the job runs. See GetJobLog.
+  bool follow = 5;
+}
+
+// GetJobLogResponse is one message of the log stream.
+message GetJobLogResponse {
+  // Offset is the number of the first line of lines.
+  int64 offset = 1;
+  // Lines are consecutive lines of the log, at most 1,000, at most 64 KiB of
+  // text in total. Never empty.
+  repeated JobLogLine lines = 2;
+}
+
+// JobLogLine is one line of a job log, as the runner sent it.
+message JobLogLine {
+  // Step is the number of the step the line belongs to.
+  int32 step = 1;
+  // Time is when the runner produced the line, with nanosecond precision.
+  google.protobuf.Timestamp time = 2;
+  // Text is the line without its terminator, as in LogLine.text, including the
+  // "##[group]" and "##[endgroup]" markers. Clients show it escaped.
+  string text = 3;
+}
+
+// CancelRunRequest names the run to cancel.
+message CancelRunRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // RunId is the Run.id.
+  int64 run_id = 2;
+}
+
+// CancelRunResponse holds the run after the request.
+message CancelRunResponse {
+  // Run is the latest attempt of the run.
+  Run run = 1;
+}
+
+// RerunRunRequest names the run to run again.
+message RerunRunRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // RunId is the Run.id.
+  int64 run_id = 2;
+  // FailedOnly runs again only the jobs of the latest attempt that did not
+  // succeed (conclusion FAILURE, CANCELLED, TIMED_OUT or ACTION_REQUIRED) and
+  // the jobs that need them, directly or not, even if they were skipped. The
+  // other jobs keep their result, steps and log from the earlier attempt. When
+  // false, every job runs again.
+  bool failed_only = 3;
+}
+
+// RerunRunResponse holds the new attempt.
+message RerunRunResponse {
+  // Run is the run as of the new attempt, QUEUED.
+  Run run = 1;
+}
+
+// ListChecksRequest names the commit.
+message ListChecksRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Sha is the full commit id (40 lowercase hexadecimal characters for SHA-1).
+  // Abbreviations and names are invalid_argument.
+  string sha = 2;
+}
+
+// ListChecksResponse holds the checks of a commit.
+message ListChecksResponse {
+  // Checks are the checks of the commit, one per job of the latest attempt of
+  // each run, ordered by creation time then name.
+  repeated Check checks = 1;
+  // Truncated is true when the commit has more checks than checks holds.
+  bool truncated = 2;
+}
+
+// ListRunnersRequest selects a page of runners.
+message ListRunnersRequest {
+  // PageSize is the maximum number of runners to return.
+  int32 page_size = 1;
+  // PageToken is the next_page_token of a previous response. Empty for the
+  // first page.
+  string page_token = 2;
+}
+
+// ListRunnersResponse is one page of runners.
+message ListRunnersResponse {
+  // Runners are the runners of this page, ordered by name.
+  repeated Runner runners = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// RemoveRunnerRequest names the runner to remove.
+message RemoveRunnerRequest {
+  // RunnerId is the Runner.id.
+  string runner_id = 1;
+}
+
+// RemoveRunnerResponse is empty.
+message RemoveRunnerResponse {}

@@ -2,7 +2,7 @@
 
 The public API contract of [ermite](https://git.bnema.dev/bnema/ermite), a single-user Git forge: protobuf definitions for its ConnectRPC services and the Go code generated from them.
 
-Status: early development. The contract defines seven services (below); the server that implements them is being built.
+Status: early development. The contract defines nine services (below); the server that implements them is being built.
 
 ```go
 import "bnema.dev/ermite-api/gen/ermite"
@@ -22,13 +22,15 @@ Handlers are mounted under `/-/api/` by the server. Errors are Connect codes.
 | `MergeRequestService` | `CreateMergeRequest`, `ListMergeRequests`, `GetMergeRequest` (commits, diff, comments), `AddComment`, `ResolveComment`, `CloseMergeRequest`, `MergeMergeRequest`, `MarkRead` |
 | `SessionService` | `CreateLoginLink`, `SignOutEverywhere` (owner only) |
 | `EventService` | `Watch` (streamed, resumable) |
+| `RunnerService` | `RegisterRunner`, `FetchJob` (long poll), `UpdateJob`, `AppendLog` (offset-idempotent), `Heartbeat`, `WatchJob` (cancel requests, streamed); for CI runners |
+| `RunService` | `ListRuns`, `GetRun`, `GetJob`, `GetJobLog` (streamed, follow), `CancelRun`, `RerunRun`, `ListChecks`, `ListRunners`, `RemoveRunner` |
 | `ServerService` | `GetVersion` (server version and feature list), `GetSigningKey` (commit signing key) |
 
 Tokens carry scopes only; presets such as `cli` or `agent` are a client concern.
 
 ## Layout
 
-- `proto/ermite/`: `.proto` files of the `ermite` package, one per service (`repo`, `git`, `merge_request`, `token`, `session`, `event`, `server`) plus shared `types`. Checked by `buf lint` and `buf breaking`.
+- `proto/ermite/`: `.proto` files of the `ermite` package, one per service (`repo`, `git`, `merge_request`, `token`, `session`, `event`, `server`, `runner`, `run`) plus shared `types`. Checked by `buf lint` and `buf breaking`.
 - `gen/ermite/`: generated Go messages. `gen/ermite/ermiteconnect/`: generated Connect clients and handlers. Committed, never edited by hand.
 
 ## Generate

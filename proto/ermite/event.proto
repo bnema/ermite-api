@@ -6,6 +6,7 @@ package ermite;
 
 import "ermite/merge_request.proto";
 import "ermite/repo.proto";
+import "ermite/run.proto";
 import "google/protobuf/timestamp.proto";
 
 // EventService streams what happens on the forge.
@@ -18,7 +19,15 @@ service EventService {
   // for merge requests, merge_request_opened, merge_request_merged,
   // merge_request_closed and comment_added. Each one is delivered on the
   // "repo:<name>" topic of its repository and on "home", subject to the
-  // visibility of the repository. There is no event for a change of title or
+  // visibility of the repository.
+  //
+  // Servers with the feature "ci.runs" also publish run_updated and
+  // job_updated, only on the "repo:<name>" topic of their repository (never on
+  // "home"), subject to the same visibility. They carry the state after the
+  // change and are published when a run or a job is created, changes status
+  // or conclusion, or when one of its steps starts or ends (never per log
+  // line: follow a log with RunService.GetJobLog). A job update is published
+  // before the update of its run. There is no event for a change of title or
   // description, nor for a resolved comment: after a gap, or to see such
   // changes, clients read the merge request again. A merge publishes
   // merge_request_merged, then pushed for the target branch.
@@ -87,6 +96,10 @@ message Event {
     MergeRequestClosed merge_request_closed = 10;
     // CommentAdded: a comment was added to a merge request.
     CommentAdded comment_added = 11;
+    // RunUpdated: a CI run was created or changed.
+    RunUpdated run_updated = 12;
+    // JobUpdated: a CI job was created or changed.
+    JobUpdated job_updated = 13;
   }
 }
 
@@ -160,3 +173,17 @@ message CommentAdded {
 // the state it displays (repositories, refs, merge requests and their
 // comments) and carry on with the next events.
 message Gap {}
+
+// RunUpdated reports a CI run that was created or whose status, conclusion or
+// timestamps changed. It is delivered on the "repo:<name>" topic only.
+message RunUpdated {
+  // Run is the run after the change, as of its latest attempt, without jobs.
+  Run run = 1;
+}
+
+// JobUpdated reports a CI job that was created or whose status, conclusion,
+// runner or steps changed. It is delivered on the "repo:<name>" topic only.
+message JobUpdated {
+  // Job is the job after the change, with its steps.
+  RunJob job = 1;
+}
