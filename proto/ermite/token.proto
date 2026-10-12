@@ -58,13 +58,19 @@ message Token {
   // LastUsedAt is when the token last authenticated a request. Unset if never
   // used. It may lag behind the real time by a short delay.
   google.protobuf.Timestamp last_used_at = 7;
+  // BranchPrefixes limits the branches the token may write. Each prefix ends
+  // with "/" (for example "agent/claude/"). Empty means every branch. A limited
+  // token can push, force-push and delete only branches under its prefixes; it
+  // cannot push tags or other refs, create repositories, or merge into or
+  // delete a branch outside its prefixes.
+  repeated string branch_prefixes = 8;
 }
 
 // TokenService manages stored tokens. Every RPC needs the token:admin scope.
 //
 // A token can only create tokens that are within its own limits: scopes that
 // it holds, repositories that it may access and an expiry no later than its
-// own. The root token (ERMITE_ADMIN_TOKEN) is not a stored token and is never
+// own (including its branch prefixes). The root token (ERMITE_ADMIN_TOKEN) is not a stored token and is never
 // listed.
 service TokenService {
   // CreateToken creates a token and returns its secret. The secret is shown
@@ -92,6 +98,13 @@ message CreateTokenRequest {
   // ExpiresAt is when the token stops working. Unset means no expiry. It must
   // be in the future.
   google.protobuf.Timestamp expires_at = 4;
+  // BranchPrefixes limits the branches the token may write, for example
+  // "agent/claude/". Each prefix must end with "/" and be a valid branch name
+  // once the "/" is removed; at most 8 are allowed. Empty means every branch;
+  // a limited token cannot push tags or create repositories. A token that has
+  // prefixes can only create tokens whose prefixes each lie within its own.
+  // Fails with invalid_argument when a prefix is malformed.
+  repeated string branch_prefixes = 5;
 }
 
 // CreateTokenResponse holds the new token and its secret.
