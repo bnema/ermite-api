@@ -81,6 +81,13 @@ service GitService {
   // not_found if the path does not exist and invalid_argument if it is not a
   // directory.
   rpc GetTree(GetTreeRequest) returns (GetTreeResponse);
+  // ListPaths lists the paths of every file and symbolic link of a revision,
+  // recursively, in Git tree order (the order of `git ls-tree -r`). Directories
+  // and submodules are not listed, nor paths GetBlob cannot address (not valid
+  // UTF-8, or with a control character). Fails with not_found for an unknown
+  // revision or an empty repository. Servers that have it advertise the
+  // feature "git.list_paths" in GetVersion.
+  rpc ListPaths(ListPathsRequest) returns (ListPathsResponse);
   // GetBlob streams the content of a file at a revision, in chunks of at most
   // 64 KiB. The first message carries the metadata in info, then the chunks
   // follow; the memory used by the server does not depend on the file size.
@@ -197,6 +204,28 @@ message GetTreeResponse {
   // Truncated is true when the directory has more entries than the response
   // holds; entries are then the first ones in the documented order.
   bool truncated = 5;
+}
+
+// ListPathsRequest selects a revision.
+message ListPathsRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Revision is a branch, a tag or a commit id. Empty means HEAD.
+  string revision = 2;
+}
+
+// ListPathsResponse lists the file paths of a revision.
+message ListPathsResponse {
+  // CommitId is the id of the commit the revision resolved to.
+  string commit_id = 1;
+  // TreeId is the object id of its root tree.
+  string tree_id = 2;
+  // Paths are the paths of the files and symbolic links, in Git tree order. A
+  // response holds at most 100,000 paths and 8 MiB of path bytes (server limits
+  // that may change; rely on truncated, not on the numbers).
+  repeated string paths = 3;
+  // Truncated is true when more paths exist past the first ones returned.
+  bool truncated = 4;
 }
 
 // BlobInfo describes a file.

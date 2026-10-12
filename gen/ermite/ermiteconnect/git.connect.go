@@ -39,6 +39,8 @@ const (
 	GitServiceListRefsProcedure = "/ermite.GitService/ListRefs"
 	// GitServiceGetTreeProcedure is the fully-qualified name of the GitService's GetTree RPC.
 	GitServiceGetTreeProcedure = "/ermite.GitService/GetTree"
+	// GitServiceListPathsProcedure is the fully-qualified name of the GitService's ListPaths RPC.
+	GitServiceListPathsProcedure = "/ermite.GitService/ListPaths"
 	// GitServiceGetBlobProcedure is the fully-qualified name of the GitService's GetBlob RPC.
 	GitServiceGetBlobProcedure = "/ermite.GitService/GetBlob"
 	// GitServiceListCommitsProcedure is the fully-qualified name of the GitService's ListCommits RPC.
@@ -59,6 +61,13 @@ type GitServiceClient interface {
 	// not_found if the path does not exist and invalid_argument if it is not a
 	// directory.
 	GetTree(context.Context, *connect.Request[ermite.GetTreeRequest]) (*connect.Response[ermite.GetTreeResponse], error)
+	// ListPaths lists the paths of every file and symbolic link of a revision,
+	// recursively, in Git tree order (the order of `git ls-tree -r`). Directories
+	// and submodules are not listed, nor paths GetBlob cannot address (not valid
+	// UTF-8, or with a control character). Fails with not_found for an unknown
+	// revision or an empty repository. Servers that have it advertise the
+	// feature "git.list_paths" in GetVersion.
+	ListPaths(context.Context, *connect.Request[ermite.ListPathsRequest]) (*connect.Response[ermite.ListPathsResponse], error)
 	// GetBlob streams the content of a file at a revision, in chunks of at most
 	// 64 KiB. The first message carries the metadata in info, then the chunks
 	// follow; the memory used by the server does not depend on the file size.
@@ -99,6 +108,12 @@ func NewGitServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(gitServiceMethods.ByName("GetTree")),
 			connect.WithClientOptions(opts...),
 		),
+		listPaths: connect.NewClient[ermite.ListPathsRequest, ermite.ListPathsResponse](
+			httpClient,
+			baseURL+GitServiceListPathsProcedure,
+			connect.WithSchema(gitServiceMethods.ByName("ListPaths")),
+			connect.WithClientOptions(opts...),
+		),
 		getBlob: connect.NewClient[ermite.GetBlobRequest, ermite.GetBlobResponse](
 			httpClient,
 			baseURL+GitServiceGetBlobProcedure,
@@ -130,6 +145,7 @@ func NewGitServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 type gitServiceClient struct {
 	listRefs        *connect.Client[ermite.ListRefsRequest, ermite.ListRefsResponse]
 	getTree         *connect.Client[ermite.GetTreeRequest, ermite.GetTreeResponse]
+	listPaths       *connect.Client[ermite.ListPathsRequest, ermite.ListPathsResponse]
 	getBlob         *connect.Client[ermite.GetBlobRequest, ermite.GetBlobResponse]
 	listCommits     *connect.Client[ermite.ListCommitsRequest, ermite.ListCommitsResponse]
 	getCommit       *connect.Client[ermite.GetCommitRequest, ermite.GetCommitResponse]
@@ -144,6 +160,11 @@ func (c *gitServiceClient) ListRefs(ctx context.Context, req *connect.Request[er
 // GetTree calls ermite.GitService.GetTree.
 func (c *gitServiceClient) GetTree(ctx context.Context, req *connect.Request[ermite.GetTreeRequest]) (*connect.Response[ermite.GetTreeResponse], error) {
 	return c.getTree.CallUnary(ctx, req)
+}
+
+// ListPaths calls ermite.GitService.ListPaths.
+func (c *gitServiceClient) ListPaths(ctx context.Context, req *connect.Request[ermite.ListPathsRequest]) (*connect.Response[ermite.ListPathsResponse], error) {
+	return c.listPaths.CallUnary(ctx, req)
 }
 
 // GetBlob calls ermite.GitService.GetBlob.
@@ -175,6 +196,13 @@ type GitServiceHandler interface {
 	// not_found if the path does not exist and invalid_argument if it is not a
 	// directory.
 	GetTree(context.Context, *connect.Request[ermite.GetTreeRequest]) (*connect.Response[ermite.GetTreeResponse], error)
+	// ListPaths lists the paths of every file and symbolic link of a revision,
+	// recursively, in Git tree order (the order of `git ls-tree -r`). Directories
+	// and submodules are not listed, nor paths GetBlob cannot address (not valid
+	// UTF-8, or with a control character). Fails with not_found for an unknown
+	// revision or an empty repository. Servers that have it advertise the
+	// feature "git.list_paths" in GetVersion.
+	ListPaths(context.Context, *connect.Request[ermite.ListPathsRequest]) (*connect.Response[ermite.ListPathsResponse], error)
 	// GetBlob streams the content of a file at a revision, in chunks of at most
 	// 64 KiB. The first message carries the metadata in info, then the chunks
 	// follow; the memory used by the server does not depend on the file size.
@@ -211,6 +239,12 @@ func NewGitServiceHandler(svc GitServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(gitServiceMethods.ByName("GetTree")),
 		connect.WithHandlerOptions(opts...),
 	)
+	gitServiceListPathsHandler := connect.NewUnaryHandler(
+		GitServiceListPathsProcedure,
+		svc.ListPaths,
+		connect.WithSchema(gitServiceMethods.ByName("ListPaths")),
+		connect.WithHandlerOptions(opts...),
+	)
 	gitServiceGetBlobHandler := connect.NewServerStreamHandler(
 		GitServiceGetBlobProcedure,
 		svc.GetBlob,
@@ -241,6 +275,8 @@ func NewGitServiceHandler(svc GitServiceHandler, opts ...connect.HandlerOption) 
 			gitServiceListRefsHandler.ServeHTTP(w, r)
 		case GitServiceGetTreeProcedure:
 			gitServiceGetTreeHandler.ServeHTTP(w, r)
+		case GitServiceListPathsProcedure:
+			gitServiceListPathsHandler.ServeHTTP(w, r)
 		case GitServiceGetBlobProcedure:
 			gitServiceGetBlobHandler.ServeHTTP(w, r)
 		case GitServiceListCommitsProcedure:
@@ -264,6 +300,10 @@ func (UnimplementedGitServiceHandler) ListRefs(context.Context, *connect.Request
 
 func (UnimplementedGitServiceHandler) GetTree(context.Context, *connect.Request[ermite.GetTreeRequest]) (*connect.Response[ermite.GetTreeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.GitService.GetTree is not implemented"))
+}
+
+func (UnimplementedGitServiceHandler) ListPaths(context.Context, *connect.Request[ermite.ListPathsRequest]) (*connect.Response[ermite.ListPathsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.GitService.ListPaths is not implemented"))
 }
 
 func (UnimplementedGitServiceHandler) GetBlob(context.Context, *connect.Request[ermite.GetBlobRequest], *connect.ServerStream[ermite.GetBlobResponse]) error {

@@ -22,6 +22,7 @@ func TestProcedures(t *testing.T) {
 		{ermiteconnect.RepoServiceDeleteRepoProcedure, "/ermite.RepoService/DeleteRepo"},
 		{ermiteconnect.GitServiceListRefsProcedure, "/ermite.GitService/ListRefs"},
 		{ermiteconnect.GitServiceGetTreeProcedure, "/ermite.GitService/GetTree"},
+		{ermiteconnect.GitServiceListPathsProcedure, "/ermite.GitService/ListPaths"},
 		{ermiteconnect.GitServiceGetBlobProcedure, "/ermite.GitService/GetBlob"},
 		{ermiteconnect.GitServiceListCommitsProcedure, "/ermite.GitService/ListCommits"},
 		{ermiteconnect.GitServiceGetCommitProcedure, "/ermite.GitService/GetCommit"},

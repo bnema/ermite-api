@@ -17,7 +17,7 @@ Handlers are mounted under `/-/api/` by the server. Errors are Connect codes.
 | Service | RPCs |
 |---|---|
 | `RepoService` | `ListRepos`, `GetRepo`, `CreateRepo`, `UpdateRepo` (field mask, merge settings), `DeleteRepo` |
-| `GitService` | `ListRefs`, `GetTree`, `GetBlob` (streamed), `ListCommits`, `GetCommit` (structured diff), `ResolveRevision` |
+| `GitService` | `ListRefs`, `GetTree`, `ListPaths`, `GetBlob` (streamed), `ListCommits`, `GetCommit` (structured diff), `ResolveRevision` |
 | `TokenService` | `CreateToken` (secret shown once), `ListTokens`, `RevokeToken` |
 | `MergeRequestService` | `CreateMergeRequest`, `ListMergeRequests`, `GetMergeRequest` (commits, diff, comments), `AddComment`, `ResolveComment`, `CloseMergeRequest`, `MergeMergeRequest`, `MarkRead` |
 | `SessionService` | `CreateLoginLink`, `SignOutEverywhere` (owner only) |
