@@ -133,9 +133,15 @@ type Token struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// LastUsedAt is when the token last authenticated a request. Unset if never
 	// used. It may lag behind the real time by a short delay.
-	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	LastUsedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
+	// BranchPrefixes limits the branches the token may write. Each prefix ends
+	// with "/" (for example "agent/claude/"). Empty means every branch. A limited
+	// token can push, force-push and delete only branches under its prefixes; it
+	// cannot push tags or other refs, create repositories, or merge into or
+	// delete a branch outside its prefixes.
+	BranchPrefixes []string `protobuf:"bytes,8,rep,name=branch_prefixes,json=branchPrefixes,proto3" json:"branch_prefixes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Token) Reset() {
@@ -217,6 +223,13 @@ func (x *Token) GetLastUsedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Token) GetBranchPrefixes() []string {
+	if x != nil {
+		return x.BranchPrefixes
+	}
+	return nil
+}
+
 // CreateTokenRequest describes the token to create.
 type CreateTokenRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -230,9 +243,16 @@ type CreateTokenRequest struct {
 	Repos []string `protobuf:"bytes,3,rep,name=repos,proto3" json:"repos,omitempty"`
 	// ExpiresAt is when the token stops working. Unset means no expiry. It must
 	// be in the future.
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// BranchPrefixes limits the branches the token may write, for example
+	// "agent/claude/". Each prefix must end with "/" and be a valid branch name
+	// once the "/" is removed; at most 8 are allowed. Empty means every branch;
+	// a limited token cannot push tags or create repositories. A token that has
+	// prefixes can only create tokens whose prefixes each lie within its own.
+	// Fails with invalid_argument when a prefix is malformed.
+	BranchPrefixes []string `protobuf:"bytes,5,rep,name=branch_prefixes,json=branchPrefixes,proto3" json:"branch_prefixes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateTokenRequest) Reset() {
@@ -289,6 +309,13 @@ func (x *CreateTokenRequest) GetRepos() []string {
 func (x *CreateTokenRequest) GetExpiresAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *CreateTokenRequest) GetBranchPrefixes() []string {
+	if x != nil {
+		return x.BranchPrefixes
 	}
 	return nil
 }
@@ -549,7 +576,7 @@ var File_ermite_token_proto protoreflect.FileDescriptor
 
 const file_ermite_token_proto_rawDesc = "" +
 	"\n" +
-	"\x12ermite/token.proto\x12\x06ermite\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9e\x02\n" +
+	"\x12ermite/token.proto\x12\x06ermite\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc7\x02\n" +
 	"\x05Token\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12%\n" +
@@ -560,13 +587,15 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
 	"\flast_used_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastUsedAt\"\xa2\x01\n" +
+	"lastUsedAt\x12'\n" +
+	"\x0fbranch_prefixes\x18\b \x03(\tR\x0ebranchPrefixes\"\xcb\x01\n" +
 	"\x12CreateTokenRequest\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12%\n" +
 	"\x06scopes\x18\x02 \x03(\x0e2\r.ermite.ScopeR\x06scopes\x12\x14\n" +
 	"\x05repos\x18\x03 \x03(\tR\x05repos\x129\n" +
 	"\n" +
-	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"R\n" +
+	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12'\n" +
+	"\x0fbranch_prefixes\x18\x05 \x03(\tR\x0ebranchPrefixes\"R\n" +
 	"\x13CreateTokenResponse\x12#\n" +
 	"\x05token\x18\x01 \x01(\v2\r.ermite.TokenR\x05token\x12\x16\n" +
 	"\x06secret\x18\x02 \x01(\tR\x06secret\"O\n" +
