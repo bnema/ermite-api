@@ -6,9 +6,12 @@ package ermite;
 
 import "google/protobuf/timestamp.proto";
 
-// SessionService manages the owner's browser sessions. The browser itself
-// never calls it: it signs in by opening the link that CreateLoginLink
-// returns, and signs out by posting to the web's logout route.
+// SessionService manages the owner's browser sessions and passkeys. The
+// browser itself never calls it: it signs in by opening the link that
+// CreateLoginLink returns, or with a passkey on the web's sign-in page, and
+// signs out by posting to the web's logout route. Registering a passkey and
+// signing in with one are browser-only ceremonies and are not part of this
+// API.
 //
 // Every RPC is owner-only: it needs the root token, or a stored token that
 // holds every scope and is not restricted to repositories. Any other caller
@@ -16,7 +19,9 @@ import "google/protobuf/timestamp.proto";
 // API accepts bearer tokens only and ignores cookies.
 //
 // Servers that implement this service list "session" in
-// GetVersionResponse.features.
+// GetVersionResponse.features. They also list "passkeys" when passkeys are
+// available (they need an https public URL with a DNS host name); without it,
+// ListPasskeys and RemovePasskey fail with failed_precondition.
 service SessionService {
   // CreateLoginLink creates a one-time link that signs the owner's browser
   // in. The link is valid for a short time (about a minute), can be used
@@ -29,6 +34,14 @@ service SessionService {
   // other devices. Pending login links are not affected. Tokens are not
   // affected either: revoke them with TokenService.
   rpc SignOutEverywhere(SignOutEverywhereRequest) returns (SignOutEverywhereResponse);
+  // ListPasskeys lists the owner's registered passkeys, oldest first. Fails
+  // with failed_precondition when the server has passkeys disabled.
+  rpc ListPasskeys(ListPasskeysRequest) returns (ListPasskeysResponse);
+  // RemovePasskey removes one passkey. It also signs out every browser
+  // session, on every device, like SignOutEverywhere. Fails with not_found
+  // for an unknown id, invalid_argument for an id that is not base64url, and
+  // failed_precondition when the server has passkeys disabled.
+  rpc RemovePasskey(RemovePasskeyRequest) returns (RemovePasskeyResponse);
 }
 
 // CreateLoginLinkRequest is empty.
@@ -49,3 +62,40 @@ message SignOutEverywhereRequest {}
 
 // SignOutEverywhereResponse is empty.
 message SignOutEverywhereResponse {}
+
+// Passkey is a WebAuthn credential that can sign the owner in. It never
+// carries key material.
+message Passkey {
+  // Id is the credential id, base64url without padding. Pass it to
+  // RemovePasskey.
+  string id = 1;
+  // Name is the label the owner gave the passkey when registering it.
+  string name = 2;
+  // CreatedAt is when the passkey was registered.
+  google.protobuf.Timestamp created_at = 3;
+  // LastUsedAt is when the passkey last signed the owner in. It is unset
+  // when the passkey was never used.
+  google.protobuf.Timestamp last_used_at = 4;
+  // Synced is true when the authenticator reports the credential as backed
+  // up (the backup state flag), for example a passkey synced by a platform or
+  // a password manager.
+  bool synced = 5;
+}
+
+// ListPasskeysRequest is empty.
+message ListPasskeysRequest {}
+
+// ListPasskeysResponse holds the passkeys.
+message ListPasskeysResponse {
+  // Passkeys are the registered passkeys, oldest first.
+  repeated Passkey passkeys = 1;
+}
+
+// RemovePasskeyRequest names the passkey to remove.
+message RemovePasskeyRequest {
+  // Id is the credential id from Passkey.id.
+  string id = 1;
+}
+
+// RemovePasskeyResponse is empty.
+message RemovePasskeyResponse {}
