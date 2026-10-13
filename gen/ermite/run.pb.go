@@ -521,7 +521,12 @@ type Step struct {
 	// LogEnd is the number of the line after the last one of the step. For an
 	// IN_PROGRESS step it is the number of lines held at the time of the
 	// call and grows; for a step without a line it equals log_start.
-	LogEnd        int64 `protobuf:"varint,8,opt,name=log_end,json=logEnd,proto3" json:"log_end,omitempty"`
+	LogEnd int64 `protobuf:"varint,8,opt,name=log_end,json=logEnd,proto3" json:"log_end,omitempty"`
+	// Outcome is how the step ended before continue-on-error was applied, as
+	// StepUpdate.outcome: it differs from conclusion only for a failed step with
+	// continue-on-error. Unset until state is COMPLETED, and for a step stored
+	// by a server or runner before this field existed (read it as conclusion).
+	Outcome       CiConclusion `protobuf:"varint,9,opt,name=outcome,proto3,enum=ermite.CiConclusion" json:"outcome,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -610,6 +615,13 @@ func (x *Step) GetLogEnd() int64 {
 		return x.LogEnd
 	}
 	return 0
+}
+
+func (x *Step) GetOutcome() CiConclusion {
+	if x != nil {
+		return x.Outcome
+	}
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
 }
 
 // Check is the result of one job on one commit, the unit shown next to a
@@ -1288,6 +1300,358 @@ func (x *GetJobResponse) GetJob() *RunJob {
 	return nil
 }
 
+// ListAnnotationsRequest selects the annotations of a run.
+type ListAnnotationsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Repo is the repository name.
+	Repo string `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	// RunId is the Run.id.
+	RunId int64 `protobuf:"varint,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// Attempt is the attempt to read. 0 means the latest.
+	Attempt int32 `protobuf:"varint,3,opt,name=attempt,proto3" json:"attempt,omitempty"`
+	// JobId restricts the result to one job (RunJob.id). Empty means every job
+	// of the run.
+	JobId         string `protobuf:"bytes,4,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAnnotationsRequest) Reset() {
+	*x = ListAnnotationsRequest{}
+	mi := &file_ermite_run_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAnnotationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAnnotationsRequest) ProtoMessage() {}
+
+func (x *ListAnnotationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_run_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAnnotationsRequest.ProtoReflect.Descriptor instead.
+func (*ListAnnotationsRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_run_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListAnnotationsRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *ListAnnotationsRequest) GetRunId() int64 {
+	if x != nil {
+		return x.RunId
+	}
+	return 0
+}
+
+func (x *ListAnnotationsRequest) GetAttempt() int32 {
+	if x != nil {
+		return x.Attempt
+	}
+	return 0
+}
+
+func (x *ListAnnotationsRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+// ListAnnotationsResponse holds the annotations of a run.
+type ListAnnotationsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Annotations are the annotations, at most 1,000.
+	Annotations []*JobAnnotation `protobuf:"bytes,1,rep,name=annotations,proto3" json:"annotations,omitempty"`
+	// Truncated is true when there are more annotations than annotations holds.
+	Truncated     bool `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAnnotationsResponse) Reset() {
+	*x = ListAnnotationsResponse{}
+	mi := &file_ermite_run_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAnnotationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAnnotationsResponse) ProtoMessage() {}
+
+func (x *ListAnnotationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_run_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAnnotationsResponse.ProtoReflect.Descriptor instead.
+func (*ListAnnotationsResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_run_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListAnnotationsResponse) GetAnnotations() []*JobAnnotation {
+	if x != nil {
+		return x.Annotations
+	}
+	return nil
+}
+
+func (x *ListAnnotationsResponse) GetTruncated() bool {
+	if x != nil {
+		return x.Truncated
+	}
+	return false
+}
+
+// JobAnnotation is an annotation with the job it belongs to.
+type JobAnnotation struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// JobId is the RunJob.id of the job.
+	JobId string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	// Annotation is the annotation as the runner sent it, after the server
+	// checked it. Its step_number is the step of the job.
+	Annotation    *Annotation `protobuf:"bytes,2,opt,name=annotation,proto3" json:"annotation,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobAnnotation) Reset() {
+	*x = JobAnnotation{}
+	mi := &file_ermite_run_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobAnnotation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobAnnotation) ProtoMessage() {}
+
+func (x *JobAnnotation) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_run_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobAnnotation.ProtoReflect.Descriptor instead.
+func (*JobAnnotation) Descriptor() ([]byte, []int) {
+	return file_ermite_run_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *JobAnnotation) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *JobAnnotation) GetAnnotation() *Annotation {
+	if x != nil {
+		return x.Annotation
+	}
+	return nil
+}
+
+// GetStepSummariesRequest selects a job.
+type GetStepSummariesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Repo is the repository name.
+	Repo string `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	// JobId is the RunJob.id.
+	JobId string `protobuf:"bytes,2,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	// Attempt is the RunJob.attempt to read. 0 means the latest.
+	Attempt       int32 `protobuf:"varint,3,opt,name=attempt,proto3" json:"attempt,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStepSummariesRequest) Reset() {
+	*x = GetStepSummariesRequest{}
+	mi := &file_ermite_run_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStepSummariesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStepSummariesRequest) ProtoMessage() {}
+
+func (x *GetStepSummariesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_run_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStepSummariesRequest.ProtoReflect.Descriptor instead.
+func (*GetStepSummariesRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_run_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *GetStepSummariesRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *GetStepSummariesRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *GetStepSummariesRequest) GetAttempt() int32 {
+	if x != nil {
+		return x.Attempt
+	}
+	return 0
+}
+
+// GetStepSummariesResponse holds the summaries of a job.
+type GetStepSummariesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Summaries are the summaries of the steps that have one, ordered by step
+	// number.
+	Summaries     []*StepSummary `protobuf:"bytes,1,rep,name=summaries,proto3" json:"summaries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStepSummariesResponse) Reset() {
+	*x = GetStepSummariesResponse{}
+	mi := &file_ermite_run_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStepSummariesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStepSummariesResponse) ProtoMessage() {}
+
+func (x *GetStepSummariesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_run_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStepSummariesResponse.ProtoReflect.Descriptor instead.
+func (*GetStepSummariesResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_run_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetStepSummariesResponse) GetSummaries() []*StepSummary {
+	if x != nil {
+		return x.Summaries
+	}
+	return nil
+}
+
+// StepSummary is the job summary of one step.
+type StepSummary struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// StepNumber is the number of the step (see Step.number).
+	StepNumber int32 `protobuf:"varint,1,opt,name=step_number,json=stepNumber,proto3" json:"step_number,omitempty"`
+	// Markdown is the summary as uploaded, at most 1 MiB. Clients render it
+	// safely: it is untrusted content (raw HTML and script URLs must not run).
+	Markdown      string `protobuf:"bytes,2,opt,name=markdown,proto3" json:"markdown,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StepSummary) Reset() {
+	*x = StepSummary{}
+	mi := &file_ermite_run_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StepSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StepSummary) ProtoMessage() {}
+
+func (x *StepSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_run_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StepSummary.ProtoReflect.Descriptor instead.
+func (*StepSummary) Descriptor() ([]byte, []int) {
+	return file_ermite_run_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *StepSummary) GetStepNumber() int32 {
+	if x != nil {
+		return x.StepNumber
+	}
+	return 0
+}
+
+func (x *StepSummary) GetMarkdown() string {
+	if x != nil {
+		return x.Markdown
+	}
+	return ""
+}
+
 // GetJobLogRequest selects the lines to stream.
 type GetJobLogRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1308,7 +1672,7 @@ type GetJobLogRequest struct {
 
 func (x *GetJobLogRequest) Reset() {
 	*x = GetJobLogRequest{}
-	mi := &file_ermite_run_proto_msgTypes[11]
+	mi := &file_ermite_run_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1320,7 +1684,7 @@ func (x *GetJobLogRequest) String() string {
 func (*GetJobLogRequest) ProtoMessage() {}
 
 func (x *GetJobLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[11]
+	mi := &file_ermite_run_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1333,7 +1697,7 @@ func (x *GetJobLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetJobLogRequest.ProtoReflect.Descriptor instead.
 func (*GetJobLogRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{11}
+	return file_ermite_run_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetJobLogRequest) GetRepo() string {
@@ -1385,7 +1749,7 @@ type GetJobLogResponse struct {
 
 func (x *GetJobLogResponse) Reset() {
 	*x = GetJobLogResponse{}
-	mi := &file_ermite_run_proto_msgTypes[12]
+	mi := &file_ermite_run_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1397,7 +1761,7 @@ func (x *GetJobLogResponse) String() string {
 func (*GetJobLogResponse) ProtoMessage() {}
 
 func (x *GetJobLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[12]
+	mi := &file_ermite_run_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1410,7 +1774,7 @@ func (x *GetJobLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetJobLogResponse.ProtoReflect.Descriptor instead.
 func (*GetJobLogResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{12}
+	return file_ermite_run_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetJobLogResponse) GetOffset() int64 {
@@ -1449,7 +1813,7 @@ type JobLogLine struct {
 
 func (x *JobLogLine) Reset() {
 	*x = JobLogLine{}
-	mi := &file_ermite_run_proto_msgTypes[13]
+	mi := &file_ermite_run_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1461,7 +1825,7 @@ func (x *JobLogLine) String() string {
 func (*JobLogLine) ProtoMessage() {}
 
 func (x *JobLogLine) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[13]
+	mi := &file_ermite_run_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1474,7 +1838,7 @@ func (x *JobLogLine) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JobLogLine.ProtoReflect.Descriptor instead.
 func (*JobLogLine) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{13}
+	return file_ermite_run_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *JobLogLine) GetStep() int32 {
@@ -1518,7 +1882,7 @@ type CancelRunRequest struct {
 
 func (x *CancelRunRequest) Reset() {
 	*x = CancelRunRequest{}
-	mi := &file_ermite_run_proto_msgTypes[14]
+	mi := &file_ermite_run_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1530,7 +1894,7 @@ func (x *CancelRunRequest) String() string {
 func (*CancelRunRequest) ProtoMessage() {}
 
 func (x *CancelRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[14]
+	mi := &file_ermite_run_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1543,7 +1907,7 @@ func (x *CancelRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRunRequest.ProtoReflect.Descriptor instead.
 func (*CancelRunRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{14}
+	return file_ermite_run_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CancelRunRequest) GetRepo() string {
@@ -1571,7 +1935,7 @@ type CancelRunResponse struct {
 
 func (x *CancelRunResponse) Reset() {
 	*x = CancelRunResponse{}
-	mi := &file_ermite_run_proto_msgTypes[15]
+	mi := &file_ermite_run_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1583,7 +1947,7 @@ func (x *CancelRunResponse) String() string {
 func (*CancelRunResponse) ProtoMessage() {}
 
 func (x *CancelRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[15]
+	mi := &file_ermite_run_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1596,7 +1960,7 @@ func (x *CancelRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRunResponse.ProtoReflect.Descriptor instead.
 func (*CancelRunResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{15}
+	return file_ermite_run_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CancelRunResponse) GetRun() *Run {
@@ -1625,7 +1989,7 @@ type RerunRunRequest struct {
 
 func (x *RerunRunRequest) Reset() {
 	*x = RerunRunRequest{}
-	mi := &file_ermite_run_proto_msgTypes[16]
+	mi := &file_ermite_run_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1637,7 +2001,7 @@ func (x *RerunRunRequest) String() string {
 func (*RerunRunRequest) ProtoMessage() {}
 
 func (x *RerunRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[16]
+	mi := &file_ermite_run_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1650,7 +2014,7 @@ func (x *RerunRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RerunRunRequest.ProtoReflect.Descriptor instead.
 func (*RerunRunRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{16}
+	return file_ermite_run_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *RerunRunRequest) GetRepo() string {
@@ -1685,7 +2049,7 @@ type RerunRunResponse struct {
 
 func (x *RerunRunResponse) Reset() {
 	*x = RerunRunResponse{}
-	mi := &file_ermite_run_proto_msgTypes[17]
+	mi := &file_ermite_run_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1697,7 +2061,7 @@ func (x *RerunRunResponse) String() string {
 func (*RerunRunResponse) ProtoMessage() {}
 
 func (x *RerunRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[17]
+	mi := &file_ermite_run_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1710,7 +2074,7 @@ func (x *RerunRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RerunRunResponse.ProtoReflect.Descriptor instead.
 func (*RerunRunResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{17}
+	return file_ermite_run_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *RerunRunResponse) GetRun() *Run {
@@ -1734,7 +2098,7 @@ type ListChecksRequest struct {
 
 func (x *ListChecksRequest) Reset() {
 	*x = ListChecksRequest{}
-	mi := &file_ermite_run_proto_msgTypes[18]
+	mi := &file_ermite_run_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1746,7 +2110,7 @@ func (x *ListChecksRequest) String() string {
 func (*ListChecksRequest) ProtoMessage() {}
 
 func (x *ListChecksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[18]
+	mi := &file_ermite_run_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1759,7 +2123,7 @@ func (x *ListChecksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChecksRequest.ProtoReflect.Descriptor instead.
 func (*ListChecksRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{18}
+	return file_ermite_run_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListChecksRequest) GetRepo() string {
@@ -1790,7 +2154,7 @@ type ListChecksResponse struct {
 
 func (x *ListChecksResponse) Reset() {
 	*x = ListChecksResponse{}
-	mi := &file_ermite_run_proto_msgTypes[19]
+	mi := &file_ermite_run_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1802,7 +2166,7 @@ func (x *ListChecksResponse) String() string {
 func (*ListChecksResponse) ProtoMessage() {}
 
 func (x *ListChecksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[19]
+	mi := &file_ermite_run_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1815,7 +2179,7 @@ func (x *ListChecksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChecksResponse.ProtoReflect.Descriptor instead.
 func (*ListChecksResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{19}
+	return file_ermite_run_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListChecksResponse) GetChecks() []*Check {
@@ -1846,7 +2210,7 @@ type ListRunnersRequest struct {
 
 func (x *ListRunnersRequest) Reset() {
 	*x = ListRunnersRequest{}
-	mi := &file_ermite_run_proto_msgTypes[20]
+	mi := &file_ermite_run_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1858,7 +2222,7 @@ func (x *ListRunnersRequest) String() string {
 func (*ListRunnersRequest) ProtoMessage() {}
 
 func (x *ListRunnersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[20]
+	mi := &file_ermite_run_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1871,7 +2235,7 @@ func (x *ListRunnersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunnersRequest.ProtoReflect.Descriptor instead.
 func (*ListRunnersRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{20}
+	return file_ermite_run_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListRunnersRequest) GetPageSize() int32 {
@@ -1902,7 +2266,7 @@ type ListRunnersResponse struct {
 
 func (x *ListRunnersResponse) Reset() {
 	*x = ListRunnersResponse{}
-	mi := &file_ermite_run_proto_msgTypes[21]
+	mi := &file_ermite_run_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1914,7 +2278,7 @@ func (x *ListRunnersResponse) String() string {
 func (*ListRunnersResponse) ProtoMessage() {}
 
 func (x *ListRunnersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[21]
+	mi := &file_ermite_run_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1927,7 +2291,7 @@ func (x *ListRunnersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunnersResponse.ProtoReflect.Descriptor instead.
 func (*ListRunnersResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{21}
+	return file_ermite_run_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListRunnersResponse) GetRunners() []*Runner {
@@ -1955,7 +2319,7 @@ type RemoveRunnerRequest struct {
 
 func (x *RemoveRunnerRequest) Reset() {
 	*x = RemoveRunnerRequest{}
-	mi := &file_ermite_run_proto_msgTypes[22]
+	mi := &file_ermite_run_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1967,7 +2331,7 @@ func (x *RemoveRunnerRequest) String() string {
 func (*RemoveRunnerRequest) ProtoMessage() {}
 
 func (x *RemoveRunnerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[22]
+	mi := &file_ermite_run_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1980,7 +2344,7 @@ func (x *RemoveRunnerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveRunnerRequest.ProtoReflect.Descriptor instead.
 func (*RemoveRunnerRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{22}
+	return file_ermite_run_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *RemoveRunnerRequest) GetRunnerId() string {
@@ -1999,7 +2363,7 @@ type RemoveRunnerResponse struct {
 
 func (x *RemoveRunnerResponse) Reset() {
 	*x = RemoveRunnerResponse{}
-	mi := &file_ermite_run_proto_msgTypes[23]
+	mi := &file_ermite_run_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2011,7 +2375,7 @@ func (x *RemoveRunnerResponse) String() string {
 func (*RemoveRunnerResponse) ProtoMessage() {}
 
 func (x *RemoveRunnerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[23]
+	mi := &file_ermite_run_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2024,7 +2388,7 @@ func (x *RemoveRunnerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveRunnerResponse.ProtoReflect.Descriptor instead.
 func (*RemoveRunnerResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{23}
+	return file_ermite_run_proto_rawDescGZIP(), []int{29}
 }
 
 var File_ermite_run_proto protoreflect.FileDescriptor
@@ -2082,7 +2446,7 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
 	"\fcompleted_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12\x18\n" +
-	"\aversion\x18\x13 \x01(\x03R\aversion\"\xc1\x02\n" +
+	"\aversion\x18\x13 \x01(\x03R\aversion\"\xf1\x02\n" +
 	"\x04Step\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
@@ -2094,7 +2458,8 @@ const file_ermite_run_proto_rawDesc = "" +
 	"started_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
 	"\fcompleted_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12\x1b\n" +
 	"\tlog_start\x18\a \x01(\x03R\blogStart\x12\x17\n" +
-	"\alog_end\x18\b \x01(\x03R\x06logEnd\"\x98\x03\n" +
+	"\alog_end\x18\b \x01(\x03R\x06logEnd\x12.\n" +
+	"\aoutcome\x18\t \x01(\x0e2\x14.ermite.CiConclusionR\aoutcome\"\x98\x03\n" +
 	"\x05Check\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04repo\x18\x02 \x01(\tR\x04repo\x12\x10\n" +
@@ -2148,7 +2513,30 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x18\n" +
 	"\aattempt\x18\x03 \x01(\x05R\aattempt\"2\n" +
 	"\x0eGetJobResponse\x12 \n" +
-	"\x03job\x18\x01 \x01(\v2\x0e.ermite.RunJobR\x03job\"\x87\x01\n" +
+	"\x03job\x18\x01 \x01(\v2\x0e.ermite.RunJobR\x03job\"t\n" +
+	"\x16ListAnnotationsRequest\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x15\n" +
+	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x18\n" +
+	"\aattempt\x18\x03 \x01(\x05R\aattempt\x12\x15\n" +
+	"\x06job_id\x18\x04 \x01(\tR\x05jobId\"p\n" +
+	"\x17ListAnnotationsResponse\x127\n" +
+	"\vannotations\x18\x01 \x03(\v2\x15.ermite.JobAnnotationR\vannotations\x12\x1c\n" +
+	"\ttruncated\x18\x02 \x01(\bR\ttruncated\"Z\n" +
+	"\rJobAnnotation\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x122\n" +
+	"\n" +
+	"annotation\x18\x02 \x01(\v2\x12.ermite.AnnotationR\n" +
+	"annotation\"^\n" +
+	"\x17GetStepSummariesRequest\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x15\n" +
+	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x18\n" +
+	"\aattempt\x18\x03 \x01(\x05R\aattempt\"M\n" +
+	"\x18GetStepSummariesResponse\x121\n" +
+	"\tsummaries\x18\x01 \x03(\v2\x13.ermite.StepSummaryR\tsummaries\"J\n" +
+	"\vStepSummary\x12\x1f\n" +
+	"\vstep_number\x18\x01 \x01(\x05R\n" +
+	"stepNumber\x12\x1a\n" +
+	"\bmarkdown\x18\x02 \x01(\tR\bmarkdown\"\x87\x01\n" +
 	"\x10GetJobLogRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x15\n" +
 	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x18\n" +
@@ -2191,12 +2579,14 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"2\n" +
 	"\x13RemoveRunnerRequest\x12\x1b\n" +
 	"\trunner_id\x18\x01 \x01(\tR\brunnerId\"\x16\n" +
-	"\x14RemoveRunnerResponse2\xda\x04\n" +
+	"\x14RemoveRunnerResponse2\x85\x06\n" +
 	"\n" +
 	"RunService\x12=\n" +
 	"\bListRuns\x12\x17.ermite.ListRunsRequest\x1a\x18.ermite.ListRunsResponse\x127\n" +
 	"\x06GetRun\x12\x15.ermite.GetRunRequest\x1a\x16.ermite.GetRunResponse\x127\n" +
-	"\x06GetJob\x12\x15.ermite.GetJobRequest\x1a\x16.ermite.GetJobResponse\x12B\n" +
+	"\x06GetJob\x12\x15.ermite.GetJobRequest\x1a\x16.ermite.GetJobResponse\x12R\n" +
+	"\x0fListAnnotations\x12\x1e.ermite.ListAnnotationsRequest\x1a\x1f.ermite.ListAnnotationsResponse\x12U\n" +
+	"\x10GetStepSummaries\x12\x1f.ermite.GetStepSummariesRequest\x1a .ermite.GetStepSummariesResponse\x12B\n" +
 	"\tGetJobLog\x12\x18.ermite.GetJobLogRequest\x1a\x19.ermite.GetJobLogResponse0\x01\x12@\n" +
 	"\tCancelRun\x12\x18.ermite.CancelRunRequest\x1a\x19.ermite.CancelRunResponse\x12=\n" +
 	"\bRerunRun\x12\x17.ermite.RerunRunRequest\x1a\x18.ermite.RerunRunResponse\x12C\n" +
@@ -2219,96 +2609,111 @@ func file_ermite_run_proto_rawDescGZIP() []byte {
 	return file_ermite_run_proto_rawDescData
 }
 
-var file_ermite_run_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_ermite_run_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_ermite_run_proto_goTypes = []any{
-	(*Run)(nil),                   // 0: ermite.Run
-	(*RunJob)(nil),                // 1: ermite.RunJob
-	(*Step)(nil),                  // 2: ermite.Step
-	(*Check)(nil),                 // 3: ermite.Check
-	(*Runner)(nil),                // 4: ermite.Runner
-	(*ListRunsRequest)(nil),       // 5: ermite.ListRunsRequest
-	(*ListRunsResponse)(nil),      // 6: ermite.ListRunsResponse
-	(*GetRunRequest)(nil),         // 7: ermite.GetRunRequest
-	(*GetRunResponse)(nil),        // 8: ermite.GetRunResponse
-	(*GetJobRequest)(nil),         // 9: ermite.GetJobRequest
-	(*GetJobResponse)(nil),        // 10: ermite.GetJobResponse
-	(*GetJobLogRequest)(nil),      // 11: ermite.GetJobLogRequest
-	(*GetJobLogResponse)(nil),     // 12: ermite.GetJobLogResponse
-	(*JobLogLine)(nil),            // 13: ermite.JobLogLine
-	(*CancelRunRequest)(nil),      // 14: ermite.CancelRunRequest
-	(*CancelRunResponse)(nil),     // 15: ermite.CancelRunResponse
-	(*RerunRunRequest)(nil),       // 16: ermite.RerunRunRequest
-	(*RerunRunResponse)(nil),      // 17: ermite.RerunRunResponse
-	(*ListChecksRequest)(nil),     // 18: ermite.ListChecksRequest
-	(*ListChecksResponse)(nil),    // 19: ermite.ListChecksResponse
-	(*ListRunnersRequest)(nil),    // 20: ermite.ListRunnersRequest
-	(*ListRunnersResponse)(nil),   // 21: ermite.ListRunnersResponse
-	(*RemoveRunnerRequest)(nil),   // 22: ermite.RemoveRunnerRequest
-	(*RemoveRunnerResponse)(nil),  // 23: ermite.RemoveRunnerResponse
-	(CiStatus)(0),                 // 24: ermite.CiStatus
-	(CiConclusion)(0),             // 25: ermite.CiConclusion
-	(*timestamppb.Timestamp)(nil), // 26: google.protobuf.Timestamp
-	(RunnerIsolation)(0),          // 27: ermite.RunnerIsolation
-	(StepState)(0),                // 28: ermite.StepState
+	(*Run)(nil),                      // 0: ermite.Run
+	(*RunJob)(nil),                   // 1: ermite.RunJob
+	(*Step)(nil),                     // 2: ermite.Step
+	(*Check)(nil),                    // 3: ermite.Check
+	(*Runner)(nil),                   // 4: ermite.Runner
+	(*ListRunsRequest)(nil),          // 5: ermite.ListRunsRequest
+	(*ListRunsResponse)(nil),         // 6: ermite.ListRunsResponse
+	(*GetRunRequest)(nil),            // 7: ermite.GetRunRequest
+	(*GetRunResponse)(nil),           // 8: ermite.GetRunResponse
+	(*GetJobRequest)(nil),            // 9: ermite.GetJobRequest
+	(*GetJobResponse)(nil),           // 10: ermite.GetJobResponse
+	(*ListAnnotationsRequest)(nil),   // 11: ermite.ListAnnotationsRequest
+	(*ListAnnotationsResponse)(nil),  // 12: ermite.ListAnnotationsResponse
+	(*JobAnnotation)(nil),            // 13: ermite.JobAnnotation
+	(*GetStepSummariesRequest)(nil),  // 14: ermite.GetStepSummariesRequest
+	(*GetStepSummariesResponse)(nil), // 15: ermite.GetStepSummariesResponse
+	(*StepSummary)(nil),              // 16: ermite.StepSummary
+	(*GetJobLogRequest)(nil),         // 17: ermite.GetJobLogRequest
+	(*GetJobLogResponse)(nil),        // 18: ermite.GetJobLogResponse
+	(*JobLogLine)(nil),               // 19: ermite.JobLogLine
+	(*CancelRunRequest)(nil),         // 20: ermite.CancelRunRequest
+	(*CancelRunResponse)(nil),        // 21: ermite.CancelRunResponse
+	(*RerunRunRequest)(nil),          // 22: ermite.RerunRunRequest
+	(*RerunRunResponse)(nil),         // 23: ermite.RerunRunResponse
+	(*ListChecksRequest)(nil),        // 24: ermite.ListChecksRequest
+	(*ListChecksResponse)(nil),       // 25: ermite.ListChecksResponse
+	(*ListRunnersRequest)(nil),       // 26: ermite.ListRunnersRequest
+	(*ListRunnersResponse)(nil),      // 27: ermite.ListRunnersResponse
+	(*RemoveRunnerRequest)(nil),      // 28: ermite.RemoveRunnerRequest
+	(*RemoveRunnerResponse)(nil),     // 29: ermite.RemoveRunnerResponse
+	(CiStatus)(0),                    // 30: ermite.CiStatus
+	(CiConclusion)(0),                // 31: ermite.CiConclusion
+	(*timestamppb.Timestamp)(nil),    // 32: google.protobuf.Timestamp
+	(RunnerIsolation)(0),             // 33: ermite.RunnerIsolation
+	(StepState)(0),                   // 34: ermite.StepState
+	(*Annotation)(nil),               // 35: ermite.Annotation
 }
 var file_ermite_run_proto_depIdxs = []int32{
-	24, // 0: ermite.Run.status:type_name -> ermite.CiStatus
-	25, // 1: ermite.Run.conclusion:type_name -> ermite.CiConclusion
-	26, // 2: ermite.Run.created_at:type_name -> google.protobuf.Timestamp
-	26, // 3: ermite.Run.started_at:type_name -> google.protobuf.Timestamp
-	26, // 4: ermite.Run.completed_at:type_name -> google.protobuf.Timestamp
-	24, // 5: ermite.RunJob.status:type_name -> ermite.CiStatus
-	25, // 6: ermite.RunJob.conclusion:type_name -> ermite.CiConclusion
-	27, // 7: ermite.RunJob.isolation:type_name -> ermite.RunnerIsolation
+	30, // 0: ermite.Run.status:type_name -> ermite.CiStatus
+	31, // 1: ermite.Run.conclusion:type_name -> ermite.CiConclusion
+	32, // 2: ermite.Run.created_at:type_name -> google.protobuf.Timestamp
+	32, // 3: ermite.Run.started_at:type_name -> google.protobuf.Timestamp
+	32, // 4: ermite.Run.completed_at:type_name -> google.protobuf.Timestamp
+	30, // 5: ermite.RunJob.status:type_name -> ermite.CiStatus
+	31, // 6: ermite.RunJob.conclusion:type_name -> ermite.CiConclusion
+	33, // 7: ermite.RunJob.isolation:type_name -> ermite.RunnerIsolation
 	2,  // 8: ermite.RunJob.steps:type_name -> ermite.Step
-	26, // 9: ermite.RunJob.created_at:type_name -> google.protobuf.Timestamp
-	26, // 10: ermite.RunJob.started_at:type_name -> google.protobuf.Timestamp
-	26, // 11: ermite.RunJob.completed_at:type_name -> google.protobuf.Timestamp
-	28, // 12: ermite.Step.state:type_name -> ermite.StepState
-	25, // 13: ermite.Step.conclusion:type_name -> ermite.CiConclusion
-	26, // 14: ermite.Step.started_at:type_name -> google.protobuf.Timestamp
-	26, // 15: ermite.Step.completed_at:type_name -> google.protobuf.Timestamp
-	24, // 16: ermite.Check.status:type_name -> ermite.CiStatus
-	25, // 17: ermite.Check.conclusion:type_name -> ermite.CiConclusion
-	26, // 18: ermite.Check.started_at:type_name -> google.protobuf.Timestamp
-	26, // 19: ermite.Check.completed_at:type_name -> google.protobuf.Timestamp
-	27, // 20: ermite.Runner.isolation:type_name -> ermite.RunnerIsolation
-	26, // 21: ermite.Runner.registered_at:type_name -> google.protobuf.Timestamp
-	26, // 22: ermite.Runner.last_seen:type_name -> google.protobuf.Timestamp
-	24, // 23: ermite.ListRunsRequest.status:type_name -> ermite.CiStatus
-	0,  // 24: ermite.ListRunsResponse.runs:type_name -> ermite.Run
-	0,  // 25: ermite.GetRunResponse.run:type_name -> ermite.Run
-	1,  // 26: ermite.GetRunResponse.jobs:type_name -> ermite.RunJob
-	1,  // 27: ermite.GetJobResponse.job:type_name -> ermite.RunJob
-	13, // 28: ermite.GetJobLogResponse.lines:type_name -> ermite.JobLogLine
-	26, // 29: ermite.JobLogLine.time:type_name -> google.protobuf.Timestamp
-	0,  // 30: ermite.CancelRunResponse.run:type_name -> ermite.Run
-	0,  // 31: ermite.RerunRunResponse.run:type_name -> ermite.Run
-	3,  // 32: ermite.ListChecksResponse.checks:type_name -> ermite.Check
-	4,  // 33: ermite.ListRunnersResponse.runners:type_name -> ermite.Runner
-	5,  // 34: ermite.RunService.ListRuns:input_type -> ermite.ListRunsRequest
-	7,  // 35: ermite.RunService.GetRun:input_type -> ermite.GetRunRequest
-	9,  // 36: ermite.RunService.GetJob:input_type -> ermite.GetJobRequest
-	11, // 37: ermite.RunService.GetJobLog:input_type -> ermite.GetJobLogRequest
-	14, // 38: ermite.RunService.CancelRun:input_type -> ermite.CancelRunRequest
-	16, // 39: ermite.RunService.RerunRun:input_type -> ermite.RerunRunRequest
-	18, // 40: ermite.RunService.ListChecks:input_type -> ermite.ListChecksRequest
-	20, // 41: ermite.RunService.ListRunners:input_type -> ermite.ListRunnersRequest
-	22, // 42: ermite.RunService.RemoveRunner:input_type -> ermite.RemoveRunnerRequest
-	6,  // 43: ermite.RunService.ListRuns:output_type -> ermite.ListRunsResponse
-	8,  // 44: ermite.RunService.GetRun:output_type -> ermite.GetRunResponse
-	10, // 45: ermite.RunService.GetJob:output_type -> ermite.GetJobResponse
-	12, // 46: ermite.RunService.GetJobLog:output_type -> ermite.GetJobLogResponse
-	15, // 47: ermite.RunService.CancelRun:output_type -> ermite.CancelRunResponse
-	17, // 48: ermite.RunService.RerunRun:output_type -> ermite.RerunRunResponse
-	19, // 49: ermite.RunService.ListChecks:output_type -> ermite.ListChecksResponse
-	21, // 50: ermite.RunService.ListRunners:output_type -> ermite.ListRunnersResponse
-	23, // 51: ermite.RunService.RemoveRunner:output_type -> ermite.RemoveRunnerResponse
-	43, // [43:52] is the sub-list for method output_type
-	34, // [34:43] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	32, // 9: ermite.RunJob.created_at:type_name -> google.protobuf.Timestamp
+	32, // 10: ermite.RunJob.started_at:type_name -> google.protobuf.Timestamp
+	32, // 11: ermite.RunJob.completed_at:type_name -> google.protobuf.Timestamp
+	34, // 12: ermite.Step.state:type_name -> ermite.StepState
+	31, // 13: ermite.Step.conclusion:type_name -> ermite.CiConclusion
+	32, // 14: ermite.Step.started_at:type_name -> google.protobuf.Timestamp
+	32, // 15: ermite.Step.completed_at:type_name -> google.protobuf.Timestamp
+	31, // 16: ermite.Step.outcome:type_name -> ermite.CiConclusion
+	30, // 17: ermite.Check.status:type_name -> ermite.CiStatus
+	31, // 18: ermite.Check.conclusion:type_name -> ermite.CiConclusion
+	32, // 19: ermite.Check.started_at:type_name -> google.protobuf.Timestamp
+	32, // 20: ermite.Check.completed_at:type_name -> google.protobuf.Timestamp
+	33, // 21: ermite.Runner.isolation:type_name -> ermite.RunnerIsolation
+	32, // 22: ermite.Runner.registered_at:type_name -> google.protobuf.Timestamp
+	32, // 23: ermite.Runner.last_seen:type_name -> google.protobuf.Timestamp
+	30, // 24: ermite.ListRunsRequest.status:type_name -> ermite.CiStatus
+	0,  // 25: ermite.ListRunsResponse.runs:type_name -> ermite.Run
+	0,  // 26: ermite.GetRunResponse.run:type_name -> ermite.Run
+	1,  // 27: ermite.GetRunResponse.jobs:type_name -> ermite.RunJob
+	1,  // 28: ermite.GetJobResponse.job:type_name -> ermite.RunJob
+	13, // 29: ermite.ListAnnotationsResponse.annotations:type_name -> ermite.JobAnnotation
+	35, // 30: ermite.JobAnnotation.annotation:type_name -> ermite.Annotation
+	16, // 31: ermite.GetStepSummariesResponse.summaries:type_name -> ermite.StepSummary
+	19, // 32: ermite.GetJobLogResponse.lines:type_name -> ermite.JobLogLine
+	32, // 33: ermite.JobLogLine.time:type_name -> google.protobuf.Timestamp
+	0,  // 34: ermite.CancelRunResponse.run:type_name -> ermite.Run
+	0,  // 35: ermite.RerunRunResponse.run:type_name -> ermite.Run
+	3,  // 36: ermite.ListChecksResponse.checks:type_name -> ermite.Check
+	4,  // 37: ermite.ListRunnersResponse.runners:type_name -> ermite.Runner
+	5,  // 38: ermite.RunService.ListRuns:input_type -> ermite.ListRunsRequest
+	7,  // 39: ermite.RunService.GetRun:input_type -> ermite.GetRunRequest
+	9,  // 40: ermite.RunService.GetJob:input_type -> ermite.GetJobRequest
+	11, // 41: ermite.RunService.ListAnnotations:input_type -> ermite.ListAnnotationsRequest
+	14, // 42: ermite.RunService.GetStepSummaries:input_type -> ermite.GetStepSummariesRequest
+	17, // 43: ermite.RunService.GetJobLog:input_type -> ermite.GetJobLogRequest
+	20, // 44: ermite.RunService.CancelRun:input_type -> ermite.CancelRunRequest
+	22, // 45: ermite.RunService.RerunRun:input_type -> ermite.RerunRunRequest
+	24, // 46: ermite.RunService.ListChecks:input_type -> ermite.ListChecksRequest
+	26, // 47: ermite.RunService.ListRunners:input_type -> ermite.ListRunnersRequest
+	28, // 48: ermite.RunService.RemoveRunner:input_type -> ermite.RemoveRunnerRequest
+	6,  // 49: ermite.RunService.ListRuns:output_type -> ermite.ListRunsResponse
+	8,  // 50: ermite.RunService.GetRun:output_type -> ermite.GetRunResponse
+	10, // 51: ermite.RunService.GetJob:output_type -> ermite.GetJobResponse
+	12, // 52: ermite.RunService.ListAnnotations:output_type -> ermite.ListAnnotationsResponse
+	15, // 53: ermite.RunService.GetStepSummaries:output_type -> ermite.GetStepSummariesResponse
+	18, // 54: ermite.RunService.GetJobLog:output_type -> ermite.GetJobLogResponse
+	21, // 55: ermite.RunService.CancelRun:output_type -> ermite.CancelRunResponse
+	23, // 56: ermite.RunService.RerunRun:output_type -> ermite.RerunRunResponse
+	25, // 57: ermite.RunService.ListChecks:output_type -> ermite.ListChecksResponse
+	27, // 58: ermite.RunService.ListRunners:output_type -> ermite.ListRunnersResponse
+	29, // 59: ermite.RunService.RemoveRunner:output_type -> ermite.RemoveRunnerResponse
+	49, // [49:60] is the sub-list for method output_type
+	38, // [38:49] is the sub-list for method input_type
+	38, // [38:38] is the sub-list for extension type_name
+	38, // [38:38] is the sub-list for extension extendee
+	0,  // [0:38] is the sub-list for field type_name
 }
 
 func init() { file_ermite_run_proto_init() }
@@ -2323,7 +2728,7 @@ func file_ermite_run_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_run_proto_rawDesc), len(file_ermite_run_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   24,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

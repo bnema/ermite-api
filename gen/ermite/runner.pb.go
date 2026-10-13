@@ -344,6 +344,120 @@ func (CancelReason) EnumDescriptor() ([]byte, []int) {
 	return file_ermite_runner_proto_rawDescGZIP(), []int{4}
 }
 
+// AnnotationLevel is the severity of an annotation, with the values of
+// GitHub's check run annotation levels ("notice", "warning", "failure"). The
+// workflow commands ::notice, ::warning and ::error produce NOTICE, WARNING and
+// FAILURE.
+type AnnotationLevel int32
+
+const (
+	// Not set. Rejected in requests, never returned by the server.
+	AnnotationLevel_ANNOTATION_LEVEL_UNSPECIFIED AnnotationLevel = 0
+	// Information: ::notice.
+	AnnotationLevel_ANNOTATION_LEVEL_NOTICE AnnotationLevel = 1
+	// A problem that does not fail the job by itself: ::warning.
+	AnnotationLevel_ANNOTATION_LEVEL_WARNING AnnotationLevel = 2
+	// An error: ::error.
+	AnnotationLevel_ANNOTATION_LEVEL_FAILURE AnnotationLevel = 3
+)
+
+// Enum value maps for AnnotationLevel.
+var (
+	AnnotationLevel_name = map[int32]string{
+		0: "ANNOTATION_LEVEL_UNSPECIFIED",
+		1: "ANNOTATION_LEVEL_NOTICE",
+		2: "ANNOTATION_LEVEL_WARNING",
+		3: "ANNOTATION_LEVEL_FAILURE",
+	}
+	AnnotationLevel_value = map[string]int32{
+		"ANNOTATION_LEVEL_UNSPECIFIED": 0,
+		"ANNOTATION_LEVEL_NOTICE":      1,
+		"ANNOTATION_LEVEL_WARNING":     2,
+		"ANNOTATION_LEVEL_FAILURE":     3,
+	}
+)
+
+func (x AnnotationLevel) Enum() *AnnotationLevel {
+	p := new(AnnotationLevel)
+	*p = x
+	return p
+}
+
+func (x AnnotationLevel) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AnnotationLevel) Descriptor() protoreflect.EnumDescriptor {
+	return file_ermite_runner_proto_enumTypes[5].Descriptor()
+}
+
+func (AnnotationLevel) Type() protoreflect.EnumType {
+	return &file_ermite_runner_proto_enumTypes[5]
+}
+
+func (x AnnotationLevel) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AnnotationLevel.Descriptor instead.
+func (AnnotationLevel) EnumDescriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{5}
+}
+
+// ActionSource says where the server found an action.
+type ActionSource int32
+
+const (
+	// Not set. Only in a ResolvedAction that carries an error.
+	ActionSource_ACTION_SOURCE_UNSPECIFIED ActionSource = 0
+	// github.com: the archive is downloaded from GitHub, without a token.
+	ActionSource_ACTION_SOURCE_GITHUB ActionSource = 1
+	// A repository of this server, which wins over a github.com repository of
+	// the same name (as GitHub Enterprise Server's own actions do).
+	ActionSource_ACTION_SOURCE_ERMITE ActionSource = 2
+)
+
+// Enum value maps for ActionSource.
+var (
+	ActionSource_name = map[int32]string{
+		0: "ACTION_SOURCE_UNSPECIFIED",
+		1: "ACTION_SOURCE_GITHUB",
+		2: "ACTION_SOURCE_ERMITE",
+	}
+	ActionSource_value = map[string]int32{
+		"ACTION_SOURCE_UNSPECIFIED": 0,
+		"ACTION_SOURCE_GITHUB":      1,
+		"ACTION_SOURCE_ERMITE":      2,
+	}
+)
+
+func (x ActionSource) Enum() *ActionSource {
+	p := new(ActionSource)
+	*p = x
+	return p
+}
+
+func (x ActionSource) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ActionSource) Descriptor() protoreflect.EnumDescriptor {
+	return file_ermite_runner_proto_enumTypes[6].Descriptor()
+}
+
+func (ActionSource) Type() protoreflect.EnumType {
+	return &file_ermite_runner_proto_enumTypes[6]
+}
+
+func (x ActionSource) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ActionSource.Descriptor instead.
+func (ActionSource) EnumDescriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{6}
+}
+
 // RegisterRunnerRequest describes the runner to register.
 type RegisterRunnerRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -700,7 +814,19 @@ type Job struct {
 	Sha string `protobuf:"bytes,13,opt,name=sha,proto3" json:"sha,omitempty"`
 	// Ref is the full ref name that triggered the run, for example
 	// "refs/heads/main" or "refs/tags/v1.0.0".
-	Ref           string `protobuf:"bytes,14,opt,name=ref,proto3" json:"ref,omitempty"`
+	Ref string `protobuf:"bytes,14,opt,name=ref,proto3" json:"ref,omitempty"`
+	// GithubToken is the job repository token, the "github.token" and
+	// "secrets.GITHUB_TOKEN" of the job: "ermitegh_" and 43 base64url characters
+	// (32 random bytes, no padding). Unlike job_token it is meant for the code of
+	// the job: the runner gives it to the sandbox (actions/checkout clones with
+	// it). It can only read the repository of the run (read-only, whatever
+	// "permissions:" says), and is valid from the assignment until the job ends
+	// (it is revoked then, on cancellation and when the job is lost). It is a
+	// secret: the runner registers it in its masker before anything runs, and
+	// neither the runner nor the server logs it. It is shown only in this
+	// response, or in a repeat of the same poll_id; a new assignment of the same
+	// job has a new one. Empty from servers without the feature "ci.actions".
+	GithubToken   string `protobuf:"bytes,15,opt,name=github_token,json=githubToken,proto3" json:"github_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -833,6 +959,13 @@ func (x *Job) GetRef() string {
 	return ""
 }
 
+func (x *Job) GetGithubToken() string {
+	if x != nil {
+		return x.GithubToken
+	}
+	return ""
+}
+
 // UpdateJobRequest reports the steps of a running job.
 type UpdateJobRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -843,7 +976,13 @@ type UpdateJobRequest struct {
 	// (invalid_argument beyond). Steps are numbered like GitHub's log: the
 	// implicit "Set up job" is 1, the steps of the workflow follow in order, and
 	// the implicit "Complete job" is last.
-	Steps         []*StepUpdate `protobuf:"bytes,2,rep,name=steps,proto3" json:"steps,omitempty"`
+	Steps []*StepUpdate `protobuf:"bytes,2,rep,name=steps,proto3" json:"steps,omitempty"`
+	// Annotations are the annotations of the steps that the call names: for
+	// each step_number present, all the annotations of that step known so far,
+	// not only the new ones (see the rules on UpdateJob). At most 10 per level
+	// and per step; more is invalid_argument. The server ignores them without
+	// the feature "ci.annotations".
+	Annotations   []*Annotation `protobuf:"bytes,3,rep,name=annotations,proto3" json:"annotations,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -892,6 +1031,13 @@ func (x *UpdateJobRequest) GetSteps() []*StepUpdate {
 	return nil
 }
 
+func (x *UpdateJobRequest) GetAnnotations() []*Annotation {
+	if x != nil {
+		return x.Annotations
+	}
+	return nil
+}
+
 // StepUpdate is the state of one step as the runner knows it.
 type StepUpdate struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -913,7 +1059,15 @@ type StepUpdate struct {
 	StartedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	// CompletedAt is when the step ended, by the clock of the runner. Required
 	// when state is COMPLETED.
-	CompletedAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	CompletedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	// Outcome is how the step ended before continue-on-error was applied, GitHub's
+	// "steps.<id>.outcome", whereas conclusion is the result after it
+	// ("steps.<id>.conclusion"). Same values as conclusion. They differ only for
+	// a step with continue-on-error that failed: outcome FAILURE, conclusion
+	// SUCCESS. Set by the runner when state is COMPLETED and UNSPECIFIED
+	// otherwise; UNSPECIFIED in a COMPLETED step means the same as conclusion
+	// (a runner that does not know the field).
+	Outcome       CiConclusion `protobuf:"varint,7,opt,name=outcome,proto3,enum=ermite.CiConclusion" json:"outcome,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -990,6 +1144,13 @@ func (x *StepUpdate) GetCompletedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *StepUpdate) GetOutcome() CiConclusion {
+	if x != nil {
+		return x.Outcome
+	}
+	return CiConclusion_CI_CONCLUSION_UNSPECIFIED
+}
+
 // UpdateJobResponse is empty.
 type UpdateJobResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1054,7 +1215,12 @@ type CompleteJobRequest struct {
 	RunnerShutdown bool `protobuf:"varint,4,opt,name=runner_shutdown,json=runnerShutdown,proto3" json:"runner_shutdown,omitempty"`
 	// Steps are the final steps, with the same meaning as UpdateJobRequest.steps,
 	// applied in the same atomic step as the conclusion.
-	Steps         []*StepUpdate `protobuf:"bytes,5,rep,name=steps,proto3" json:"steps,omitempty"`
+	Steps []*StepUpdate `protobuf:"bytes,5,rep,name=steps,proto3" json:"steps,omitempty"`
+	// Annotations are those of the steps that changed since the last call, with
+	// the rules of UpdateJobRequest.annotations (all the annotations of each
+	// step named). The server ignores them without the feature
+	// "ci.annotations".
+	Annotations   []*Annotation `protobuf:"bytes,6,rep,name=annotations,proto3" json:"annotations,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1120,6 +1286,13 @@ func (x *CompleteJobRequest) GetRunnerShutdown() bool {
 func (x *CompleteJobRequest) GetSteps() []*StepUpdate {
 	if x != nil {
 		return x.Steps
+	}
+	return nil
+}
+
+func (x *CompleteJobRequest) GetAnnotations() []*Annotation {
+	if x != nil {
+		return x.Annotations
 	}
 	return nil
 }
@@ -1788,6 +1961,512 @@ func (x *CancelRequest) GetRequestedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// Annotation is a message attached to a step, and optionally to a place in a
+// file of the repository, like an annotation of a GitHub check run. The runner
+// produces them from the workflow commands ::notice, ::warning and ::error and
+// from problem matchers, after masking.
+//
+// The runner sends at most 10 annotations of each level per step (the ones
+// beyond only reach the log) and the server rejects more.
+type Annotation struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Level is the severity. Required.
+	Level AnnotationLevel `protobuf:"varint,1,opt,name=level,proto3,enum=ermite.AnnotationLevel" json:"level,omitempty"`
+	// Title is the optional title. Empty when not given.
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// Message is the text, at most 4,096 characters (the runner cuts longer
+	// ones). Required, not empty.
+	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	// File is the path the annotation is about, relative to the repository when
+	// the runner can tell, else as given. Empty when the annotation is not about
+	// a file.
+	File string `protobuf:"bytes,4,opt,name=file,proto3" json:"file,omitempty"`
+	// StartLine is the first line, counted from 1. 0 when not given.
+	StartLine int32 `protobuf:"varint,5,opt,name=start_line,json=startLine,proto3" json:"start_line,omitempty"`
+	// EndLine is the last line, counted from 1, not before start_line. 0 when
+	// not given.
+	EndLine int32 `protobuf:"varint,6,opt,name=end_line,json=endLine,proto3" json:"end_line,omitempty"`
+	// StartColumn is the first column, counted from 1. 0 when not given.
+	StartColumn int32 `protobuf:"varint,7,opt,name=start_column,json=startColumn,proto3" json:"start_column,omitempty"`
+	// EndColumn is the last column, counted from 1. 0 when not given.
+	EndColumn int32 `protobuf:"varint,8,opt,name=end_column,json=endColumn,proto3" json:"end_column,omitempty"`
+	// StepNumber is the number of the step that produced it (see
+	// StepUpdate.number), from 1 to 1,000. An annotation of a step inside a
+	// composite action belongs to the step of the workflow that uses the action.
+	StepNumber    int32 `protobuf:"varint,9,opt,name=step_number,json=stepNumber,proto3" json:"step_number,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Annotation) Reset() {
+	*x = Annotation{}
+	mi := &file_ermite_runner_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Annotation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Annotation) ProtoMessage() {}
+
+func (x *Annotation) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Annotation.ProtoReflect.Descriptor instead.
+func (*Annotation) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *Annotation) GetLevel() AnnotationLevel {
+	if x != nil {
+		return x.Level
+	}
+	return AnnotationLevel_ANNOTATION_LEVEL_UNSPECIFIED
+}
+
+func (x *Annotation) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Annotation) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *Annotation) GetFile() string {
+	if x != nil {
+		return x.File
+	}
+	return ""
+}
+
+func (x *Annotation) GetStartLine() int32 {
+	if x != nil {
+		return x.StartLine
+	}
+	return 0
+}
+
+func (x *Annotation) GetEndLine() int32 {
+	if x != nil {
+		return x.EndLine
+	}
+	return 0
+}
+
+func (x *Annotation) GetStartColumn() int32 {
+	if x != nil {
+		return x.StartColumn
+	}
+	return 0
+}
+
+func (x *Annotation) GetEndColumn() int32 {
+	if x != nil {
+		return x.EndColumn
+	}
+	return 0
+}
+
+func (x *Annotation) GetStepNumber() int32 {
+	if x != nil {
+		return x.StepNumber
+	}
+	return 0
+}
+
+// ActionRef is an action to resolve.
+type ActionRef struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Uses is the value of "uses" as written, after expression evaluation, for
+	// example "actions/checkout@v4" or "owner/repo/path/to/action@ref". Required.
+	Uses          string `protobuf:"bytes,1,opt,name=uses,proto3" json:"uses,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ActionRef) Reset() {
+	*x = ActionRef{}
+	mi := &file_ermite_runner_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ActionRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ActionRef) ProtoMessage() {}
+
+func (x *ActionRef) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ActionRef.ProtoReflect.Descriptor instead.
+func (*ActionRef) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *ActionRef) GetUses() string {
+	if x != nil {
+		return x.Uses
+	}
+	return ""
+}
+
+// ResolveActionsRequest lists the actions to resolve.
+type ResolveActionsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// JobId is the Job.job_id. It must be the job of the token.
+	JobId string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	// Refs are the actions to resolve, at most 100. Duplicates are allowed and
+	// answered one by one.
+	Refs          []*ActionRef `protobuf:"bytes,2,rep,name=refs,proto3" json:"refs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveActionsRequest) Reset() {
+	*x = ResolveActionsRequest{}
+	mi := &file_ermite_runner_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveActionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveActionsRequest) ProtoMessage() {}
+
+func (x *ResolveActionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveActionsRequest.ProtoReflect.Descriptor instead.
+func (*ResolveActionsRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ResolveActionsRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *ResolveActionsRequest) GetRefs() []*ActionRef {
+	if x != nil {
+		return x.Refs
+	}
+	return nil
+}
+
+// ResolveActionsResponse holds the resolution of each action.
+type ResolveActionsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Actions has one entry per ActionRef of the request, in the same order.
+	Actions       []*ResolvedAction `protobuf:"bytes,1,rep,name=actions,proto3" json:"actions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveActionsResponse) Reset() {
+	*x = ResolveActionsResponse{}
+	mi := &file_ermite_runner_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveActionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveActionsResponse) ProtoMessage() {}
+
+func (x *ResolveActionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveActionsResponse.ProtoReflect.Descriptor instead.
+func (*ResolveActionsResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ResolveActionsResponse) GetActions() []*ResolvedAction {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
+// ResolvedAction is where to download one action, or why it cannot be.
+type ResolvedAction struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Ref is the ActionRef.uses of the request, unchanged.
+	Ref string `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
+	// NameWithOwner is the repository of the action, "owner/repo", with the
+	// case of the repository as the source gives it. Empty when error is set.
+	NameWithOwner string `protobuf:"bytes,2,opt,name=name_with_owner,json=nameWithOwner,proto3" json:"name_with_owner,omitempty"`
+	// Path is the sub-path of the action inside the repository, without leading
+	// or trailing slash: "path/to/action" for "owner/repo/path/to/action@ref".
+	// Empty for an action at the root of the repository.
+	Path string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	// ResolvedSha is the full id of the commit the ref points to, 40 lowercase
+	// hexadecimal characters for SHA-1 (the commit that an annotated tag points
+	// to, not the tag object). Empty when error is set.
+	ResolvedSha string `protobuf:"bytes,4,opt,name=resolved_sha,json=resolvedSha,proto3" json:"resolved_sha,omitempty"`
+	// TarballUrl is where to download the archive of the repository at
+	// resolved_sha, a gzip-compressed tar with one top-level directory. The
+	// runner downloads it from the sandbox. Empty when error is set.
+	TarballUrl string `protobuf:"bytes,5,opt,name=tarball_url,json=tarballUrl,proto3" json:"tarball_url,omitempty"`
+	// Token authenticates the download: the runner sends it as "Authorization:
+	// Basic" with the user "x-access-token". Empty for ACTION_SOURCE_GITHUB.
+	// For ACTION_SOURCE_ERMITE it is a read token for that one repository,
+	// valid until the job ends, so a job can use an action of another private
+	// repository of the server that its own repository token cannot read. It is
+	// a secret: the runner masks it, and neither the runner nor the server logs
+	// it.
+	Token string `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
+	// Source is where the action was found. UNSPECIFIED when error is set.
+	Source ActionSource `protobuf:"varint,7,opt,name=source,proto3,enum=ermite.ActionSource" json:"source,omitempty"`
+	// Error is why the reference could not be resolved, in the words of GitHub
+	// for the same failure. Empty when the action was resolved, in which case
+	// the other fields describe it.
+	Error         string `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolvedAction) Reset() {
+	*x = ResolvedAction{}
+	mi := &file_ermite_runner_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolvedAction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolvedAction) ProtoMessage() {}
+
+func (x *ResolvedAction) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolvedAction.ProtoReflect.Descriptor instead.
+func (*ResolvedAction) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *ResolvedAction) GetRef() string {
+	if x != nil {
+		return x.Ref
+	}
+	return ""
+}
+
+func (x *ResolvedAction) GetNameWithOwner() string {
+	if x != nil {
+		return x.NameWithOwner
+	}
+	return ""
+}
+
+func (x *ResolvedAction) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *ResolvedAction) GetResolvedSha() string {
+	if x != nil {
+		return x.ResolvedSha
+	}
+	return ""
+}
+
+func (x *ResolvedAction) GetTarballUrl() string {
+	if x != nil {
+		return x.TarballUrl
+	}
+	return ""
+}
+
+func (x *ResolvedAction) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *ResolvedAction) GetSource() ActionSource {
+	if x != nil {
+		return x.Source
+	}
+	return ActionSource_ACTION_SOURCE_UNSPECIFIED
+}
+
+func (x *ResolvedAction) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+// UploadSummaryRequest carries the job summary of one step.
+type UploadSummaryRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// JobId is the Job.job_id. It must be the job of the token.
+	JobId string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	// StepNumber is the number of the step that wrote the summary (see
+	// StepUpdate.number), from 1 to 1,000.
+	StepNumber int32 `protobuf:"varint,2,opt,name=step_number,json=stepNumber,proto3" json:"step_number,omitempty"`
+	// Markdown is the summary, masked, valid UTF-8, at most 1 MiB (1,048,576
+	// bytes). Empty removes the summary of the step.
+	Markdown      string `protobuf:"bytes,3,opt,name=markdown,proto3" json:"markdown,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadSummaryRequest) Reset() {
+	*x = UploadSummaryRequest{}
+	mi := &file_ermite_runner_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadSummaryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadSummaryRequest) ProtoMessage() {}
+
+func (x *UploadSummaryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadSummaryRequest.ProtoReflect.Descriptor instead.
+func (*UploadSummaryRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *UploadSummaryRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *UploadSummaryRequest) GetStepNumber() int32 {
+	if x != nil {
+		return x.StepNumber
+	}
+	return 0
+}
+
+func (x *UploadSummaryRequest) GetMarkdown() string {
+	if x != nil {
+		return x.Markdown
+	}
+	return ""
+}
+
+// UploadSummaryResponse is empty.
+type UploadSummaryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadSummaryResponse) Reset() {
+	*x = UploadSummaryResponse{}
+	mi := &file_ermite_runner_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadSummaryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadSummaryResponse) ProtoMessage() {}
+
+func (x *UploadSummaryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadSummaryResponse.ProtoReflect.Descriptor instead.
+func (*UploadSummaryResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{26}
+}
+
 var File_ermite_runner_proto protoreflect.FileDescriptor
 
 const file_ermite_runner_proto_rawDesc = "" +
@@ -1810,7 +2489,7 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x10FetchJobResponse\x12\x1d\n" +
 	"\x03job\x18\x01 \x01(\v2\v.ermite.JobR\x03job\x12:\n" +
 	"\vretry_after\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\n" +
-	"retryAfter\"\xfa\x02\n" +
+	"retryAfter\"\x9d\x03\n" +
 	"\x03Job\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x18\n" +
@@ -1826,10 +2505,12 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x0ftimeout_minutes\x18\v \x01(\x05R\x0etimeoutMinutes\x12\x12\n" +
 	"\x04repo\x18\f \x01(\tR\x04repo\x12\x10\n" +
 	"\x03sha\x18\r \x01(\tR\x03sha\x12\x10\n" +
-	"\x03ref\x18\x0e \x01(\tR\x03ref\"S\n" +
+	"\x03ref\x18\x0e \x01(\tR\x03ref\x12!\n" +
+	"\fgithub_token\x18\x0f \x01(\tR\vgithubToken\"\x89\x01\n" +
 	"\x10UpdateJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12(\n" +
-	"\x05steps\x18\x02 \x03(\v2\x12.ermite.StepUpdateR\x05steps\"\x91\x02\n" +
+	"\x05steps\x18\x02 \x03(\v2\x12.ermite.StepUpdateR\x05steps\x124\n" +
+	"\vannotations\x18\x03 \x03(\v2\x12.ermite.AnnotationR\vannotations\"\xc1\x02\n" +
 	"\n" +
 	"StepUpdate\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x12\n" +
@@ -1840,8 +2521,9 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"conclusion\x129\n" +
 	"\n" +
 	"started_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
-	"\fcompleted_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\x13\n" +
-	"\x11UpdateJobResponse\"\xb3\x02\n" +
+	"\fcompleted_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12.\n" +
+	"\aoutcome\x18\a \x01(\x0e2\x14.ermite.CiConclusionR\aoutcome\"\x13\n" +
+	"\x11UpdateJobResponse\"\xe9\x02\n" +
 	"\x12CompleteJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x124\n" +
 	"\n" +
@@ -1849,7 +2531,8 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"conclusion\x12A\n" +
 	"\aoutputs\x18\x03 \x03(\v2'.ermite.CompleteJobRequest.OutputsEntryR\aoutputs\x12'\n" +
 	"\x0frunner_shutdown\x18\x04 \x01(\bR\x0erunnerShutdown\x12(\n" +
-	"\x05steps\x18\x05 \x03(\v2\x12.ermite.StepUpdateR\x05steps\x1a:\n" +
+	"\x05steps\x18\x05 \x03(\v2\x12.ermite.StepUpdateR\x05steps\x124\n" +
+	"\vannotations\x18\x06 \x03(\v2\x12.ermite.AnnotationR\vannotations\x1a:\n" +
 	"\fOutputsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"{\n" +
@@ -1890,7 +2573,44 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\rCancelRequest\x12,\n" +
 	"\x06reason\x18\x01 \x01(\x0e2\x14.ermite.CancelReasonR\x06reason\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12=\n" +
-	"\frequested_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vrequestedAt*o\n" +
+	"\frequested_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vrequestedAt\"\x9c\x02\n" +
+	"\n" +
+	"Annotation\x12-\n" +
+	"\x05level\x18\x01 \x01(\x0e2\x17.ermite.AnnotationLevelR\x05level\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12\x12\n" +
+	"\x04file\x18\x04 \x01(\tR\x04file\x12\x1d\n" +
+	"\n" +
+	"start_line\x18\x05 \x01(\x05R\tstartLine\x12\x19\n" +
+	"\bend_line\x18\x06 \x01(\x05R\aendLine\x12!\n" +
+	"\fstart_column\x18\a \x01(\x05R\vstartColumn\x12\x1d\n" +
+	"\n" +
+	"end_column\x18\b \x01(\x05R\tendColumn\x12\x1f\n" +
+	"\vstep_number\x18\t \x01(\x05R\n" +
+	"stepNumber\"\x1f\n" +
+	"\tActionRef\x12\x12\n" +
+	"\x04uses\x18\x01 \x01(\tR\x04uses\"U\n" +
+	"\x15ResolveActionsRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12%\n" +
+	"\x04refs\x18\x02 \x03(\v2\x11.ermite.ActionRefR\x04refs\"J\n" +
+	"\x16ResolveActionsResponse\x120\n" +
+	"\aactions\x18\x01 \x03(\v2\x16.ermite.ResolvedActionR\aactions\"\xfc\x01\n" +
+	"\x0eResolvedAction\x12\x10\n" +
+	"\x03ref\x18\x01 \x01(\tR\x03ref\x12&\n" +
+	"\x0fname_with_owner\x18\x02 \x01(\tR\rnameWithOwner\x12\x12\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\x12!\n" +
+	"\fresolved_sha\x18\x04 \x01(\tR\vresolvedSha\x12\x1f\n" +
+	"\vtarball_url\x18\x05 \x01(\tR\n" +
+	"tarballUrl\x12\x14\n" +
+	"\x05token\x18\x06 \x01(\tR\x05token\x12,\n" +
+	"\x06source\x18\a \x01(\x0e2\x14.ermite.ActionSourceR\x06source\x12\x14\n" +
+	"\x05error\x18\b \x01(\tR\x05error\"j\n" +
+	"\x14UploadSummaryRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1f\n" +
+	"\vstep_number\x18\x02 \x01(\x05R\n" +
+	"stepNumber\x12\x1a\n" +
+	"\bmarkdown\x18\x03 \x01(\tR\bmarkdown\"\x17\n" +
+	"\x15UploadSummaryResponse*o\n" +
 	"\bCiStatus\x12\x19\n" +
 	"\x15CI_STATUS_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10CI_STATUS_QUEUED\x10\x01\x12\x19\n" +
@@ -1919,7 +2639,16 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x19CANCEL_REASON_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12CANCEL_REASON_USER\x10\x01\x12\x1b\n" +
 	"\x17CANCEL_REASON_FAIL_FAST\x10\x02\x12\x19\n" +
-	"\x15CANCEL_REASON_TIMEOUT\x10\x032\xee\x03\n" +
+	"\x15CANCEL_REASON_TIMEOUT\x10\x03*\x8c\x01\n" +
+	"\x0fAnnotationLevel\x12 \n" +
+	"\x1cANNOTATION_LEVEL_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17ANNOTATION_LEVEL_NOTICE\x10\x01\x12\x1c\n" +
+	"\x18ANNOTATION_LEVEL_WARNING\x10\x02\x12\x1c\n" +
+	"\x18ANNOTATION_LEVEL_FAILURE\x10\x03*a\n" +
+	"\fActionSource\x12\x1d\n" +
+	"\x19ACTION_SOURCE_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14ACTION_SOURCE_GITHUB\x10\x01\x12\x18\n" +
+	"\x14ACTION_SOURCE_ERMITE\x10\x022\x8d\x05\n" +
 	"\rRunnerService\x12O\n" +
 	"\x0eRegisterRunner\x12\x1d.ermite.RegisterRunnerRequest\x1a\x1e.ermite.RegisterRunnerResponse\x12=\n" +
 	"\bFetchJob\x12\x17.ermite.FetchJobRequest\x1a\x18.ermite.FetchJobResponse\x12@\n" +
@@ -1927,7 +2656,9 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\tAppendLog\x12\x18.ermite.AppendLogRequest\x1a\x19.ermite.AppendLogResponse\x12@\n" +
 	"\tHeartbeat\x12\x18.ermite.HeartbeatRequest\x1a\x19.ermite.HeartbeatResponse\x12?\n" +
 	"\bWatchJob\x12\x17.ermite.WatchJobRequest\x1a\x18.ermite.WatchJobResponse0\x01\x12F\n" +
-	"\vCompleteJob\x12\x1a.ermite.CompleteJobRequest\x1a\x1b.ermite.CompleteJobResponseBr\n" +
+	"\vCompleteJob\x12\x1a.ermite.CompleteJobRequest\x1a\x1b.ermite.CompleteJobResponse\x12O\n" +
+	"\x0eResolveActions\x12\x1d.ermite.ResolveActionsRequest\x1a\x1e.ermite.ResolveActionsResponse\x12L\n" +
+	"\rUploadSummary\x12\x1c.ermite.UploadSummaryRequest\x1a\x1d.ermite.UploadSummaryResponseBr\n" +
 	"\n" +
 	"com.ermiteB\vRunnerProtoP\x01Z\x1fbnema.dev/ermite-api/gen/ermite\xa2\x02\x03EXX\xaa\x02\x06Ermite\xca\x02\x06Ermite\xe2\x02\x12Ermite\\GPBMetadata\xea\x02\x06Ermiteb\x06proto3"
 
@@ -1943,78 +2674,98 @@ func file_ermite_runner_proto_rawDescGZIP() []byte {
 	return file_ermite_runner_proto_rawDescData
 }
 
-var file_ermite_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_ermite_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_ermite_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_ermite_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_ermite_runner_proto_goTypes = []any{
 	(CiStatus)(0),                  // 0: ermite.CiStatus
 	(CiConclusion)(0),              // 1: ermite.CiConclusion
 	(StepState)(0),                 // 2: ermite.StepState
 	(RunnerIsolation)(0),           // 3: ermite.RunnerIsolation
 	(CancelReason)(0),              // 4: ermite.CancelReason
-	(*RegisterRunnerRequest)(nil),  // 5: ermite.RegisterRunnerRequest
-	(*RegisterRunnerResponse)(nil), // 6: ermite.RegisterRunnerResponse
-	(*FetchJobRequest)(nil),        // 7: ermite.FetchJobRequest
-	(*FetchJobResponse)(nil),       // 8: ermite.FetchJobResponse
-	(*Job)(nil),                    // 9: ermite.Job
-	(*UpdateJobRequest)(nil),       // 10: ermite.UpdateJobRequest
-	(*StepUpdate)(nil),             // 11: ermite.StepUpdate
-	(*UpdateJobResponse)(nil),      // 12: ermite.UpdateJobResponse
-	(*CompleteJobRequest)(nil),     // 13: ermite.CompleteJobRequest
-	(*CompleteJobResponse)(nil),    // 14: ermite.CompleteJobResponse
-	(*JobEnded)(nil),               // 15: ermite.JobEnded
-	(*AppendLogRequest)(nil),       // 16: ermite.AppendLogRequest
-	(*LogLine)(nil),                // 17: ermite.LogLine
-	(*AppendLogResponse)(nil),      // 18: ermite.AppendLogResponse
-	(*HeartbeatRequest)(nil),       // 19: ermite.HeartbeatRequest
-	(*HeartbeatResponse)(nil),      // 20: ermite.HeartbeatResponse
-	(*WatchJobRequest)(nil),        // 21: ermite.WatchJobRequest
-	(*WatchJobResponse)(nil),       // 22: ermite.WatchJobResponse
-	(*Keepalive)(nil),              // 23: ermite.Keepalive
-	(*CancelRequest)(nil),          // 24: ermite.CancelRequest
-	nil,                            // 25: ermite.CompleteJobRequest.OutputsEntry
-	(*durationpb.Duration)(nil),    // 26: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),  // 27: google.protobuf.Timestamp
+	(AnnotationLevel)(0),           // 5: ermite.AnnotationLevel
+	(ActionSource)(0),              // 6: ermite.ActionSource
+	(*RegisterRunnerRequest)(nil),  // 7: ermite.RegisterRunnerRequest
+	(*RegisterRunnerResponse)(nil), // 8: ermite.RegisterRunnerResponse
+	(*FetchJobRequest)(nil),        // 9: ermite.FetchJobRequest
+	(*FetchJobResponse)(nil),       // 10: ermite.FetchJobResponse
+	(*Job)(nil),                    // 11: ermite.Job
+	(*UpdateJobRequest)(nil),       // 12: ermite.UpdateJobRequest
+	(*StepUpdate)(nil),             // 13: ermite.StepUpdate
+	(*UpdateJobResponse)(nil),      // 14: ermite.UpdateJobResponse
+	(*CompleteJobRequest)(nil),     // 15: ermite.CompleteJobRequest
+	(*CompleteJobResponse)(nil),    // 16: ermite.CompleteJobResponse
+	(*JobEnded)(nil),               // 17: ermite.JobEnded
+	(*AppendLogRequest)(nil),       // 18: ermite.AppendLogRequest
+	(*LogLine)(nil),                // 19: ermite.LogLine
+	(*AppendLogResponse)(nil),      // 20: ermite.AppendLogResponse
+	(*HeartbeatRequest)(nil),       // 21: ermite.HeartbeatRequest
+	(*HeartbeatResponse)(nil),      // 22: ermite.HeartbeatResponse
+	(*WatchJobRequest)(nil),        // 23: ermite.WatchJobRequest
+	(*WatchJobResponse)(nil),       // 24: ermite.WatchJobResponse
+	(*Keepalive)(nil),              // 25: ermite.Keepalive
+	(*CancelRequest)(nil),          // 26: ermite.CancelRequest
+	(*Annotation)(nil),             // 27: ermite.Annotation
+	(*ActionRef)(nil),              // 28: ermite.ActionRef
+	(*ResolveActionsRequest)(nil),  // 29: ermite.ResolveActionsRequest
+	(*ResolveActionsResponse)(nil), // 30: ermite.ResolveActionsResponse
+	(*ResolvedAction)(nil),         // 31: ermite.ResolvedAction
+	(*UploadSummaryRequest)(nil),   // 32: ermite.UploadSummaryRequest
+	(*UploadSummaryResponse)(nil),  // 33: ermite.UploadSummaryResponse
+	nil,                            // 34: ermite.CompleteJobRequest.OutputsEntry
+	(*durationpb.Duration)(nil),    // 35: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),  // 36: google.protobuf.Timestamp
 }
 var file_ermite_runner_proto_depIdxs = []int32{
 	3,  // 0: ermite.RegisterRunnerRequest.isolation:type_name -> ermite.RunnerIsolation
-	9,  // 1: ermite.FetchJobResponse.job:type_name -> ermite.Job
-	26, // 2: ermite.FetchJobResponse.retry_after:type_name -> google.protobuf.Duration
-	11, // 3: ermite.UpdateJobRequest.steps:type_name -> ermite.StepUpdate
-	2,  // 4: ermite.StepUpdate.state:type_name -> ermite.StepState
-	1,  // 5: ermite.StepUpdate.conclusion:type_name -> ermite.CiConclusion
-	27, // 6: ermite.StepUpdate.started_at:type_name -> google.protobuf.Timestamp
-	27, // 7: ermite.StepUpdate.completed_at:type_name -> google.protobuf.Timestamp
-	1,  // 8: ermite.CompleteJobRequest.conclusion:type_name -> ermite.CiConclusion
-	25, // 9: ermite.CompleteJobRequest.outputs:type_name -> ermite.CompleteJobRequest.OutputsEntry
-	11, // 10: ermite.CompleteJobRequest.steps:type_name -> ermite.StepUpdate
-	1,  // 11: ermite.CompleteJobResponse.conclusion:type_name -> ermite.CiConclusion
-	1,  // 12: ermite.JobEnded.conclusion:type_name -> ermite.CiConclusion
-	17, // 13: ermite.AppendLogRequest.lines:type_name -> ermite.LogLine
-	27, // 14: ermite.LogLine.time:type_name -> google.protobuf.Timestamp
-	23, // 15: ermite.WatchJobResponse.keepalive:type_name -> ermite.Keepalive
-	24, // 16: ermite.WatchJobResponse.cancel:type_name -> ermite.CancelRequest
-	15, // 17: ermite.WatchJobResponse.ended:type_name -> ermite.JobEnded
-	4,  // 18: ermite.CancelRequest.reason:type_name -> ermite.CancelReason
-	27, // 19: ermite.CancelRequest.requested_at:type_name -> google.protobuf.Timestamp
-	5,  // 20: ermite.RunnerService.RegisterRunner:input_type -> ermite.RegisterRunnerRequest
-	7,  // 21: ermite.RunnerService.FetchJob:input_type -> ermite.FetchJobRequest
-	10, // 22: ermite.RunnerService.UpdateJob:input_type -> ermite.UpdateJobRequest
-	16, // 23: ermite.RunnerService.AppendLog:input_type -> ermite.AppendLogRequest
-	19, // 24: ermite.RunnerService.Heartbeat:input_type -> ermite.HeartbeatRequest
-	21, // 25: ermite.RunnerService.WatchJob:input_type -> ermite.WatchJobRequest
-	13, // 26: ermite.RunnerService.CompleteJob:input_type -> ermite.CompleteJobRequest
-	6,  // 27: ermite.RunnerService.RegisterRunner:output_type -> ermite.RegisterRunnerResponse
-	8,  // 28: ermite.RunnerService.FetchJob:output_type -> ermite.FetchJobResponse
-	12, // 29: ermite.RunnerService.UpdateJob:output_type -> ermite.UpdateJobResponse
-	18, // 30: ermite.RunnerService.AppendLog:output_type -> ermite.AppendLogResponse
-	20, // 31: ermite.RunnerService.Heartbeat:output_type -> ermite.HeartbeatResponse
-	22, // 32: ermite.RunnerService.WatchJob:output_type -> ermite.WatchJobResponse
-	14, // 33: ermite.RunnerService.CompleteJob:output_type -> ermite.CompleteJobResponse
-	27, // [27:34] is the sub-list for method output_type
-	20, // [20:27] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	11, // 1: ermite.FetchJobResponse.job:type_name -> ermite.Job
+	35, // 2: ermite.FetchJobResponse.retry_after:type_name -> google.protobuf.Duration
+	13, // 3: ermite.UpdateJobRequest.steps:type_name -> ermite.StepUpdate
+	27, // 4: ermite.UpdateJobRequest.annotations:type_name -> ermite.Annotation
+	2,  // 5: ermite.StepUpdate.state:type_name -> ermite.StepState
+	1,  // 6: ermite.StepUpdate.conclusion:type_name -> ermite.CiConclusion
+	36, // 7: ermite.StepUpdate.started_at:type_name -> google.protobuf.Timestamp
+	36, // 8: ermite.StepUpdate.completed_at:type_name -> google.protobuf.Timestamp
+	1,  // 9: ermite.StepUpdate.outcome:type_name -> ermite.CiConclusion
+	1,  // 10: ermite.CompleteJobRequest.conclusion:type_name -> ermite.CiConclusion
+	34, // 11: ermite.CompleteJobRequest.outputs:type_name -> ermite.CompleteJobRequest.OutputsEntry
+	13, // 12: ermite.CompleteJobRequest.steps:type_name -> ermite.StepUpdate
+	27, // 13: ermite.CompleteJobRequest.annotations:type_name -> ermite.Annotation
+	1,  // 14: ermite.CompleteJobResponse.conclusion:type_name -> ermite.CiConclusion
+	1,  // 15: ermite.JobEnded.conclusion:type_name -> ermite.CiConclusion
+	19, // 16: ermite.AppendLogRequest.lines:type_name -> ermite.LogLine
+	36, // 17: ermite.LogLine.time:type_name -> google.protobuf.Timestamp
+	25, // 18: ermite.WatchJobResponse.keepalive:type_name -> ermite.Keepalive
+	26, // 19: ermite.WatchJobResponse.cancel:type_name -> ermite.CancelRequest
+	17, // 20: ermite.WatchJobResponse.ended:type_name -> ermite.JobEnded
+	4,  // 21: ermite.CancelRequest.reason:type_name -> ermite.CancelReason
+	36, // 22: ermite.CancelRequest.requested_at:type_name -> google.protobuf.Timestamp
+	5,  // 23: ermite.Annotation.level:type_name -> ermite.AnnotationLevel
+	28, // 24: ermite.ResolveActionsRequest.refs:type_name -> ermite.ActionRef
+	31, // 25: ermite.ResolveActionsResponse.actions:type_name -> ermite.ResolvedAction
+	6,  // 26: ermite.ResolvedAction.source:type_name -> ermite.ActionSource
+	7,  // 27: ermite.RunnerService.RegisterRunner:input_type -> ermite.RegisterRunnerRequest
+	9,  // 28: ermite.RunnerService.FetchJob:input_type -> ermite.FetchJobRequest
+	12, // 29: ermite.RunnerService.UpdateJob:input_type -> ermite.UpdateJobRequest
+	18, // 30: ermite.RunnerService.AppendLog:input_type -> ermite.AppendLogRequest
+	21, // 31: ermite.RunnerService.Heartbeat:input_type -> ermite.HeartbeatRequest
+	23, // 32: ermite.RunnerService.WatchJob:input_type -> ermite.WatchJobRequest
+	15, // 33: ermite.RunnerService.CompleteJob:input_type -> ermite.CompleteJobRequest
+	29, // 34: ermite.RunnerService.ResolveActions:input_type -> ermite.ResolveActionsRequest
+	32, // 35: ermite.RunnerService.UploadSummary:input_type -> ermite.UploadSummaryRequest
+	8,  // 36: ermite.RunnerService.RegisterRunner:output_type -> ermite.RegisterRunnerResponse
+	10, // 37: ermite.RunnerService.FetchJob:output_type -> ermite.FetchJobResponse
+	14, // 38: ermite.RunnerService.UpdateJob:output_type -> ermite.UpdateJobResponse
+	20, // 39: ermite.RunnerService.AppendLog:output_type -> ermite.AppendLogResponse
+	22, // 40: ermite.RunnerService.Heartbeat:output_type -> ermite.HeartbeatResponse
+	24, // 41: ermite.RunnerService.WatchJob:output_type -> ermite.WatchJobResponse
+	16, // 42: ermite.RunnerService.CompleteJob:output_type -> ermite.CompleteJobResponse
+	30, // 43: ermite.RunnerService.ResolveActions:output_type -> ermite.ResolveActionsResponse
+	33, // 44: ermite.RunnerService.UploadSummary:output_type -> ermite.UploadSummaryResponse
+	36, // [36:45] is the sub-list for method output_type
+	27, // [27:36] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_ermite_runner_proto_init() }
@@ -2032,8 +2783,8 @@ func file_ermite_runner_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_runner_proto_rawDesc), len(file_ermite_runner_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   21,
+			NumEnums:      7,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

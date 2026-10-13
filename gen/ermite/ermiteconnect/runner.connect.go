@@ -51,6 +51,12 @@ const (
 	// RunnerServiceCompleteJobProcedure is the fully-qualified name of the RunnerService's CompleteJob
 	// RPC.
 	RunnerServiceCompleteJobProcedure = "/ermite.RunnerService/CompleteJob"
+	// RunnerServiceResolveActionsProcedure is the fully-qualified name of the RunnerService's
+	// ResolveActions RPC.
+	RunnerServiceResolveActionsProcedure = "/ermite.RunnerService/ResolveActions"
+	// RunnerServiceUploadSummaryProcedure is the fully-qualified name of the RunnerService's
+	// UploadSummary RPC.
+	RunnerServiceUploadSummaryProcedure = "/ermite.RunnerService/UploadSummary"
 )
 
 // RunnerServiceClient is a client for the ermite.RunnerService service.
@@ -105,10 +111,16 @@ type RunnerServiceClient interface {
 	// identical call changes nothing, so a runner may retry after a network
 	// error. To end the job use CompleteJob.
 	//
-	// Fails with invalid_argument if a rule is broken, with failed_precondition
-	// if a step goes back (a COMPLETED step cannot change, a step cannot go from
-	// IN_PROGRESS to PENDING) and with failed_precondition and a JobEnded detail
-	// if the job has ended.
+	// Annotations are applied with the steps, in the same atomic step: for each
+	// step_number present in annotations, the annotations of that step stored
+	// so far are replaced by the ones of the request, so a retry never
+	// duplicates them. A step number absent from the request keeps its
+	// annotations.
+	//
+	// Fails with invalid_argument if a rule is broken (including the annotation
+	// limits), with failed_precondition if a step goes back (a COMPLETED step
+	// cannot change, a step cannot go from IN_PROGRESS to PENDING) and with
+	// failed_precondition and a JobEnded detail if the job has ended.
 	UpdateJob(context.Context, *connect.Request[ermite.UpdateJobRequest]) (*connect.Response[ermite.UpdateJobResponse], error)
 	// AppendLog appends lines to the log of a job. Needs the job token.
 	//
@@ -213,9 +225,53 @@ type RunnerServiceClient interface {
 	// ends are completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when
 	// they never started and the job did not end by cancellation).
 	//
-	// Fails with invalid_argument if a rule is broken (including the output
-	// limits) and failed_precondition if a step goes back, as in UpdateJob.
+	// Annotations are applied as in UpdateJob, together with the conclusion.
+	// Summaries are not part of this call: a runner sends them with
+	// UploadSummary before it.
+	//
+	// Fails with invalid_argument if a rule is broken (including the output and
+	// annotation limits) and failed_precondition if a step goes back, as in
+	// UpdateJob.
 	CompleteJob(context.Context, *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error)
+	// ResolveActions turns the "uses" of workflow and action steps into what the
+	// runner needs to download the actions, as GitHub's action download info
+	// does. Needs the job token; the job_id must be the one of the token. It
+	// may be called as often as needed while the job runs (the runner calls it
+	// once per level of composite actions, see the runner's depth limit of 9).
+	// The runner then downloads each archive itself, from the sandbox, with the
+	// token of the ResolvedAction when there is one.
+	//
+	// The response has one ResolvedAction per ActionRef, in the same order. A
+	// reference that cannot be resolved (unknown repository, tag or branch, a
+	// repository without access, a "uses" that GitHub itself would reject) does
+	// not fail the call: its ResolvedAction has only ref and error, where error
+	// is the message GitHub gives for the same failure, which the runner prints
+	// as is. Only a failure of the call itself (credential, ended job, bad
+	// request, server error) is an RPC error; the runner then fails the job.
+	//
+	// Resolution is stable for a run: the same ref resolves to the same sha for
+	// every job and every call of one attempt of the run. A re-run attempt
+	// resolves again.
+	//
+	// Fails with unauthenticated or permission_denied as the other job RPCs,
+	// with failed_precondition and a JobEnded detail if the job has ended, and
+	// with invalid_argument if there are more than 100 refs or if a "uses" is a
+	// local action ("./path") or a Docker image ("docker://"), which the runner
+	// handles without the server.
+	ResolveActions(context.Context, *connect.Request[ermite.ResolveActionsRequest]) (*connect.Response[ermite.ResolveActionsResponse], error)
+	// UploadSummary stores the job summary of one step: the Markdown that the
+	// step wrote to the file named by GITHUB_STEP_SUMMARY. Needs the job token.
+	// The runner masks it before sending it, and sends it after the step ended
+	// and before CompleteJob.
+	//
+	// It is idempotent: the summary of a step is replaced by each call, so a
+	// retry changes nothing, and an empty markdown removes the summary of the
+	// step. The Markdown is at most 1 MiB (1,048,576 bytes) and valid UTF-8;
+	// clients set a message size limit above it.
+	//
+	// Fails with invalid_argument if a rule is broken (size, UTF-8, step number)
+	// and with failed_precondition and a JobEnded detail if the job has ended.
+	UploadSummary(context.Context, *connect.Request[ermite.UploadSummaryRequest]) (*connect.Response[ermite.UploadSummaryResponse], error)
 }
 
 // NewRunnerServiceClient constructs a client for the ermite.RunnerService service. By default, it
@@ -271,6 +327,18 @@ func NewRunnerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(runnerServiceMethods.ByName("CompleteJob")),
 			connect.WithClientOptions(opts...),
 		),
+		resolveActions: connect.NewClient[ermite.ResolveActionsRequest, ermite.ResolveActionsResponse](
+			httpClient,
+			baseURL+RunnerServiceResolveActionsProcedure,
+			connect.WithSchema(runnerServiceMethods.ByName("ResolveActions")),
+			connect.WithClientOptions(opts...),
+		),
+		uploadSummary: connect.NewClient[ermite.UploadSummaryRequest, ermite.UploadSummaryResponse](
+			httpClient,
+			baseURL+RunnerServiceUploadSummaryProcedure,
+			connect.WithSchema(runnerServiceMethods.ByName("UploadSummary")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -283,6 +351,8 @@ type runnerServiceClient struct {
 	heartbeat      *connect.Client[ermite.HeartbeatRequest, ermite.HeartbeatResponse]
 	watchJob       *connect.Client[ermite.WatchJobRequest, ermite.WatchJobResponse]
 	completeJob    *connect.Client[ermite.CompleteJobRequest, ermite.CompleteJobResponse]
+	resolveActions *connect.Client[ermite.ResolveActionsRequest, ermite.ResolveActionsResponse]
+	uploadSummary  *connect.Client[ermite.UploadSummaryRequest, ermite.UploadSummaryResponse]
 }
 
 // RegisterRunner calls ermite.RunnerService.RegisterRunner.
@@ -318,6 +388,16 @@ func (c *runnerServiceClient) WatchJob(ctx context.Context, req *connect.Request
 // CompleteJob calls ermite.RunnerService.CompleteJob.
 func (c *runnerServiceClient) CompleteJob(ctx context.Context, req *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error) {
 	return c.completeJob.CallUnary(ctx, req)
+}
+
+// ResolveActions calls ermite.RunnerService.ResolveActions.
+func (c *runnerServiceClient) ResolveActions(ctx context.Context, req *connect.Request[ermite.ResolveActionsRequest]) (*connect.Response[ermite.ResolveActionsResponse], error) {
+	return c.resolveActions.CallUnary(ctx, req)
+}
+
+// UploadSummary calls ermite.RunnerService.UploadSummary.
+func (c *runnerServiceClient) UploadSummary(ctx context.Context, req *connect.Request[ermite.UploadSummaryRequest]) (*connect.Response[ermite.UploadSummaryResponse], error) {
+	return c.uploadSummary.CallUnary(ctx, req)
 }
 
 // RunnerServiceHandler is an implementation of the ermite.RunnerService service.
@@ -372,10 +452,16 @@ type RunnerServiceHandler interface {
 	// identical call changes nothing, so a runner may retry after a network
 	// error. To end the job use CompleteJob.
 	//
-	// Fails with invalid_argument if a rule is broken, with failed_precondition
-	// if a step goes back (a COMPLETED step cannot change, a step cannot go from
-	// IN_PROGRESS to PENDING) and with failed_precondition and a JobEnded detail
-	// if the job has ended.
+	// Annotations are applied with the steps, in the same atomic step: for each
+	// step_number present in annotations, the annotations of that step stored
+	// so far are replaced by the ones of the request, so a retry never
+	// duplicates them. A step number absent from the request keeps its
+	// annotations.
+	//
+	// Fails with invalid_argument if a rule is broken (including the annotation
+	// limits), with failed_precondition if a step goes back (a COMPLETED step
+	// cannot change, a step cannot go from IN_PROGRESS to PENDING) and with
+	// failed_precondition and a JobEnded detail if the job has ended.
 	UpdateJob(context.Context, *connect.Request[ermite.UpdateJobRequest]) (*connect.Response[ermite.UpdateJobResponse], error)
 	// AppendLog appends lines to the log of a job. Needs the job token.
 	//
@@ -480,9 +566,53 @@ type RunnerServiceHandler interface {
 	// ends are completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when
 	// they never started and the job did not end by cancellation).
 	//
-	// Fails with invalid_argument if a rule is broken (including the output
-	// limits) and failed_precondition if a step goes back, as in UpdateJob.
+	// Annotations are applied as in UpdateJob, together with the conclusion.
+	// Summaries are not part of this call: a runner sends them with
+	// UploadSummary before it.
+	//
+	// Fails with invalid_argument if a rule is broken (including the output and
+	// annotation limits) and failed_precondition if a step goes back, as in
+	// UpdateJob.
 	CompleteJob(context.Context, *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error)
+	// ResolveActions turns the "uses" of workflow and action steps into what the
+	// runner needs to download the actions, as GitHub's action download info
+	// does. Needs the job token; the job_id must be the one of the token. It
+	// may be called as often as needed while the job runs (the runner calls it
+	// once per level of composite actions, see the runner's depth limit of 9).
+	// The runner then downloads each archive itself, from the sandbox, with the
+	// token of the ResolvedAction when there is one.
+	//
+	// The response has one ResolvedAction per ActionRef, in the same order. A
+	// reference that cannot be resolved (unknown repository, tag or branch, a
+	// repository without access, a "uses" that GitHub itself would reject) does
+	// not fail the call: its ResolvedAction has only ref and error, where error
+	// is the message GitHub gives for the same failure, which the runner prints
+	// as is. Only a failure of the call itself (credential, ended job, bad
+	// request, server error) is an RPC error; the runner then fails the job.
+	//
+	// Resolution is stable for a run: the same ref resolves to the same sha for
+	// every job and every call of one attempt of the run. A re-run attempt
+	// resolves again.
+	//
+	// Fails with unauthenticated or permission_denied as the other job RPCs,
+	// with failed_precondition and a JobEnded detail if the job has ended, and
+	// with invalid_argument if there are more than 100 refs or if a "uses" is a
+	// local action ("./path") or a Docker image ("docker://"), which the runner
+	// handles without the server.
+	ResolveActions(context.Context, *connect.Request[ermite.ResolveActionsRequest]) (*connect.Response[ermite.ResolveActionsResponse], error)
+	// UploadSummary stores the job summary of one step: the Markdown that the
+	// step wrote to the file named by GITHUB_STEP_SUMMARY. Needs the job token.
+	// The runner masks it before sending it, and sends it after the step ended
+	// and before CompleteJob.
+	//
+	// It is idempotent: the summary of a step is replaced by each call, so a
+	// retry changes nothing, and an empty markdown removes the summary of the
+	// step. The Markdown is at most 1 MiB (1,048,576 bytes) and valid UTF-8;
+	// clients set a message size limit above it.
+	//
+	// Fails with invalid_argument if a rule is broken (size, UTF-8, step number)
+	// and with failed_precondition and a JobEnded detail if the job has ended.
+	UploadSummary(context.Context, *connect.Request[ermite.UploadSummaryRequest]) (*connect.Response[ermite.UploadSummaryResponse], error)
 }
 
 // NewRunnerServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -534,6 +664,18 @@ func NewRunnerServiceHandler(svc RunnerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(runnerServiceMethods.ByName("CompleteJob")),
 		connect.WithHandlerOptions(opts...),
 	)
+	runnerServiceResolveActionsHandler := connect.NewUnaryHandler(
+		RunnerServiceResolveActionsProcedure,
+		svc.ResolveActions,
+		connect.WithSchema(runnerServiceMethods.ByName("ResolveActions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	runnerServiceUploadSummaryHandler := connect.NewUnaryHandler(
+		RunnerServiceUploadSummaryProcedure,
+		svc.UploadSummary,
+		connect.WithSchema(runnerServiceMethods.ByName("UploadSummary")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ermite.RunnerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RunnerServiceRegisterRunnerProcedure:
@@ -550,6 +692,10 @@ func NewRunnerServiceHandler(svc RunnerServiceHandler, opts ...connect.HandlerOp
 			runnerServiceWatchJobHandler.ServeHTTP(w, r)
 		case RunnerServiceCompleteJobProcedure:
 			runnerServiceCompleteJobHandler.ServeHTTP(w, r)
+		case RunnerServiceResolveActionsProcedure:
+			runnerServiceResolveActionsHandler.ServeHTTP(w, r)
+		case RunnerServiceUploadSummaryProcedure:
+			runnerServiceUploadSummaryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -585,4 +731,12 @@ func (UnimplementedRunnerServiceHandler) WatchJob(context.Context, *connect.Requ
 
 func (UnimplementedRunnerServiceHandler) CompleteJob(context.Context, *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.CompleteJob is not implemented"))
+}
+
+func (UnimplementedRunnerServiceHandler) ResolveActions(context.Context, *connect.Request[ermite.ResolveActionsRequest]) (*connect.Response[ermite.ResolveActionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.ResolveActions is not implemented"))
+}
+
+func (UnimplementedRunnerServiceHandler) UploadSummary(context.Context, *connect.Request[ermite.UploadSummaryRequest]) (*connect.Response[ermite.UploadSummaryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.UploadSummary is not implemented"))
 }
