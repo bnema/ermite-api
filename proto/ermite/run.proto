@@ -27,10 +27,14 @@ message Run {
   // ".github/workflows/ci.yml".
   string workflow_path = 5;
   // WorkflowName is the "name" of the workflow, or workflow_path when it has
-  // none (as GitHub does).
+  // none (as GitHub does). It is the "github.workflow" of the run and the
+  // workflow name of its checks. See name for the name of the run itself.
   string workflow_name = 6;
-  // Title is the first line of the message of the commit sha, at most 256
-  // characters (GitHub's display title).
+  // Title is GitHub's display title, at most 256 characters: the evaluated
+  // "run-name" of the workflow when it has one, else for a push to a branch
+  // the first line of the message of the commit sha, and for a push of a tag
+  // the name of the workflow registered for workflow_path (the "name" of that
+  // file on the default branch, else workflow_name).
   string title = 7;
   // Event is the event that triggered the run, in GitHub's name: "push" (the
   // only one for now; push to a branch or a tag, and merge of a merge
@@ -73,6 +77,13 @@ message Run {
   // not delivered in order, and a client that holds two copies of a run keeps
   // the one with the higher version and drops the other.
   int64 version = 18;
+  // Name is the name of the run, GitHub's "name" of a workflow run: the
+  // evaluated "run-name" of the workflow when it has one, else the same value
+  // as workflow_name. It is what GitHub lists as the run's name, whereas
+  // workflow_name stays the name of the workflow ("github.workflow") even when
+  // the workflow has a "run-name". A run stored before this field existed
+  // reads as workflow_name.
+  string name = 19;
 }
 
 // RunJob is a job of a run as people see it: the state of one job instance

@@ -329,3 +329,24 @@ func TestCompleteJobRoundTrip(t *testing.T) {
 		t.Errorf("unexpected response %v", r)
 	}
 }
+
+// TestRunNameField pins the number of Run.name, the GitHub name of the run
+// that sits next to workflow_name, and that it survives the wire.
+func TestRunNameField(t *testing.T) {
+	fd := (&ermite.Run{}).ProtoReflect().Descriptor().Fields().ByName("name")
+	if fd == nil || fd.Number() != 19 {
+		t.Fatalf("Run.name = %v, want field 19", fd)
+	}
+	in := &ermite.Run{WorkflowName: "Names Workflow", Name: "run push on branch by someone", Title: "run push on branch by someone"}
+	b, err := proto.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out ermite.Run
+	if err := proto.Unmarshal(b, &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.GetName() != in.GetName() || out.GetWorkflowName() != "Names Workflow" {
+		t.Errorf("round trip: name %q, workflow_name %q", out.GetName(), out.GetWorkflowName())
+	}
+}
