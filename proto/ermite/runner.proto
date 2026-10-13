@@ -229,7 +229,12 @@ service RunnerService {
   // step_number present in annotations, the annotations of that step stored
   // so far are replaced by the ones of the request, so a retry never
   // duplicates them. A step number absent from the request keeps its
-  // annotations.
+  // annotations. The step of an annotation need not be in the steps of the
+  // same call, and may already be COMPLETED: its annotations can still be
+  // replaced (the rule that a COMPLETED step cannot change applies to
+  // StepUpdate, not to annotations), until the job ends. A runner sends one
+  // UpdateJob (or CompleteJob) at a time for a job, never concurrent calls,
+  // so replacements apply in the order of the calls.
   //
   // Fails with invalid_argument if a rule is broken (including the annotation
   // limits), with failed_precondition if a step goes back (a COMPLETED step
@@ -339,7 +344,8 @@ service RunnerService {
   // ends are completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when
   // they never started and the job did not end by cancellation).
   //
-  // Annotations are applied as in UpdateJob, together with the conclusion.
+  // Annotations are applied as in UpdateJob (replacement per step number, also
+  // for COMPLETED steps and steps not in steps), together with the conclusion.
   // Summaries are not part of this call: a runner sends them with
   // UploadSummary before it.
   //
@@ -363,9 +369,10 @@ service RunnerService {
   // as is. Only a failure of the call itself (credential, ended job, bad
   // request, server error) is an RPC error; the runner then fails the job.
   //
-  // Resolution is stable for a run: the same ref resolves to the same sha for
-  // every job and every call of one attempt of the run. A re-run attempt
-  // resolves again.
+  // Resolution is stable for a run attempt: the same ref resolves to the same
+  // sha (ResolvedAction.resolved_sha) for every job and every call of that
+  // attempt. A re-run attempt resolves again. Tokens are not shared: each
+  // job gets its own (ResolvedAction.token).
   //
   // Fails with unauthenticated or permission_denied as the other job RPCs,
   // with failed_precondition and a JobEnded detail if the job has ended, and
@@ -380,8 +387,10 @@ service RunnerService {
   //
   // It is idempotent: the summary of a step is replaced by each call, so a
   // retry changes nothing, and an empty markdown removes the summary of the
-  // step. The Markdown is at most 1 MiB (1,048,576 bytes) and valid UTF-8;
-  // clients set a message size limit above it.
+  // step. The Markdown is at most 1 MiB (1,048,576 bytes) and valid UTF-8. The
+  // server reads requests of up to 1 MiB plus the envelope (job id, step
+  // number, framing), so a summary of exactly 1 MiB is accepted; clients set
+  // their own message size limit above that.
   //
   // Fails with invalid_argument if a rule is broken (size, UTF-8, step number)
   // and with failed_precondition and a JobEnded detail if the job has ended.
@@ -548,8 +557,9 @@ message UpdateJobRequest {
   // Annotations are the annotations of the steps that the call names: for
   // each step_number present, all the annotations of that step known so far,
   // not only the new ones (see the rules on UpdateJob). At most 10 per level
-  // and per step; more is invalid_argument. The server ignores them without
-  // the feature "ci.annotations".
+  // and per step, and each one within the limits of Annotation; otherwise the
+  // whole call is invalid_argument. The server ignores them without the
+  // feature "ci.annotations".
   repeated Annotation annotations = 3;
 }
 
@@ -741,19 +751,22 @@ message CancelRequest {
 // produces them from the workflow commands ::notice, ::warning and ::error and
 // from problem matchers, after masking.
 //
-// The runner sends at most 10 annotations of each level per step (the ones
-// beyond only reach the log) and the server rejects more.
+// Limits, checked by the server: at most 10 annotations of each level per step
+// (the runner sends no more: the ones beyond only reach the log, as with
+// GitHub). A call that breaks a limit below is rejected whole with
+// invalid_argument. Lengths count characters (Unicode code points), not bytes.
 message Annotation {
   // Level is the severity. Required.
   AnnotationLevel level = 1;
-  // Title is the optional title. Empty when not given.
+  // Title is the optional title, at most 255 characters. Empty when not given.
   string title = 2;
-  // Message is the text, at most 4,096 characters (the runner cuts longer
-  // ones). Required, not empty.
+  // Message is the text. Required, not empty, at most 4,096 characters; a
+  // longer one is invalid_argument. The runner never sends a longer one: like
+  // GitHub, it only logs such an annotation.
   string message = 3;
   // File is the path the annotation is about, relative to the repository when
-  // the runner can tell, else as given. Empty when the annotation is not about
-  // a file.
+  // the runner can tell, else as given. At most 1,024 characters. Empty when
+  // the annotation is not about a file.
   string file = 4;
   // StartLine is the first line, counted from 1. 0 when not given.
   int32 start_line = 5;
@@ -799,13 +812,17 @@ message ResolvedAction {
   // NameWithOwner is the repository of the action, "owner/repo", with the
   // case of the repository as the source gives it. Empty when error is set.
   string name_with_owner = 2;
-  // Path is the sub-path of the action inside the repository, without leading
-  // or trailing slash: "path/to/action" for "owner/repo/path/to/action@ref".
-  // Empty for an action at the root of the repository.
+  // Path is the sub-path of the action inside the repository, a clean
+  // relative path: "path/to/action" for "owner/repo/path/to/action@ref", with
+  // "/" separators, no leading or trailing slash, no empty, "." or ".."
+  // element, never absolute. Empty for an action at the root of the
+  // repository.
   string path = 3;
   // ResolvedSha is the full id of the commit the ref points to, 40 lowercase
   // hexadecimal characters for SHA-1 (the commit that an annotated tag points
-  // to, not the tag object). Empty when error is set.
+  // to, not the tag object). Stable for a run attempt: every job and every
+  // call of the attempt gets the same value for the same ref. Empty when error
+  // is set.
   string resolved_sha = 4;
   // TarballUrl is where to download the archive of the repository at
   // resolved_sha, a gzip-compressed tar with one top-level directory. The
@@ -816,7 +833,8 @@ message ResolvedAction {
   // For ACTION_SOURCE_ERMITE it is a read token for that one repository,
   // valid until the job ends, so a job can use an action of another private
   // repository of the server that its own repository token cannot read. It is
-  // a secret: the runner masks it, and neither the runner nor the server logs
+  // issued per job and never shared across jobs (two jobs resolving the same
+  // action get different tokens). It is a secret: the runner masks it, and neither the runner nor the server logs
   // it.
   string token = 6;
   // Source is where the action was found. UNSPECIFIED when error is set.

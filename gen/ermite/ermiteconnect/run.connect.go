@@ -78,7 +78,9 @@ type RunServiceClient interface {
 	GetJob(context.Context, *connect.Request[ermite.GetJobRequest]) (*connect.Response[ermite.GetJobResponse], error)
 	// ListAnnotations lists the annotations of a run attempt, optionally of one
 	// job, ordered by job (as in GetRun), step number, then the order in which
-	// the step produced them. Needs the same access as GetRun. Returns at most
+	// the step produced them. For each job it gives the annotations of the
+	// attempt in which that job executed (RunJob.attempt), which is lower than
+	// the attempt of the run for a job kept by a re-run of failed jobs only. Needs the same access as GetRun. Returns at most
 	// 1,000 annotations (truncated tells). A run without annotations gives an
 	// empty list. Only servers with the feature "ci.annotations" implement it
 	// (unimplemented otherwise). Fails with not_found if the run, the attempt or
@@ -86,7 +88,9 @@ type RunServiceClient interface {
 	ListAnnotations(context.Context, *connect.Request[ermite.ListAnnotationsRequest]) (*connect.Response[ermite.ListAnnotationsResponse], error)
 	// GetStepSummaries returns the job summaries (the Markdown written to
 	// GITHUB_STEP_SUMMARY) of the steps of a job that have one, ordered by step
-	// number. Needs the same access as GetJob. Only servers with the feature
+	// number. Like GitHub, it returns at most 20 summaries per job: the first 20
+	// steps that have one, in step order; truncated says there are more. Needs
+	// the same access as GetJob. Only servers with the feature
 	// "ci.summaries" implement it (unimplemented otherwise). A job without
 	// summaries gives an empty list. Fails with not_found if the job or the
 	// attempt does not exist.
@@ -307,7 +311,9 @@ type RunServiceHandler interface {
 	GetJob(context.Context, *connect.Request[ermite.GetJobRequest]) (*connect.Response[ermite.GetJobResponse], error)
 	// ListAnnotations lists the annotations of a run attempt, optionally of one
 	// job, ordered by job (as in GetRun), step number, then the order in which
-	// the step produced them. Needs the same access as GetRun. Returns at most
+	// the step produced them. For each job it gives the annotations of the
+	// attempt in which that job executed (RunJob.attempt), which is lower than
+	// the attempt of the run for a job kept by a re-run of failed jobs only. Needs the same access as GetRun. Returns at most
 	// 1,000 annotations (truncated tells). A run without annotations gives an
 	// empty list. Only servers with the feature "ci.annotations" implement it
 	// (unimplemented otherwise). Fails with not_found if the run, the attempt or
@@ -315,7 +321,9 @@ type RunServiceHandler interface {
 	ListAnnotations(context.Context, *connect.Request[ermite.ListAnnotationsRequest]) (*connect.Response[ermite.ListAnnotationsResponse], error)
 	// GetStepSummaries returns the job summaries (the Markdown written to
 	// GITHUB_STEP_SUMMARY) of the steps of a job that have one, ordered by step
-	// number. Needs the same access as GetJob. Only servers with the feature
+	// number. Like GitHub, it returns at most 20 summaries per job: the first 20
+	// steps that have one, in step order; truncated says there are more. Needs
+	// the same access as GetJob. Only servers with the feature
 	// "ci.summaries" implement it (unimplemented otherwise). A job without
 	// summaries gives an empty list. Fails with not_found if the job or the
 	// attempt does not exist.

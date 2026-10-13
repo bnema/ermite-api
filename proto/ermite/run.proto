@@ -283,7 +283,9 @@ service RunService {
   rpc GetJob(GetJobRequest) returns (GetJobResponse);
   // ListAnnotations lists the annotations of a run attempt, optionally of one
   // job, ordered by job (as in GetRun), step number, then the order in which
-  // the step produced them. Needs the same access as GetRun. Returns at most
+  // the step produced them. For each job it gives the annotations of the
+  // attempt in which that job executed (RunJob.attempt), which is lower than
+  // the attempt of the run for a job kept by a re-run of failed jobs only. Needs the same access as GetRun. Returns at most
   // 1,000 annotations (truncated tells). A run without annotations gives an
   // empty list. Only servers with the feature "ci.annotations" implement it
   // (unimplemented otherwise). Fails with not_found if the run, the attempt or
@@ -291,7 +293,9 @@ service RunService {
   rpc ListAnnotations(ListAnnotationsRequest) returns (ListAnnotationsResponse);
   // GetStepSummaries returns the job summaries (the Markdown written to
   // GITHUB_STEP_SUMMARY) of the steps of a job that have one, ordered by step
-  // number. Needs the same access as GetJob. Only servers with the feature
+  // number. Like GitHub, it returns at most 20 summaries per job: the first 20
+  // steps that have one, in step order; truncated says there are more. Needs
+  // the same access as GetJob. Only servers with the feature
   // "ci.summaries" implement it (unimplemented otherwise). A job without
   // summaries gives an empty list. Fails with not_found if the job or the
   // attempt does not exist.
@@ -422,7 +426,9 @@ message ListAnnotationsRequest {
   string repo = 1;
   // RunId is the Run.id.
   int64 run_id = 2;
-  // Attempt is the attempt to read. 0 means the latest.
+  // Attempt is the attempt to read. 0 means the latest, and then each job
+  // contributes the annotations of its own RunJob.attempt (not necessarily the
+  // latest attempt of the run, see ListAnnotations).
   int32 attempt = 3;
   // JobId restricts the result to one job (RunJob.id). Empty means every job
   // of the run.
@@ -459,8 +465,11 @@ message GetStepSummariesRequest {
 // GetStepSummariesResponse holds the summaries of a job.
 message GetStepSummariesResponse {
   // Summaries are the summaries of the steps that have one, ordered by step
-  // number.
+  // number: at most 20, the first 20 steps having one.
   repeated StepSummary summaries = 1;
+  // Truncated is true when the job has more than 20 steps with a summary and
+  // summaries holds only the first 20.
+  bool truncated = 2;
 }
 
 // StepSummary is the job summary of one step.

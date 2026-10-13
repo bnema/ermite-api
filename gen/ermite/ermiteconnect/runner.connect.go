@@ -115,7 +115,12 @@ type RunnerServiceClient interface {
 	// step_number present in annotations, the annotations of that step stored
 	// so far are replaced by the ones of the request, so a retry never
 	// duplicates them. A step number absent from the request keeps its
-	// annotations.
+	// annotations. The step of an annotation need not be in the steps of the
+	// same call, and may already be COMPLETED: its annotations can still be
+	// replaced (the rule that a COMPLETED step cannot change applies to
+	// StepUpdate, not to annotations), until the job ends. A runner sends one
+	// UpdateJob (or CompleteJob) at a time for a job, never concurrent calls,
+	// so replacements apply in the order of the calls.
 	//
 	// Fails with invalid_argument if a rule is broken (including the annotation
 	// limits), with failed_precondition if a step goes back (a COMPLETED step
@@ -225,7 +230,8 @@ type RunnerServiceClient interface {
 	// ends are completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when
 	// they never started and the job did not end by cancellation).
 	//
-	// Annotations are applied as in UpdateJob, together with the conclusion.
+	// Annotations are applied as in UpdateJob (replacement per step number, also
+	// for COMPLETED steps and steps not in steps), together with the conclusion.
 	// Summaries are not part of this call: a runner sends them with
 	// UploadSummary before it.
 	//
@@ -249,9 +255,10 @@ type RunnerServiceClient interface {
 	// as is. Only a failure of the call itself (credential, ended job, bad
 	// request, server error) is an RPC error; the runner then fails the job.
 	//
-	// Resolution is stable for a run: the same ref resolves to the same sha for
-	// every job and every call of one attempt of the run. A re-run attempt
-	// resolves again.
+	// Resolution is stable for a run attempt: the same ref resolves to the same
+	// sha (ResolvedAction.resolved_sha) for every job and every call of that
+	// attempt. A re-run attempt resolves again. Tokens are not shared: each
+	// job gets its own (ResolvedAction.token).
 	//
 	// Fails with unauthenticated or permission_denied as the other job RPCs,
 	// with failed_precondition and a JobEnded detail if the job has ended, and
@@ -266,8 +273,10 @@ type RunnerServiceClient interface {
 	//
 	// It is idempotent: the summary of a step is replaced by each call, so a
 	// retry changes nothing, and an empty markdown removes the summary of the
-	// step. The Markdown is at most 1 MiB (1,048,576 bytes) and valid UTF-8;
-	// clients set a message size limit above it.
+	// step. The Markdown is at most 1 MiB (1,048,576 bytes) and valid UTF-8. The
+	// server reads requests of up to 1 MiB plus the envelope (job id, step
+	// number, framing), so a summary of exactly 1 MiB is accepted; clients set
+	// their own message size limit above that.
 	//
 	// Fails with invalid_argument if a rule is broken (size, UTF-8, step number)
 	// and with failed_precondition and a JobEnded detail if the job has ended.
@@ -456,7 +465,12 @@ type RunnerServiceHandler interface {
 	// step_number present in annotations, the annotations of that step stored
 	// so far are replaced by the ones of the request, so a retry never
 	// duplicates them. A step number absent from the request keeps its
-	// annotations.
+	// annotations. The step of an annotation need not be in the steps of the
+	// same call, and may already be COMPLETED: its annotations can still be
+	// replaced (the rule that a COMPLETED step cannot change applies to
+	// StepUpdate, not to annotations), until the job ends. A runner sends one
+	// UpdateJob (or CompleteJob) at a time for a job, never concurrent calls,
+	// so replacements apply in the order of the calls.
 	//
 	// Fails with invalid_argument if a rule is broken (including the annotation
 	// limits), with failed_precondition if a step goes back (a COMPLETED step
@@ -566,7 +580,8 @@ type RunnerServiceHandler interface {
 	// ends are completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when
 	// they never started and the job did not end by cancellation).
 	//
-	// Annotations are applied as in UpdateJob, together with the conclusion.
+	// Annotations are applied as in UpdateJob (replacement per step number, also
+	// for COMPLETED steps and steps not in steps), together with the conclusion.
 	// Summaries are not part of this call: a runner sends them with
 	// UploadSummary before it.
 	//
@@ -590,9 +605,10 @@ type RunnerServiceHandler interface {
 	// as is. Only a failure of the call itself (credential, ended job, bad
 	// request, server error) is an RPC error; the runner then fails the job.
 	//
-	// Resolution is stable for a run: the same ref resolves to the same sha for
-	// every job and every call of one attempt of the run. A re-run attempt
-	// resolves again.
+	// Resolution is stable for a run attempt: the same ref resolves to the same
+	// sha (ResolvedAction.resolved_sha) for every job and every call of that
+	// attempt. A re-run attempt resolves again. Tokens are not shared: each
+	// job gets its own (ResolvedAction.token).
 	//
 	// Fails with unauthenticated or permission_denied as the other job RPCs,
 	// with failed_precondition and a JobEnded detail if the job has ended, and
@@ -607,8 +623,10 @@ type RunnerServiceHandler interface {
 	//
 	// It is idempotent: the summary of a step is replaced by each call, so a
 	// retry changes nothing, and an empty markdown removes the summary of the
-	// step. The Markdown is at most 1 MiB (1,048,576 bytes) and valid UTF-8;
-	// clients set a message size limit above it.
+	// step. The Markdown is at most 1 MiB (1,048,576 bytes) and valid UTF-8. The
+	// server reads requests of up to 1 MiB plus the envelope (job id, step
+	// number, framing), so a summary of exactly 1 MiB is accepted; clients set
+	// their own message size limit above that.
 	//
 	// Fails with invalid_argument if a rule is broken (size, UTF-8, step number)
 	// and with failed_precondition and a JobEnded detail if the job has ended.

@@ -1307,7 +1307,9 @@ type ListAnnotationsRequest struct {
 	Repo string `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
 	// RunId is the Run.id.
 	RunId int64 `protobuf:"varint,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// Attempt is the attempt to read. 0 means the latest.
+	// Attempt is the attempt to read. 0 means the latest, and then each job
+	// contributes the annotations of its own RunJob.attempt (not necessarily the
+	// latest attempt of the run, see ListAnnotations).
 	Attempt int32 `protobuf:"varint,3,opt,name=attempt,proto3" json:"attempt,omitempty"`
 	// JobId restricts the result to one job (RunJob.id). Empty means every job
 	// of the run.
@@ -1553,8 +1555,11 @@ func (x *GetStepSummariesRequest) GetAttempt() int32 {
 type GetStepSummariesResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Summaries are the summaries of the steps that have one, ordered by step
-	// number.
-	Summaries     []*StepSummary `protobuf:"bytes,1,rep,name=summaries,proto3" json:"summaries,omitempty"`
+	// number: at most 20, the first 20 steps having one.
+	Summaries []*StepSummary `protobuf:"bytes,1,rep,name=summaries,proto3" json:"summaries,omitempty"`
+	// Truncated is true when the job has more than 20 steps with a summary and
+	// summaries holds only the first 20.
+	Truncated     bool `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1594,6 +1599,13 @@ func (x *GetStepSummariesResponse) GetSummaries() []*StepSummary {
 		return x.Summaries
 	}
 	return nil
+}
+
+func (x *GetStepSummariesResponse) GetTruncated() bool {
+	if x != nil {
+		return x.Truncated
+	}
+	return false
 }
 
 // StepSummary is the job summary of one step.
@@ -2530,9 +2542,10 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\x17GetStepSummariesRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x15\n" +
 	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x18\n" +
-	"\aattempt\x18\x03 \x01(\x05R\aattempt\"M\n" +
+	"\aattempt\x18\x03 \x01(\x05R\aattempt\"k\n" +
 	"\x18GetStepSummariesResponse\x121\n" +
-	"\tsummaries\x18\x01 \x03(\v2\x13.ermite.StepSummaryR\tsummaries\"J\n" +
+	"\tsummaries\x18\x01 \x03(\v2\x13.ermite.StepSummaryR\tsummaries\x12\x1c\n" +
+	"\ttruncated\x18\x02 \x01(\bR\ttruncated\"J\n" +
 	"\vStepSummary\x12\x1f\n" +
 	"\vstep_number\x18\x01 \x01(\x05R\n" +
 	"stepNumber\x12\x1a\n" +

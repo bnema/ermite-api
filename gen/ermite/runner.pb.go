@@ -980,8 +980,9 @@ type UpdateJobRequest struct {
 	// Annotations are the annotations of the steps that the call names: for
 	// each step_number present, all the annotations of that step known so far,
 	// not only the new ones (see the rules on UpdateJob). At most 10 per level
-	// and per step; more is invalid_argument. The server ignores them without
-	// the feature "ci.annotations".
+	// and per step, and each one within the limits of Annotation; otherwise the
+	// whole call is invalid_argument. The server ignores them without the
+	// feature "ci.annotations".
 	Annotations   []*Annotation `protobuf:"bytes,3,rep,name=annotations,proto3" json:"annotations,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1966,20 +1967,23 @@ func (x *CancelRequest) GetRequestedAt() *timestamppb.Timestamp {
 // produces them from the workflow commands ::notice, ::warning and ::error and
 // from problem matchers, after masking.
 //
-// The runner sends at most 10 annotations of each level per step (the ones
-// beyond only reach the log) and the server rejects more.
+// Limits, checked by the server: at most 10 annotations of each level per step
+// (the runner sends no more: the ones beyond only reach the log, as with
+// GitHub). A call that breaks a limit below is rejected whole with
+// invalid_argument. Lengths count characters (Unicode code points), not bytes.
 type Annotation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Level is the severity. Required.
 	Level AnnotationLevel `protobuf:"varint,1,opt,name=level,proto3,enum=ermite.AnnotationLevel" json:"level,omitempty"`
-	// Title is the optional title. Empty when not given.
+	// Title is the optional title, at most 255 characters. Empty when not given.
 	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	// Message is the text, at most 4,096 characters (the runner cuts longer
-	// ones). Required, not empty.
+	// Message is the text. Required, not empty, at most 4,096 characters; a
+	// longer one is invalid_argument. The runner never sends a longer one: like
+	// GitHub, it only logs such an annotation.
 	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	// File is the path the annotation is about, relative to the repository when
-	// the runner can tell, else as given. Empty when the annotation is not about
-	// a file.
+	// the runner can tell, else as given. At most 1,024 characters. Empty when
+	// the annotation is not about a file.
 	File string `protobuf:"bytes,4,opt,name=file,proto3" json:"file,omitempty"`
 	// StartLine is the first line, counted from 1. 0 when not given.
 	StartLine int32 `protobuf:"varint,5,opt,name=start_line,json=startLine,proto3" json:"start_line,omitempty"`
@@ -2248,13 +2252,17 @@ type ResolvedAction struct {
 	// NameWithOwner is the repository of the action, "owner/repo", with the
 	// case of the repository as the source gives it. Empty when error is set.
 	NameWithOwner string `protobuf:"bytes,2,opt,name=name_with_owner,json=nameWithOwner,proto3" json:"name_with_owner,omitempty"`
-	// Path is the sub-path of the action inside the repository, without leading
-	// or trailing slash: "path/to/action" for "owner/repo/path/to/action@ref".
-	// Empty for an action at the root of the repository.
+	// Path is the sub-path of the action inside the repository, a clean
+	// relative path: "path/to/action" for "owner/repo/path/to/action@ref", with
+	// "/" separators, no leading or trailing slash, no empty, "." or ".."
+	// element, never absolute. Empty for an action at the root of the
+	// repository.
 	Path string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	// ResolvedSha is the full id of the commit the ref points to, 40 lowercase
 	// hexadecimal characters for SHA-1 (the commit that an annotated tag points
-	// to, not the tag object). Empty when error is set.
+	// to, not the tag object). Stable for a run attempt: every job and every
+	// call of the attempt gets the same value for the same ref. Empty when error
+	// is set.
 	ResolvedSha string `protobuf:"bytes,4,opt,name=resolved_sha,json=resolvedSha,proto3" json:"resolved_sha,omitempty"`
 	// TarballUrl is where to download the archive of the repository at
 	// resolved_sha, a gzip-compressed tar with one top-level directory. The
@@ -2265,7 +2273,8 @@ type ResolvedAction struct {
 	// For ACTION_SOURCE_ERMITE it is a read token for that one repository,
 	// valid until the job ends, so a job can use an action of another private
 	// repository of the server that its own repository token cannot read. It is
-	// a secret: the runner masks it, and neither the runner nor the server logs
+	// issued per job and never shared across jobs (two jobs resolving the same
+	// action get different tokens). It is a secret: the runner masks it, and neither the runner nor the server logs
 	// it.
 	Token string `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
 	// Source is where the action was found. UNSPECIFIED when error is set.

@@ -389,7 +389,7 @@ func TestCI2FieldNumbers(t *testing.T) {
 		{&ermite.ListAnnotationsResponse{}, map[string]int{"annotations": 1, "truncated": 2}},
 		{&ermite.JobAnnotation{}, map[string]int{"job_id": 1, "annotation": 2}},
 		{&ermite.GetStepSummariesRequest{}, map[string]int{"repo": 1, "job_id": 2, "attempt": 3}},
-		{&ermite.GetStepSummariesResponse{}, map[string]int{"summaries": 1}},
+		{&ermite.GetStepSummariesResponse{}, map[string]int{"summaries": 1, "truncated": 2}},
 		{&ermite.StepSummary{}, map[string]int{"step_number": 1, "markdown": 2}},
 	}
 	for _, tt := range tests {
@@ -433,7 +433,7 @@ func TestCI2RoundTrip(t *testing.T) {
 		}},
 		&ermite.UploadSummaryRequest{JobId: "j1", StepNumber: 2, Markdown: "# hi"},
 		&ermite.ListAnnotationsResponse{Annotations: []*ermite.JobAnnotation{{JobId: "j1", Annotation: &ermite.Annotation{Message: "m"}}}, Truncated: true},
-		&ermite.GetStepSummariesResponse{Summaries: []*ermite.StepSummary{{StepNumber: 2, Markdown: "# hi"}}},
+		&ermite.GetStepSummariesResponse{Summaries: []*ermite.StepSummary{{StepNumber: 2, Markdown: "# hi"}}, Truncated: true},
 		&ermite.RunJob{Id: "j1", Steps: []*ermite.Step{{Number: 2, Outcome: ermite.CiConclusion_CI_CONCLUSION_FAILURE}}},
 	}
 	for _, in := range msgs {
