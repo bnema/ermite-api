@@ -93,6 +93,32 @@ enum CancelReason {
   CANCEL_REASON_TIMEOUT = 3;
 }
 
+// AnnotationLevel is the severity of an annotation, with the values of
+// GitHub's check run annotation levels ("notice", "warning", "failure"). The
+// workflow commands ::notice, ::warning and ::error produce NOTICE, WARNING and
+// FAILURE.
+enum AnnotationLevel {
+  // Not set. Rejected in requests, never returned by the server.
+  ANNOTATION_LEVEL_UNSPECIFIED = 0;
+  // Information: ::notice.
+  ANNOTATION_LEVEL_NOTICE = 1;
+  // A problem that does not fail the job by itself: ::warning.
+  ANNOTATION_LEVEL_WARNING = 2;
+  // An error: ::error.
+  ANNOTATION_LEVEL_FAILURE = 3;
+}
+
+// ActionSource says where the server found an action.
+enum ActionSource {
+  // Not set. Only in a ResolvedAction that carries an error.
+  ACTION_SOURCE_UNSPECIFIED = 0;
+  // github.com: the archive is downloaded from GitHub, without a token.
+  ACTION_SOURCE_GITHUB = 1;
+  // A repository of this server, which wins over a github.com repository of
+  // the same name (as GitHub Enterprise Server's own actions do).
+  ACTION_SOURCE_ERMITE = 2;
+}
+
 // RunnerService is what a CI runner (ermite-runner) calls to get jobs and
 // report on them. It is not for people: owners use RunService.
 //
@@ -104,8 +130,8 @@ enum CancelReason {
 //   - FetchJob: the runner token returned by RegisterRunner. It identifies the
 //     runner and only works for FetchJob. It is "ermiterun_" followed by 43
 //     base64url characters (32 random bytes, no padding).
-//   - UpdateJob, AppendLog, Heartbeat, WatchJob, CompleteJob: the job token of
-//     the Job that FetchJob returned. It is valid for that one job and that
+//   - UpdateJob, AppendLog, Heartbeat, WatchJob, CompleteJob, ResolveActions,
+//     UploadSummary: the job token of the Job that FetchJob returned. It is valid for that one job and that
 //     one assignment. It is "ermitejob_" followed by 43 base64url characters
 //     (32 random bytes, no padding). The job_id of the request must be the
 //     one of the token.
@@ -120,8 +146,8 @@ enum CancelReason {
 //
 // The end of a job. A job ends when its conclusion is set, by CompleteJob or
 // by the server (cancellation not honoured, lost runner, log limit, queue
-// timeout). From then on UpdateJob, AppendLog, Heartbeat and WatchJob answer
-// failed_precondition with a JobEnded error detail (a JobEnded message in the
+// timeout). From then on UpdateJob, AppendLog, Heartbeat, WatchJob,
+// ResolveActions and UploadSummary answer failed_precondition with a JobEnded error detail (a JobEnded message in the
 // Connect error details) that gives the conclusion; the runner stops the job
 // and sends nothing more. The job token is still recognised for 24 hours after
 // the end, so that these calls can say so and so that CompleteJob, the only
@@ -132,14 +158,22 @@ enum CancelReason {
 // Secrets and trust. Runner tokens and job tokens are secrets: the server
 // never logs them and clients must not log them. The job token stays in the
 // runner host process; it is never given to the sandbox that runs the job's
-// code. A runner receives the jobs of every repository, with their workflow
+// code. The job's repository token (Job.github_token) is another secret: it is
+// the one the sandbox does get, and it only reads the repository of the run.
+// A runner receives the jobs of every repository, with their workflow
 // files, contexts and (from CI-2) their code, and from CI-3 their secrets: the
 // runner:register scope therefore effectively gives read access to the code
 // and the secrets of every repository, private ones included. Give it only to
 // runners you operate.
 //
 // Servers that implement this service list "ci.runners" in
-// GetVersionResponse.features.
+// GetVersionResponse.features. Those that implement ResolveActions and
+// Job.github_token also list "ci.actions", those that accept annotations
+// (UpdateJobRequest.annotations, CompleteJobRequest.annotations) list
+// "ci.annotations", and those that implement UploadSummary list
+// "ci.summaries". A server without a feature ignores the fields of that
+// feature (protobuf drops unknown fields) and answers unimplemented to its
+// RPCs; a runner that needs one checks GetVersion first.
 service RunnerService {
   // RegisterRunner registers a runner and returns its runner token, which is
   // shown only in this response; the runner keeps it. The caller needs the
@@ -191,10 +225,21 @@ service RunnerService {
   // identical call changes nothing, so a runner may retry after a network
   // error. To end the job use CompleteJob.
   //
-  // Fails with invalid_argument if a rule is broken, with failed_precondition
-  // if a step goes back (a COMPLETED step cannot change, a step cannot go from
-  // IN_PROGRESS to PENDING) and with failed_precondition and a JobEnded detail
-  // if the job has ended.
+  // Annotations are applied with the steps, in the same atomic step: for each
+  // step_number present in annotations, the annotations of that step stored
+  // so far are replaced by the ones of the request, so a retry never
+  // duplicates them. A step number absent from the request keeps its
+  // annotations. The step of an annotation need not be in the steps of the
+  // same call, and may already be COMPLETED: its annotations can still be
+  // replaced (the rule that a COMPLETED step cannot change applies to
+  // StepUpdate, not to annotations), until the job ends. A runner sends one
+  // UpdateJob (or CompleteJob) at a time for a job, never concurrent calls,
+  // so replacements apply in the order of the calls.
+  //
+  // Fails with invalid_argument if a rule is broken (including the annotation
+  // limits), with failed_precondition if a step goes back (a COMPLETED step
+  // cannot change, a step cannot go from IN_PROGRESS to PENDING) and with
+  // failed_precondition and a JobEnded detail if the job has ended.
   rpc UpdateJob(UpdateJobRequest) returns (UpdateJobResponse);
   // AppendLog appends lines to the log of a job. Needs the job token.
   //
@@ -299,9 +344,57 @@ service RunnerService {
   // ends are completed by the server as CI_CONCLUSION_CANCELLED (or SKIPPED when
   // they never started and the job did not end by cancellation).
   //
-  // Fails with invalid_argument if a rule is broken (including the output
-  // limits) and failed_precondition if a step goes back, as in UpdateJob.
+  // Annotations are applied as in UpdateJob (replacement per step number, also
+  // for COMPLETED steps and steps not in steps), together with the conclusion.
+  // Summaries are not part of this call: a runner sends them with
+  // UploadSummary before it.
+  //
+  // Fails with invalid_argument if a rule is broken (including the output and
+  // annotation limits) and failed_precondition if a step goes back, as in
+  // UpdateJob.
   rpc CompleteJob(CompleteJobRequest) returns (CompleteJobResponse);
+  // ResolveActions turns the "uses" of workflow and action steps into what the
+  // runner needs to download the actions, as GitHub's action download info
+  // does. Needs the job token; the job_id must be the one of the token. It
+  // may be called as often as needed while the job runs (the runner calls it
+  // once per level of composite actions, see the runner's depth limit of 9).
+  // The runner then downloads each archive itself, from the sandbox, with the
+  // token of the ResolvedAction when there is one.
+  //
+  // The response has one ResolvedAction per ActionRef, in the same order. A
+  // reference that cannot be resolved (unknown repository, tag or branch, a
+  // repository without access, a "uses" that GitHub itself would reject) does
+  // not fail the call: its ResolvedAction has only ref and error, where error
+  // is the message GitHub gives for the same failure, which the runner prints
+  // as is. Only a failure of the call itself (credential, ended job, bad
+  // request, server error) is an RPC error; the runner then fails the job.
+  //
+  // Resolution is stable for a run attempt: the same ref resolves to the same
+  // sha (ResolvedAction.resolved_sha) for every job and every call of that
+  // attempt. A re-run attempt resolves again. Tokens are not shared: each
+  // job gets its own (ResolvedAction.token).
+  //
+  // Fails with unauthenticated or permission_denied as the other job RPCs,
+  // with failed_precondition and a JobEnded detail if the job has ended, and
+  // with invalid_argument if there are more than 100 refs or if a "uses" is a
+  // local action ("./path") or a Docker image ("docker://"), which the runner
+  // handles without the server.
+  rpc ResolveActions(ResolveActionsRequest) returns (ResolveActionsResponse);
+  // UploadSummary stores the job summary of one step: the Markdown that the
+  // step wrote to the file named by GITHUB_STEP_SUMMARY. Needs the job token.
+  // The runner masks it before sending it, and sends it after the step ended
+  // and before CompleteJob.
+  //
+  // It is idempotent: the summary of a step is replaced by each call, so a
+  // retry changes nothing, and an empty markdown removes the summary of the
+  // step. The Markdown is at most 1 MiB (1,048,576 bytes) and valid UTF-8. The
+  // server reads requests of up to 1 MiB plus the envelope (job id, step
+  // number, framing), so a summary of exactly 1 MiB is accepted; clients set
+  // their own message size limit above that.
+  //
+  // Fails with invalid_argument if a rule is broken (size, UTF-8, step number)
+  // and with failed_precondition and a JobEnded detail if the job has ended.
+  rpc UploadSummary(UploadSummaryRequest) returns (UploadSummaryResponse);
 }
 
 // RegisterRunnerRequest describes the runner to register.
@@ -437,6 +530,18 @@ message Job {
   // Ref is the full ref name that triggered the run, for example
   // "refs/heads/main" or "refs/tags/v1.0.0".
   string ref = 14;
+  // GithubToken is the job repository token, the "github.token" and
+  // "secrets.GITHUB_TOKEN" of the job: "ermitegh_" and 43 base64url characters
+  // (32 random bytes, no padding). Unlike job_token it is meant for the code of
+  // the job: the runner gives it to the sandbox (actions/checkout clones with
+  // it). It can only read the repository of the run (read-only, whatever
+  // "permissions:" says), and is valid from the assignment until the job ends
+  // (it is revoked then, on cancellation and when the job is lost). It is a
+  // secret: the runner registers it in its masker before anything runs, and
+  // neither the runner nor the server logs it. It is shown only in this
+  // response, or in a repeat of the same poll_id; a new assignment of the same
+  // job has a new one. Empty from servers without the feature "ci.actions".
+  string github_token = 15;
 }
 
 // UpdateJobRequest reports the steps of a running job.
@@ -449,6 +554,13 @@ message UpdateJobRequest {
   // implicit "Set up job" is 1, the steps of the workflow follow in order, and
   // the implicit "Complete job" is last.
   repeated StepUpdate steps = 2;
+  // Annotations are the annotations of the steps that the call names: for
+  // each step_number present, all the annotations of that step known so far,
+  // not only the new ones (see the rules on UpdateJob). At most 10 per level
+  // and per step, and each one within the limits of Annotation; otherwise the
+  // whole call is invalid_argument. The server ignores them without the
+  // feature "ci.annotations".
+  repeated Annotation annotations = 3;
 }
 
 // StepUpdate is the state of one step as the runner knows it.
@@ -472,6 +584,14 @@ message StepUpdate {
   // CompletedAt is when the step ended, by the clock of the runner. Required
   // when state is COMPLETED.
   google.protobuf.Timestamp completed_at = 6;
+  // Outcome is how the step ended before continue-on-error was applied, GitHub's
+  // "steps.<id>.outcome", whereas conclusion is the result after it
+  // ("steps.<id>.conclusion"). Same values as conclusion. They differ only for
+  // a step with continue-on-error that failed: outcome FAILURE, conclusion
+  // SUCCESS. Set by the runner when state is COMPLETED and UNSPECIFIED
+  // otherwise; UNSPECIFIED in a COMPLETED step means the same as conclusion
+  // (a runner that does not know the field).
+  CiConclusion outcome = 7;
 }
 
 // UpdateJobResponse is empty.
@@ -504,6 +624,11 @@ message CompleteJobRequest {
   // Steps are the final steps, with the same meaning as UpdateJobRequest.steps,
   // applied in the same atomic step as the conclusion.
   repeated StepUpdate steps = 5;
+  // Annotations are those of the steps that changed since the last call, with
+  // the rules of UpdateJobRequest.annotations (all the annotations of each
+  // step named). The server ignores them without the feature
+  // "ci.annotations".
+  repeated Annotation annotations = 6;
 }
 
 // CompleteJobResponse is the stored result of a job.
@@ -620,3 +745,117 @@ message CancelRequest {
   // server.
   google.protobuf.Timestamp requested_at = 3;
 }
+
+// Annotation is a message attached to a step, and optionally to a place in a
+// file of the repository, like an annotation of a GitHub check run. The runner
+// produces them from the workflow commands ::notice, ::warning and ::error and
+// from problem matchers, after masking.
+//
+// Limits, checked by the server: at most 10 annotations of each level per step
+// (the runner sends no more: the ones beyond only reach the log, as with
+// GitHub). A call that breaks a limit below is rejected whole with
+// invalid_argument. Lengths count characters (Unicode code points), not bytes.
+message Annotation {
+  // Level is the severity. Required.
+  AnnotationLevel level = 1;
+  // Title is the optional title, at most 255 characters. Empty when not given.
+  string title = 2;
+  // Message is the text. Required, not empty, at most 4,096 characters; a
+  // longer one is invalid_argument. The runner never sends a longer one: like
+  // GitHub, it only logs such an annotation.
+  string message = 3;
+  // File is the path the annotation is about, relative to the repository when
+  // the runner can tell, else as given. At most 1,024 characters. Empty when
+  // the annotation is not about a file.
+  string file = 4;
+  // StartLine is the first line, counted from 1. 0 when not given.
+  int32 start_line = 5;
+  // EndLine is the last line, counted from 1, not before start_line. 0 when
+  // not given.
+  int32 end_line = 6;
+  // StartColumn is the first column, counted from 1. 0 when not given.
+  int32 start_column = 7;
+  // EndColumn is the last column, counted from 1. 0 when not given.
+  int32 end_column = 8;
+  // StepNumber is the number of the step that produced it (see
+  // StepUpdate.number), from 1 to 1,000. An annotation of a step inside a
+  // composite action belongs to the step of the workflow that uses the action.
+  int32 step_number = 9;
+}
+
+// ActionRef is an action to resolve.
+message ActionRef {
+  // Uses is the value of "uses" as written, after expression evaluation, for
+  // example "actions/checkout@v4" or "owner/repo/path/to/action@ref". Required.
+  string uses = 1;
+}
+
+// ResolveActionsRequest lists the actions to resolve.
+message ResolveActionsRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // Refs are the actions to resolve, at most 100. Duplicates are allowed and
+  // answered one by one.
+  repeated ActionRef refs = 2;
+}
+
+// ResolveActionsResponse holds the resolution of each action.
+message ResolveActionsResponse {
+  // Actions has one entry per ActionRef of the request, in the same order.
+  repeated ResolvedAction actions = 1;
+}
+
+// ResolvedAction is where to download one action, or why it cannot be.
+message ResolvedAction {
+  // Ref is the ActionRef.uses of the request, unchanged.
+  string ref = 1;
+  // NameWithOwner is the repository of the action, "owner/repo", with the
+  // case of the repository as the source gives it. Empty when error is set.
+  string name_with_owner = 2;
+  // Path is the sub-path of the action inside the repository, a clean
+  // relative path: "path/to/action" for "owner/repo/path/to/action@ref", with
+  // "/" separators, no leading or trailing slash, no empty, "." or ".."
+  // element, never absolute. Empty for an action at the root of the
+  // repository.
+  string path = 3;
+  // ResolvedSha is the full id of the commit the ref points to, 40 lowercase
+  // hexadecimal characters for SHA-1 (the commit that an annotated tag points
+  // to, not the tag object). Stable for a run attempt: every job and every
+  // call of the attempt gets the same value for the same ref. Empty when error
+  // is set.
+  string resolved_sha = 4;
+  // TarballUrl is where to download the archive of the repository at
+  // resolved_sha, a gzip-compressed tar with one top-level directory. The
+  // runner downloads it from the sandbox. Empty when error is set.
+  string tarball_url = 5;
+  // Token authenticates the download: the runner sends it as "Authorization:
+  // Basic" with the user "x-access-token". Empty for ACTION_SOURCE_GITHUB.
+  // For ACTION_SOURCE_ERMITE it is a read token for that one repository,
+  // valid until the job ends, so a job can use an action of another private
+  // repository of the server that its own repository token cannot read. It is
+  // issued per job and never shared across jobs (two jobs resolving the same
+  // action get different tokens). It is a secret: the runner masks it, and neither the runner nor the server logs
+  // it.
+  string token = 6;
+  // Source is where the action was found. UNSPECIFIED when error is set.
+  ActionSource source = 7;
+  // Error is why the reference could not be resolved, in the words of GitHub
+  // for the same failure. Empty when the action was resolved, in which case
+  // the other fields describe it.
+  string error = 8;
+}
+
+// UploadSummaryRequest carries the job summary of one step.
+message UploadSummaryRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // StepNumber is the number of the step that wrote the summary (see
+  // StepUpdate.number), from 1 to 1,000.
+  int32 step_number = 2;
+  // Markdown is the summary, masked, valid UTF-8, at most 1 MiB (1,048,576
+  // bytes). Empty removes the summary of the step.
+  string markdown = 3;
+}
+
+// UploadSummaryResponse is empty.
+message UploadSummaryResponse {}

@@ -172,6 +172,11 @@ message Step {
   // IN_PROGRESS step it is the number of lines held at the time of the
   // call and grows; for a step without a line it equals log_start.
   int64 log_end = 8;
+  // Outcome is how the step ended before continue-on-error was applied, as
+  // StepUpdate.outcome: it differs from conclusion only for a failed step with
+  // continue-on-error. Unset until state is COMPLETED, and for a step stored
+  // by a server or runner before this field existed (read it as conclusion).
+  CiConclusion outcome = 9;
 }
 
 // Check is the result of one job on one commit, the unit shown next to a
@@ -238,9 +243,9 @@ message Runner {
 // RunService reads and controls CI runs, like `gh run` does on GitHub. It is for
 // owners and their tools; runners use RunnerService.
 //
-// Runs, jobs, checks and logs belong to a repository, and reading them needs
-// the same access as reading it: nothing for a public repository, the
-// repo:read scope for a private one. A repository that does not exist or that
+// Runs, jobs, checks, logs, annotations and summaries belong to a repository,
+// and reading them needs the same access as reading it: nothing for a public
+// repository, the repo:read scope for a private one. A repository that does not exist or that
 // the caller cannot read gives not_found; so does a run or a job that belongs
 // to another repository than the one named (ids are global but are always
 // checked against the repository). Cancelling and re-running need the ci:write
@@ -255,10 +260,13 @@ message Runner {
 // page_token is the next_page_token of a previous response for the same
 // request (other fields must be unchanged).
 //
-// Servers that implement the runs side (every RPC but ListRunners and
-// RemoveRunner) list "ci.runs" in GetVersionResponse.features; those that
+// Servers that implement the runs side (every RPC but ListRunners,
+// RemoveRunner, ListAnnotations and GetStepSummaries) list "ci.runs" in
+// GetVersionResponse.features; those that
 // implement the runners side list "ci.runners", as RunnerService does. A server
 // that honours the filters of ListRunsRequest also lists "ci.runs.filters".
+// ListAnnotations needs "ci.annotations" and GetStepSummaries "ci.summaries",
+// which are also the features of the runner side of each.
 service RunService {
   // ListRuns lists the runs of a repository, highest id (newest) first. Each
   // run is described by its latest attempt. The filters narrow the result; a
@@ -273,6 +281,25 @@ service RunService {
   // GetJob returns one job with its steps. Fails with not_found if the job
   // or the attempt does not exist.
   rpc GetJob(GetJobRequest) returns (GetJobResponse);
+  // ListAnnotations lists the annotations of a run attempt, optionally of one
+  // job, ordered by job (as in GetRun), step number, then the order in which
+  // the step produced them. For each job it gives the annotations of the
+  // attempt in which that job executed (RunJob.attempt), which is lower than
+  // the attempt of the run for a job kept by a re-run of failed jobs only. Needs the same access as GetRun. Returns at most
+  // 1,000 annotations (truncated tells). A run without annotations gives an
+  // empty list. Only servers with the feature "ci.annotations" implement it
+  // (unimplemented otherwise). Fails with not_found if the run, the attempt or
+  // the job does not exist, or if the job is not a job of the run.
+  rpc ListAnnotations(ListAnnotationsRequest) returns (ListAnnotationsResponse);
+  // GetStepSummaries returns the job summaries (the Markdown written to
+  // GITHUB_STEP_SUMMARY) of the steps of a job that have one, ordered by step
+  // number. Like GitHub, it returns at most 20 summaries per job: the first 20
+  // steps that have one, in step order; truncated says there are more. Needs
+  // the same access as GetJob. Only servers with the feature
+  // "ci.summaries" implement it (unimplemented otherwise). A job without
+  // summaries gives an empty list. Fails with not_found if the job or the
+  // attempt does not exist.
+  rpc GetStepSummaries(GetStepSummariesRequest) returns (GetStepSummariesResponse);
   // GetJobLog streams the lines of the log of a job, from a line number. The
   // server sends them in order in messages of at most 1,000 lines and 64 KiB of
   // text each.
@@ -391,6 +418,67 @@ message GetJobRequest {
 message GetJobResponse {
   // Job is the job with its steps.
   RunJob job = 1;
+}
+
+// ListAnnotationsRequest selects the annotations of a run.
+message ListAnnotationsRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // RunId is the Run.id.
+  int64 run_id = 2;
+  // Attempt is the attempt to read. 0 means the latest, and then each job
+  // contributes the annotations of its own RunJob.attempt (not necessarily the
+  // latest attempt of the run, see ListAnnotations).
+  int32 attempt = 3;
+  // JobId restricts the result to one job (RunJob.id). Empty means every job
+  // of the run.
+  string job_id = 4;
+}
+
+// ListAnnotationsResponse holds the annotations of a run.
+message ListAnnotationsResponse {
+  // Annotations are the annotations, at most 1,000.
+  repeated JobAnnotation annotations = 1;
+  // Truncated is true when there are more annotations than annotations holds.
+  bool truncated = 2;
+}
+
+// JobAnnotation is an annotation with the job it belongs to.
+message JobAnnotation {
+  // JobId is the RunJob.id of the job.
+  string job_id = 1;
+  // Annotation is the annotation as the runner sent it, after the server
+  // checked it. Its step_number is the step of the job.
+  Annotation annotation = 2;
+}
+
+// GetStepSummariesRequest selects a job.
+message GetStepSummariesRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // JobId is the RunJob.id.
+  string job_id = 2;
+  // Attempt is the RunJob.attempt to read. 0 means the latest.
+  int32 attempt = 3;
+}
+
+// GetStepSummariesResponse holds the summaries of a job.
+message GetStepSummariesResponse {
+  // Summaries are the summaries of the steps that have one, ordered by step
+  // number: at most 20, the first 20 steps having one.
+  repeated StepSummary summaries = 1;
+  // Truncated is true when the job has more than 20 steps with a summary and
+  // summaries holds only the first 20.
+  bool truncated = 2;
+}
+
+// StepSummary is the job summary of one step.
+message StepSummary {
+  // StepNumber is the number of the step (see Step.number).
+  int32 step_number = 1;
+  // Markdown is the summary as uploaded, at most 1 MiB. Clients render it
+  // safely: it is untrusted content (raw HTML and script URLs must not run).
+  string markdown = 2;
 }
 
 // GetJobLogRequest selects the lines to stream.

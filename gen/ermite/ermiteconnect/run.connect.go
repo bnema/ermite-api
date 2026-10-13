@@ -41,6 +41,12 @@ const (
 	RunServiceGetRunProcedure = "/ermite.RunService/GetRun"
 	// RunServiceGetJobProcedure is the fully-qualified name of the RunService's GetJob RPC.
 	RunServiceGetJobProcedure = "/ermite.RunService/GetJob"
+	// RunServiceListAnnotationsProcedure is the fully-qualified name of the RunService's
+	// ListAnnotations RPC.
+	RunServiceListAnnotationsProcedure = "/ermite.RunService/ListAnnotations"
+	// RunServiceGetStepSummariesProcedure is the fully-qualified name of the RunService's
+	// GetStepSummaries RPC.
+	RunServiceGetStepSummariesProcedure = "/ermite.RunService/GetStepSummaries"
 	// RunServiceGetJobLogProcedure is the fully-qualified name of the RunService's GetJobLog RPC.
 	RunServiceGetJobLogProcedure = "/ermite.RunService/GetJobLog"
 	// RunServiceCancelRunProcedure is the fully-qualified name of the RunService's CancelRun RPC.
@@ -70,6 +76,25 @@ type RunServiceClient interface {
 	// GetJob returns one job with its steps. Fails with not_found if the job
 	// or the attempt does not exist.
 	GetJob(context.Context, *connect.Request[ermite.GetJobRequest]) (*connect.Response[ermite.GetJobResponse], error)
+	// ListAnnotations lists the annotations of a run attempt, optionally of one
+	// job, ordered by job (as in GetRun), step number, then the order in which
+	// the step produced them. For each job it gives the annotations of the
+	// attempt in which that job executed (RunJob.attempt), which is lower than
+	// the attempt of the run for a job kept by a re-run of failed jobs only. Needs the same access as GetRun. Returns at most
+	// 1,000 annotations (truncated tells). A run without annotations gives an
+	// empty list. Only servers with the feature "ci.annotations" implement it
+	// (unimplemented otherwise). Fails with not_found if the run, the attempt or
+	// the job does not exist, or if the job is not a job of the run.
+	ListAnnotations(context.Context, *connect.Request[ermite.ListAnnotationsRequest]) (*connect.Response[ermite.ListAnnotationsResponse], error)
+	// GetStepSummaries returns the job summaries (the Markdown written to
+	// GITHUB_STEP_SUMMARY) of the steps of a job that have one, ordered by step
+	// number. Like GitHub, it returns at most 20 summaries per job: the first 20
+	// steps that have one, in step order; truncated says there are more. Needs
+	// the same access as GetJob. Only servers with the feature
+	// "ci.summaries" implement it (unimplemented otherwise). A job without
+	// summaries gives an empty list. Fails with not_found if the job or the
+	// attempt does not exist.
+	GetStepSummaries(context.Context, *connect.Request[ermite.GetStepSummariesRequest]) (*connect.Response[ermite.GetStepSummariesResponse], error)
 	// GetJobLog streams the lines of the log of a job, from a line number. The
 	// server sends them in order in messages of at most 1,000 lines and 64 KiB of
 	// text each.
@@ -148,6 +173,18 @@ func NewRunServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(runServiceMethods.ByName("GetJob")),
 			connect.WithClientOptions(opts...),
 		),
+		listAnnotations: connect.NewClient[ermite.ListAnnotationsRequest, ermite.ListAnnotationsResponse](
+			httpClient,
+			baseURL+RunServiceListAnnotationsProcedure,
+			connect.WithSchema(runServiceMethods.ByName("ListAnnotations")),
+			connect.WithClientOptions(opts...),
+		),
+		getStepSummaries: connect.NewClient[ermite.GetStepSummariesRequest, ermite.GetStepSummariesResponse](
+			httpClient,
+			baseURL+RunServiceGetStepSummariesProcedure,
+			connect.WithSchema(runServiceMethods.ByName("GetStepSummaries")),
+			connect.WithClientOptions(opts...),
+		),
 		getJobLog: connect.NewClient[ermite.GetJobLogRequest, ermite.GetJobLogResponse](
 			httpClient,
 			baseURL+RunServiceGetJobLogProcedure,
@@ -189,15 +226,17 @@ func NewRunServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // runServiceClient implements RunServiceClient.
 type runServiceClient struct {
-	listRuns     *connect.Client[ermite.ListRunsRequest, ermite.ListRunsResponse]
-	getRun       *connect.Client[ermite.GetRunRequest, ermite.GetRunResponse]
-	getJob       *connect.Client[ermite.GetJobRequest, ermite.GetJobResponse]
-	getJobLog    *connect.Client[ermite.GetJobLogRequest, ermite.GetJobLogResponse]
-	cancelRun    *connect.Client[ermite.CancelRunRequest, ermite.CancelRunResponse]
-	rerunRun     *connect.Client[ermite.RerunRunRequest, ermite.RerunRunResponse]
-	listChecks   *connect.Client[ermite.ListChecksRequest, ermite.ListChecksResponse]
-	listRunners  *connect.Client[ermite.ListRunnersRequest, ermite.ListRunnersResponse]
-	removeRunner *connect.Client[ermite.RemoveRunnerRequest, ermite.RemoveRunnerResponse]
+	listRuns         *connect.Client[ermite.ListRunsRequest, ermite.ListRunsResponse]
+	getRun           *connect.Client[ermite.GetRunRequest, ermite.GetRunResponse]
+	getJob           *connect.Client[ermite.GetJobRequest, ermite.GetJobResponse]
+	listAnnotations  *connect.Client[ermite.ListAnnotationsRequest, ermite.ListAnnotationsResponse]
+	getStepSummaries *connect.Client[ermite.GetStepSummariesRequest, ermite.GetStepSummariesResponse]
+	getJobLog        *connect.Client[ermite.GetJobLogRequest, ermite.GetJobLogResponse]
+	cancelRun        *connect.Client[ermite.CancelRunRequest, ermite.CancelRunResponse]
+	rerunRun         *connect.Client[ermite.RerunRunRequest, ermite.RerunRunResponse]
+	listChecks       *connect.Client[ermite.ListChecksRequest, ermite.ListChecksResponse]
+	listRunners      *connect.Client[ermite.ListRunnersRequest, ermite.ListRunnersResponse]
+	removeRunner     *connect.Client[ermite.RemoveRunnerRequest, ermite.RemoveRunnerResponse]
 }
 
 // ListRuns calls ermite.RunService.ListRuns.
@@ -213,6 +252,16 @@ func (c *runServiceClient) GetRun(ctx context.Context, req *connect.Request[ermi
 // GetJob calls ermite.RunService.GetJob.
 func (c *runServiceClient) GetJob(ctx context.Context, req *connect.Request[ermite.GetJobRequest]) (*connect.Response[ermite.GetJobResponse], error) {
 	return c.getJob.CallUnary(ctx, req)
+}
+
+// ListAnnotations calls ermite.RunService.ListAnnotations.
+func (c *runServiceClient) ListAnnotations(ctx context.Context, req *connect.Request[ermite.ListAnnotationsRequest]) (*connect.Response[ermite.ListAnnotationsResponse], error) {
+	return c.listAnnotations.CallUnary(ctx, req)
+}
+
+// GetStepSummaries calls ermite.RunService.GetStepSummaries.
+func (c *runServiceClient) GetStepSummaries(ctx context.Context, req *connect.Request[ermite.GetStepSummariesRequest]) (*connect.Response[ermite.GetStepSummariesResponse], error) {
+	return c.getStepSummaries.CallUnary(ctx, req)
 }
 
 // GetJobLog calls ermite.RunService.GetJobLog.
@@ -260,6 +309,25 @@ type RunServiceHandler interface {
 	// GetJob returns one job with its steps. Fails with not_found if the job
 	// or the attempt does not exist.
 	GetJob(context.Context, *connect.Request[ermite.GetJobRequest]) (*connect.Response[ermite.GetJobResponse], error)
+	// ListAnnotations lists the annotations of a run attempt, optionally of one
+	// job, ordered by job (as in GetRun), step number, then the order in which
+	// the step produced them. For each job it gives the annotations of the
+	// attempt in which that job executed (RunJob.attempt), which is lower than
+	// the attempt of the run for a job kept by a re-run of failed jobs only. Needs the same access as GetRun. Returns at most
+	// 1,000 annotations (truncated tells). A run without annotations gives an
+	// empty list. Only servers with the feature "ci.annotations" implement it
+	// (unimplemented otherwise). Fails with not_found if the run, the attempt or
+	// the job does not exist, or if the job is not a job of the run.
+	ListAnnotations(context.Context, *connect.Request[ermite.ListAnnotationsRequest]) (*connect.Response[ermite.ListAnnotationsResponse], error)
+	// GetStepSummaries returns the job summaries (the Markdown written to
+	// GITHUB_STEP_SUMMARY) of the steps of a job that have one, ordered by step
+	// number. Like GitHub, it returns at most 20 summaries per job: the first 20
+	// steps that have one, in step order; truncated says there are more. Needs
+	// the same access as GetJob. Only servers with the feature
+	// "ci.summaries" implement it (unimplemented otherwise). A job without
+	// summaries gives an empty list. Fails with not_found if the job or the
+	// attempt does not exist.
+	GetStepSummaries(context.Context, *connect.Request[ermite.GetStepSummariesRequest]) (*connect.Response[ermite.GetStepSummariesResponse], error)
 	// GetJobLog streams the lines of the log of a job, from a line number. The
 	// server sends them in order in messages of at most 1,000 lines and 64 KiB of
 	// text each.
@@ -334,6 +402,18 @@ func NewRunServiceHandler(svc RunServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(runServiceMethods.ByName("GetJob")),
 		connect.WithHandlerOptions(opts...),
 	)
+	runServiceListAnnotationsHandler := connect.NewUnaryHandler(
+		RunServiceListAnnotationsProcedure,
+		svc.ListAnnotations,
+		connect.WithSchema(runServiceMethods.ByName("ListAnnotations")),
+		connect.WithHandlerOptions(opts...),
+	)
+	runServiceGetStepSummariesHandler := connect.NewUnaryHandler(
+		RunServiceGetStepSummariesProcedure,
+		svc.GetStepSummaries,
+		connect.WithSchema(runServiceMethods.ByName("GetStepSummaries")),
+		connect.WithHandlerOptions(opts...),
+	)
 	runServiceGetJobLogHandler := connect.NewServerStreamHandler(
 		RunServiceGetJobLogProcedure,
 		svc.GetJobLog,
@@ -378,6 +458,10 @@ func NewRunServiceHandler(svc RunServiceHandler, opts ...connect.HandlerOption) 
 			runServiceGetRunHandler.ServeHTTP(w, r)
 		case RunServiceGetJobProcedure:
 			runServiceGetJobHandler.ServeHTTP(w, r)
+		case RunServiceListAnnotationsProcedure:
+			runServiceListAnnotationsHandler.ServeHTTP(w, r)
+		case RunServiceGetStepSummariesProcedure:
+			runServiceGetStepSummariesHandler.ServeHTTP(w, r)
 		case RunServiceGetJobLogProcedure:
 			runServiceGetJobLogHandler.ServeHTTP(w, r)
 		case RunServiceCancelRunProcedure:
@@ -409,6 +493,14 @@ func (UnimplementedRunServiceHandler) GetRun(context.Context, *connect.Request[e
 
 func (UnimplementedRunServiceHandler) GetJob(context.Context, *connect.Request[ermite.GetJobRequest]) (*connect.Response[ermite.GetJobResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.GetJob is not implemented"))
+}
+
+func (UnimplementedRunServiceHandler) ListAnnotations(context.Context, *connect.Request[ermite.ListAnnotationsRequest]) (*connect.Response[ermite.ListAnnotationsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.ListAnnotations is not implemented"))
+}
+
+func (UnimplementedRunServiceHandler) GetStepSummaries(context.Context, *connect.Request[ermite.GetStepSummariesRequest]) (*connect.Response[ermite.GetStepSummariesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.GetStepSummaries is not implemented"))
 }
 
 func (UnimplementedRunServiceHandler) GetJobLog(context.Context, *connect.Request[ermite.GetJobLogRequest], *connect.ServerStream[ermite.GetJobLogResponse]) error {

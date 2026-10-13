@@ -75,7 +75,11 @@ type GetVersionResponse struct {
 	// identifiers are "ci.runs" (RunService runs, jobs, logs, checks, and the
 	// run_updated and job_updated events), "ci.runs.filters" (ListRuns honours
 	// its filters) and "ci.runners" (RunnerService, and RunService.ListRunners
-	// and RemoveRunner).
+	// and RemoveRunner). The CI execution identifiers are "ci.actions"
+	// (RunnerService.ResolveActions and Job.github_token), "ci.annotations"
+	// (annotations in UpdateJob and CompleteJob, and RunService.ListAnnotations)
+	// and "ci.summaries" (RunnerService.UploadSummary and
+	// RunService.GetStepSummaries).
 	Features      []string `protobuf:"bytes,2,rep,name=features,proto3" json:"features,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

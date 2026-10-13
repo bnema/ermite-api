@@ -22,8 +22,8 @@ Handlers are mounted under `/-/api/` by the server. Errors are Connect codes.
 | `MergeRequestService` | `CreateMergeRequest`, `ListMergeRequests`, `GetMergeRequest` (commits, diff, comments), `AddComment`, `ResolveComment`, `CloseMergeRequest`, `MergeMergeRequest`, `MarkRead` |
 | `SessionService` | `CreateLoginLink`, `SignOutEverywhere` (owner only) |
 | `EventService` | `Watch` (streamed, resumable) |
-| `RunnerService` | `RegisterRunner`, `FetchJob` (long poll), `UpdateJob`, `AppendLog` (offset-idempotent), `Heartbeat`, `WatchJob` (cancel requests, streamed), `CompleteJob` (idempotent); for CI runners |
-| `RunService` | `ListRuns`, `GetRun`, `GetJob`, `GetJobLog` (streamed, follow), `CancelRun`, `RerunRun`, `ListChecks`, `ListRunners`, `RemoveRunner` |
+| `RunnerService` | `RegisterRunner`, `FetchJob` (long poll), `UpdateJob` (steps, annotations), `AppendLog` (offset-idempotent), `Heartbeat`, `WatchJob` (cancel requests, streamed), `CompleteJob` (idempotent), `ResolveActions` (where to download the `uses:` actions), `UploadSummary` (job summary of a step); for CI runners |
+| `RunService` | `ListRuns`, `GetRun`, `GetJob`, `GetJobLog` (streamed, follow), `ListAnnotations`, `GetStepSummaries`, `CancelRun`, `RerunRun`, `ListChecks`, `ListRunners`, `RemoveRunner` |
 | `ServerService` | `GetVersion` (server version and feature list), `GetSigningKey` (commit signing key) |
 
 Tokens carry scopes only; presets such as `cli` or `agent` are a client concern.

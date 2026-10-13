@@ -54,10 +54,14 @@ func TestProcedures(t *testing.T) {
 		{ermiteconnect.RunnerServiceHeartbeatProcedure, "/ermite.RunnerService/Heartbeat"},
 		{ermiteconnect.RunnerServiceWatchJobProcedure, "/ermite.RunnerService/WatchJob"},
 		{ermiteconnect.RunnerServiceCompleteJobProcedure, "/ermite.RunnerService/CompleteJob"},
+		{ermiteconnect.RunnerServiceResolveActionsProcedure, "/ermite.RunnerService/ResolveActions"},
+		{ermiteconnect.RunnerServiceUploadSummaryProcedure, "/ermite.RunnerService/UploadSummary"},
 		{ermiteconnect.RunServiceListRunsProcedure, "/ermite.RunService/ListRuns"},
 		{ermiteconnect.RunServiceGetRunProcedure, "/ermite.RunService/GetRun"},
 		{ermiteconnect.RunServiceGetJobProcedure, "/ermite.RunService/GetJob"},
 		{ermiteconnect.RunServiceGetJobLogProcedure, "/ermite.RunService/GetJobLog"},
+		{ermiteconnect.RunServiceListAnnotationsProcedure, "/ermite.RunService/ListAnnotations"},
+		{ermiteconnect.RunServiceGetStepSummariesProcedure, "/ermite.RunService/GetStepSummaries"},
 		{ermiteconnect.RunServiceCancelRunProcedure, "/ermite.RunService/CancelRun"},
 		{ermiteconnect.RunServiceRerunRunProcedure, "/ermite.RunService/RerunRun"},
 		{ermiteconnect.RunServiceListChecksProcedure, "/ermite.RunService/ListChecks"},
@@ -120,6 +124,13 @@ func TestEnumNumbers(t *testing.T) {
 		{"CANCEL_REASON_USER", int32(ermite.CancelReason_CANCEL_REASON_USER), 1},
 		{"CANCEL_REASON_FAIL_FAST", int32(ermite.CancelReason_CANCEL_REASON_FAIL_FAST), 2},
 		{"CANCEL_REASON_TIMEOUT", int32(ermite.CancelReason_CANCEL_REASON_TIMEOUT), 3},
+		{"ANNOTATION_LEVEL_UNSPECIFIED", int32(ermite.AnnotationLevel_ANNOTATION_LEVEL_UNSPECIFIED), 0},
+		{"ANNOTATION_LEVEL_NOTICE", int32(ermite.AnnotationLevel_ANNOTATION_LEVEL_NOTICE), 1},
+		{"ANNOTATION_LEVEL_WARNING", int32(ermite.AnnotationLevel_ANNOTATION_LEVEL_WARNING), 2},
+		{"ANNOTATION_LEVEL_FAILURE", int32(ermite.AnnotationLevel_ANNOTATION_LEVEL_FAILURE), 3},
+		{"ACTION_SOURCE_UNSPECIFIED", int32(ermite.ActionSource_ACTION_SOURCE_UNSPECIFIED), 0},
+		{"ACTION_SOURCE_GITHUB", int32(ermite.ActionSource_ACTION_SOURCE_GITHUB), 1},
+		{"ACTION_SOURCE_ERMITE", int32(ermite.ActionSource_ACTION_SOURCE_ERMITE), 2},
 	}
 	for _, e := range enums {
 		if e.got != e.want {
@@ -348,5 +359,94 @@ func TestRunNameField(t *testing.T) {
 	}
 	if out.GetName() != in.GetName() || out.GetWorkflowName() != "Names Workflow" {
 		t.Errorf("round trip: name %q, workflow_name %q", out.GetName(), out.GetWorkflowName())
+	}
+}
+
+// TestCI2FieldNumbers pins the numbers of the fields added for CI-2.
+func TestCI2FieldNumbers(t *testing.T) {
+	tests := []struct {
+		msg    proto.Message
+		fields map[string]int
+	}{
+		{&ermite.Job{}, map[string]int{"github_token": 15}},
+		{&ermite.UpdateJobRequest{}, map[string]int{"annotations": 3}},
+		{&ermite.CompleteJobRequest{}, map[string]int{"annotations": 6}},
+		{&ermite.StepUpdate{}, map[string]int{"outcome": 7}},
+		{&ermite.Step{}, map[string]int{"outcome": 9}},
+		{&ermite.Annotation{}, map[string]int{
+			"level": 1, "title": 2, "message": 3, "file": 4, "start_line": 5,
+			"end_line": 6, "start_column": 7, "end_column": 8, "step_number": 9,
+		}},
+		{&ermite.ActionRef{}, map[string]int{"uses": 1}},
+		{&ermite.ResolveActionsRequest{}, map[string]int{"job_id": 1, "refs": 2}},
+		{&ermite.ResolveActionsResponse{}, map[string]int{"actions": 1}},
+		{&ermite.ResolvedAction{}, map[string]int{
+			"ref": 1, "name_with_owner": 2, "path": 3, "resolved_sha": 4,
+			"tarball_url": 5, "token": 6, "source": 7, "error": 8,
+		}},
+		{&ermite.UploadSummaryRequest{}, map[string]int{"job_id": 1, "step_number": 2, "markdown": 3}},
+		{&ermite.ListAnnotationsRequest{}, map[string]int{"repo": 1, "run_id": 2, "attempt": 3, "job_id": 4}},
+		{&ermite.ListAnnotationsResponse{}, map[string]int{"annotations": 1, "truncated": 2}},
+		{&ermite.JobAnnotation{}, map[string]int{"job_id": 1, "annotation": 2}},
+		{&ermite.GetStepSummariesRequest{}, map[string]int{"repo": 1, "job_id": 2, "attempt": 3}},
+		{&ermite.GetStepSummariesResponse{}, map[string]int{"summaries": 1, "truncated": 2}},
+		{&ermite.StepSummary{}, map[string]int{"step_number": 1, "markdown": 2}},
+	}
+	for _, tt := range tests {
+		md := tt.msg.ProtoReflect().Descriptor()
+		for name, num := range tt.fields {
+			if fd := md.Fields().ByName(protoreflect.Name(name)); fd == nil || int(fd.Number()) != num {
+				t.Errorf("%s.%s: %v, want number %d", md.Name(), name, fd, num)
+			}
+		}
+	}
+}
+
+// TestCI2RoundTrip checks that the CI-2 messages survive the wire.
+func TestCI2RoundTrip(t *testing.T) {
+	msgs := []proto.Message{
+		&ermite.Job{JobId: "j1", GithubToken: "ermitegh_x"},
+		&ermite.UpdateJobRequest{
+			JobId: "j1",
+			Steps: []*ermite.StepUpdate{{
+				Number: 2, State: ermite.StepState_STEP_STATE_COMPLETED,
+				Conclusion: ermite.CiConclusion_CI_CONCLUSION_SUCCESS,
+				Outcome:    ermite.CiConclusion_CI_CONCLUSION_FAILURE,
+			}},
+			Annotations: []*ermite.Annotation{{
+				Level: ermite.AnnotationLevel_ANNOTATION_LEVEL_WARNING, Title: "t", Message: "m",
+				File: "a.go", StartLine: 1, EndLine: 2, StartColumn: 3, EndColumn: 4, StepNumber: 2,
+			}},
+		},
+		&ermite.CompleteJobRequest{
+			JobId:       "j1",
+			Conclusion:  ermite.CiConclusion_CI_CONCLUSION_SUCCESS,
+			Annotations: []*ermite.Annotation{{Level: ermite.AnnotationLevel_ANNOTATION_LEVEL_FAILURE, Message: "m", StepNumber: 3}},
+		},
+		&ermite.ResolveActionsRequest{JobId: "j1", Refs: []*ermite.ActionRef{{Uses: "actions/checkout@v4"}, {Uses: "o/r/p@main"}}},
+		&ermite.ResolveActionsResponse{Actions: []*ermite.ResolvedAction{
+			{
+				Ref: "o/r/p@main", NameWithOwner: "o/r", Path: "p", ResolvedSha: "0123456789012345678901234567890123456789",
+				TarballUrl: "https://example.test/o/r.tar.gz", Token: "t", Source: ermite.ActionSource_ACTION_SOURCE_ERMITE,
+			},
+			{Ref: "x/y@z", Error: "Unable to resolve action `x/y@z`, unable to find version `z`"},
+		}},
+		&ermite.UploadSummaryRequest{JobId: "j1", StepNumber: 2, Markdown: "# hi"},
+		&ermite.ListAnnotationsResponse{Annotations: []*ermite.JobAnnotation{{JobId: "j1", Annotation: &ermite.Annotation{Message: "m"}}}, Truncated: true},
+		&ermite.GetStepSummariesResponse{Summaries: []*ermite.StepSummary{{StepNumber: 2, Markdown: "# hi"}}, Truncated: true},
+		&ermite.RunJob{Id: "j1", Steps: []*ermite.Step{{Number: 2, Outcome: ermite.CiConclusion_CI_CONCLUSION_FAILURE}}},
+	}
+	for _, in := range msgs {
+		b, err := proto.Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := in.ProtoReflect().New().Interface()
+		if err := proto.Unmarshal(b, out); err != nil {
+			t.Fatal(err)
+		}
+		if !proto.Equal(in, out) {
+			t.Errorf("%T: round trip mismatch: %v != %v", in, out, in)
+		}
 	}
 }
