@@ -45,10 +45,14 @@ type Run struct {
 	// ".github/workflows/ci.yml".
 	WorkflowPath string `protobuf:"bytes,5,opt,name=workflow_path,json=workflowPath,proto3" json:"workflow_path,omitempty"`
 	// WorkflowName is the "name" of the workflow, or workflow_path when it has
-	// none (as GitHub does).
+	// none (as GitHub does). It is the "github.workflow" of the run and the
+	// workflow name of its checks. See name for the name of the run itself.
 	WorkflowName string `protobuf:"bytes,6,opt,name=workflow_name,json=workflowName,proto3" json:"workflow_name,omitempty"`
-	// Title is the first line of the message of the commit sha, at most 256
-	// characters (GitHub's display title).
+	// Title is GitHub's display title, at most 256 characters: the evaluated
+	// "run-name" of the workflow when it has one, else for a push to a branch
+	// the first line of the message of the commit sha, and for a push of a tag
+	// the name of the workflow registered for workflow_path (the "name" of that
+	// file on the default branch, else workflow_name).
 	Title string `protobuf:"bytes,7,opt,name=title,proto3" json:"title,omitempty"`
 	// Event is the event that triggered the run, in GitHub's name: "push" (the
 	// only one for now; push to a branch or a tag, and merge of a merge
@@ -90,7 +94,14 @@ type Run struct {
 	// one at every change and never goes back, also across attempts. Events are
 	// not delivered in order, and a client that holds two copies of a run keeps
 	// the one with the higher version and drops the other.
-	Version       int64 `protobuf:"varint,18,opt,name=version,proto3" json:"version,omitempty"`
+	Version int64 `protobuf:"varint,18,opt,name=version,proto3" json:"version,omitempty"`
+	// Name is the name of the run, GitHub's "name" of a workflow run: the
+	// evaluated "run-name" of the workflow when it has one, else the same value
+	// as workflow_name. It is what GitHub lists as the run's name, whereas
+	// workflow_name stays the name of the workflow ("github.workflow") even when
+	// the workflow has a "run-name". A run stored before this field existed
+	// reads as workflow_name.
+	Name          string `protobuf:"bytes,19,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,6 +260,13 @@ func (x *Run) GetVersion() int64 {
 		return x.Version
 	}
 	return 0
+}
+
+func (x *Run) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
 // RunJob is a job of a run as people see it: the state of one job instance
@@ -2013,7 +2031,7 @@ var File_ermite_run_proto protoreflect.FileDescriptor
 
 const file_ermite_run_proto_rawDesc = "" +
 	"\n" +
-	"\x10ermite/run.proto\x12\x06ermite\x1a\x13ermite/runner.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd0\x04\n" +
+	"\x10ermite/run.proto\x12\x06ermite\x1a\x13ermite/runner.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe4\x04\n" +
 	"\x03Run\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\x03R\x02id\x12\x16\n" +
@@ -2037,7 +2055,8 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
 	"\fcompleted_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12\x18\n" +
-	"\aversion\x18\x12 \x01(\x03R\aversion\"\x8f\x05\n" +
+	"\aversion\x18\x12 \x01(\x03R\aversion\x12\x12\n" +
+	"\x04name\x18\x13 \x01(\tR\x04name\"\x8f\x05\n" +
 	"\x06RunJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x18\n" +
