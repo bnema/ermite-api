@@ -79,7 +79,11 @@ type GetVersionResponse struct {
 	// (RunnerService.ResolveActions and Job.github_token), "ci.annotations"
 	// (annotations in UpdateJob and CompleteJob, and RunService.ListAnnotations)
 	// and "ci.summaries" (RunnerService.UploadSummary and
-	// RunService.GetStepSummaries).
+	// RunService.GetStepSummaries). The CI platform identifiers are "ci.secrets"
+	// (SecretService, VariableService and EnvironmentService, and in Job the
+	// secrets, vars, environment, permissions and trusted fields and Run.trusted),
+	// "ci.dispatch" (RunService.DispatchWorkflow), "ci.concurrency"
+	// (CI_STATUS_PENDING and RunJob.concurrency_group) and "ci.cache" (Job.cache).
 	Features      []string `protobuf:"bytes,2,rep,name=features,proto3" json:"features,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

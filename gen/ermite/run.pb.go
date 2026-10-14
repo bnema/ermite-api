@@ -54,9 +54,10 @@ type Run struct {
 	// the name of the workflow registered for workflow_path (the "name" of that
 	// file on the default branch, else workflow_name).
 	Title string `protobuf:"bytes,7,opt,name=title,proto3" json:"title,omitempty"`
-	// Event is the event that triggered the run, in GitHub's name: "push" (the
-	// only one for now; push to a branch or a tag, and merge of a merge
-	// request). New values may be added; clients show the ones they do not
+	// Event is the event that triggered the run, in GitHub's name: "push" (push
+	// to a branch or a tag, and merge of a merge request), and from servers with
+	// the matching trigger "pull_request", "workflow_dispatch", "schedule" and
+	// "workflow_run". New values may be added; clients show the ones they do not
 	// know as they are.
 	Event string `protobuf:"bytes,8,opt,name=event,proto3" json:"event,omitempty"`
 	// Ref is the full ref name that was pushed, for example "refs/heads/main"
@@ -101,7 +102,15 @@ type Run struct {
 	// workflow_name stays the name of the workflow ("github.workflow") even when
 	// the workflow has a "run-name". A run stored before this field existed
 	// reads as workflow_name.
-	Name          string `protobuf:"bytes,19,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,19,opt,name=name,proto3" json:"name,omitempty"`
+	// Trusted is true when the run may use secrets and a job token with write
+	// permissions: its actor is the owner, a "workflow_run" inherits it from the
+	// run that triggered it, and a re-run keeps it only if the original run had
+	// it and the caller of the re-run is the owner. It is false when the actor
+	// is a token limited to branches (see Job.trusted). It never goes from false
+	// to true. False for a run stored before this field existed and from servers
+	// without the feature "ci.secrets".
+	Trusted       bool `protobuf:"varint,20,opt,name=trusted,proto3" json:"trusted,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -269,6 +278,13 @@ func (x *Run) GetName() string {
 	return ""
 }
 
+func (x *Run) GetTrusted() bool {
+	if x != nil {
+		return x.Trusted
+	}
+	return false
+}
+
 // RunJob is a job of a run as people see it: the state of one job instance
 // (one matrix combination is one job) in one attempt. It is not Job, which is
 // what a runner receives.
@@ -293,7 +309,7 @@ type RunJob struct {
 	// name of the job's check.
 	Name string `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
 	// Status is where the job is. A job waits QUEUED for a runner and for the
-	// jobs it needs.
+	// jobs it needs, and PENDING for its concurrency group.
 	Status CiStatus `protobuf:"varint,7,opt,name=status,proto3,enum=ermite.CiStatus" json:"status,omitempty"`
 	// Conclusion is how the job ended. Unset until status is COMPLETED.
 	Conclusion CiConclusion `protobuf:"varint,8,opt,name=conclusion,proto3,enum=ermite.CiConclusion" json:"conclusion,omitempty"`
@@ -331,9 +347,15 @@ type RunJob struct {
 	// runner, steps, with any attempt): it grows by at least one at every change
 	// and never goes back. A client that holds two copies of a job keeps the
 	// one with the higher version and drops the other, as for Run.version.
-	Version       int64 `protobuf:"varint,19,opt,name=version,proto3" json:"version,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Version int64 `protobuf:"varint,19,opt,name=version,proto3" json:"version,omitempty"`
+	// ConcurrencyGroup is the evaluated concurrency group of the job (its
+	// "concurrency:", or the one of its workflow), compared without regard to
+	// case within the repository. Empty when the job has none and from servers
+	// without the feature "ci.concurrency". The job is PENDING while another job
+	// of the group runs or a newer one is waiting.
+	ConcurrencyGroup string `protobuf:"bytes,20,opt,name=concurrency_group,json=concurrencyGroup,proto3" json:"concurrency_group,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *RunJob) Reset() {
@@ -497,6 +519,13 @@ func (x *RunJob) GetVersion() int64 {
 		return x.Version
 	}
 	return 0
+}
+
+func (x *RunJob) GetConcurrencyGroup() string {
+	if x != nil {
+		return x.ConcurrencyGroup
+	}
+	return ""
 }
 
 // Step is one step of a job, with where its lines are in the job log.
@@ -2096,6 +2125,129 @@ func (x *RerunRunResponse) GetRun() *Run {
 	return nil
 }
 
+// DispatchWorkflowRequest names the workflow to run and its inputs.
+type DispatchWorkflowRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Repo is the repository name.
+	Repo string `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	// WorkflowPath is the path of the workflow file at ref, for example
+	// ".github/workflows/ci.yml", or its file name ("ci.yml").
+	WorkflowPath string `protobuf:"bytes,2,opt,name=workflow_path,json=workflowPath,proto3" json:"workflow_path,omitempty"`
+	// Ref is the branch or tag to run on, by short name ("main") or full name
+	// ("refs/heads/main"). Empty means the default branch of the repository.
+	Ref string `protobuf:"bytes,3,opt,name=ref,proto3" json:"ref,omitempty"`
+	// Inputs are the values of the "inputs" of the workflow's
+	// "workflow_dispatch" by name, as strings: a boolean is "true" or "false", a
+	// number its decimal text. An input left out takes its default.
+	Inputs        map[string]string `protobuf:"bytes,4,rep,name=inputs,proto3" json:"inputs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DispatchWorkflowRequest) Reset() {
+	*x = DispatchWorkflowRequest{}
+	mi := &file_ermite_run_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DispatchWorkflowRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DispatchWorkflowRequest) ProtoMessage() {}
+
+func (x *DispatchWorkflowRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_run_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DispatchWorkflowRequest.ProtoReflect.Descriptor instead.
+func (*DispatchWorkflowRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_run_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *DispatchWorkflowRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *DispatchWorkflowRequest) GetWorkflowPath() string {
+	if x != nil {
+		return x.WorkflowPath
+	}
+	return ""
+}
+
+func (x *DispatchWorkflowRequest) GetRef() string {
+	if x != nil {
+		return x.Ref
+	}
+	return ""
+}
+
+func (x *DispatchWorkflowRequest) GetInputs() map[string]string {
+	if x != nil {
+		return x.Inputs
+	}
+	return nil
+}
+
+// DispatchWorkflowResponse holds the new run.
+type DispatchWorkflowResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Run is the new run, QUEUED, attempt 1.
+	Run           *Run `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DispatchWorkflowResponse) Reset() {
+	*x = DispatchWorkflowResponse{}
+	mi := &file_ermite_run_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DispatchWorkflowResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DispatchWorkflowResponse) ProtoMessage() {}
+
+func (x *DispatchWorkflowResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_run_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DispatchWorkflowResponse.ProtoReflect.Descriptor instead.
+func (*DispatchWorkflowResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_run_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *DispatchWorkflowResponse) GetRun() *Run {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
 // ListChecksRequest names the commit.
 type ListChecksRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -2110,7 +2262,7 @@ type ListChecksRequest struct {
 
 func (x *ListChecksRequest) Reset() {
 	*x = ListChecksRequest{}
-	mi := &file_ermite_run_proto_msgTypes[24]
+	mi := &file_ermite_run_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2122,7 +2274,7 @@ func (x *ListChecksRequest) String() string {
 func (*ListChecksRequest) ProtoMessage() {}
 
 func (x *ListChecksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[24]
+	mi := &file_ermite_run_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2135,7 +2287,7 @@ func (x *ListChecksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChecksRequest.ProtoReflect.Descriptor instead.
 func (*ListChecksRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{24}
+	return file_ermite_run_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListChecksRequest) GetRepo() string {
@@ -2166,7 +2318,7 @@ type ListChecksResponse struct {
 
 func (x *ListChecksResponse) Reset() {
 	*x = ListChecksResponse{}
-	mi := &file_ermite_run_proto_msgTypes[25]
+	mi := &file_ermite_run_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2178,7 +2330,7 @@ func (x *ListChecksResponse) String() string {
 func (*ListChecksResponse) ProtoMessage() {}
 
 func (x *ListChecksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[25]
+	mi := &file_ermite_run_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2191,7 +2343,7 @@ func (x *ListChecksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChecksResponse.ProtoReflect.Descriptor instead.
 func (*ListChecksResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{25}
+	return file_ermite_run_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListChecksResponse) GetChecks() []*Check {
@@ -2222,7 +2374,7 @@ type ListRunnersRequest struct {
 
 func (x *ListRunnersRequest) Reset() {
 	*x = ListRunnersRequest{}
-	mi := &file_ermite_run_proto_msgTypes[26]
+	mi := &file_ermite_run_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2234,7 +2386,7 @@ func (x *ListRunnersRequest) String() string {
 func (*ListRunnersRequest) ProtoMessage() {}
 
 func (x *ListRunnersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[26]
+	mi := &file_ermite_run_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2247,7 +2399,7 @@ func (x *ListRunnersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunnersRequest.ProtoReflect.Descriptor instead.
 func (*ListRunnersRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{26}
+	return file_ermite_run_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListRunnersRequest) GetPageSize() int32 {
@@ -2278,7 +2430,7 @@ type ListRunnersResponse struct {
 
 func (x *ListRunnersResponse) Reset() {
 	*x = ListRunnersResponse{}
-	mi := &file_ermite_run_proto_msgTypes[27]
+	mi := &file_ermite_run_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2290,7 +2442,7 @@ func (x *ListRunnersResponse) String() string {
 func (*ListRunnersResponse) ProtoMessage() {}
 
 func (x *ListRunnersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[27]
+	mi := &file_ermite_run_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2303,7 +2455,7 @@ func (x *ListRunnersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunnersResponse.ProtoReflect.Descriptor instead.
 func (*ListRunnersResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{27}
+	return file_ermite_run_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListRunnersResponse) GetRunners() []*Runner {
@@ -2331,7 +2483,7 @@ type RemoveRunnerRequest struct {
 
 func (x *RemoveRunnerRequest) Reset() {
 	*x = RemoveRunnerRequest{}
-	mi := &file_ermite_run_proto_msgTypes[28]
+	mi := &file_ermite_run_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2343,7 +2495,7 @@ func (x *RemoveRunnerRequest) String() string {
 func (*RemoveRunnerRequest) ProtoMessage() {}
 
 func (x *RemoveRunnerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[28]
+	mi := &file_ermite_run_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2356,7 +2508,7 @@ func (x *RemoveRunnerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveRunnerRequest.ProtoReflect.Descriptor instead.
 func (*RemoveRunnerRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{28}
+	return file_ermite_run_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *RemoveRunnerRequest) GetRunnerId() string {
@@ -2375,7 +2527,7 @@ type RemoveRunnerResponse struct {
 
 func (x *RemoveRunnerResponse) Reset() {
 	*x = RemoveRunnerResponse{}
-	mi := &file_ermite_run_proto_msgTypes[29]
+	mi := &file_ermite_run_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2387,7 +2539,7 @@ func (x *RemoveRunnerResponse) String() string {
 func (*RemoveRunnerResponse) ProtoMessage() {}
 
 func (x *RemoveRunnerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_run_proto_msgTypes[29]
+	mi := &file_ermite_run_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2400,14 +2552,14 @@ func (x *RemoveRunnerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveRunnerResponse.ProtoReflect.Descriptor instead.
 func (*RemoveRunnerResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_run_proto_rawDescGZIP(), []int{29}
+	return file_ermite_run_proto_rawDescGZIP(), []int{31}
 }
 
 var File_ermite_run_proto protoreflect.FileDescriptor
 
 const file_ermite_run_proto_rawDesc = "" +
 	"\n" +
-	"\x10ermite/run.proto\x12\x06ermite\x1a\x13ermite/runner.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe4\x04\n" +
+	"\x10ermite/run.proto\x12\x06ermite\x1a\x13ermite/runner.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfe\x04\n" +
 	"\x03Run\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\x03R\x02id\x12\x16\n" +
@@ -2432,7 +2584,8 @@ const file_ermite_run_proto_rawDesc = "" +
 	"started_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
 	"\fcompleted_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12\x18\n" +
 	"\aversion\x18\x12 \x01(\x03R\aversion\x12\x12\n" +
-	"\x04name\x18\x13 \x01(\tR\x04name\"\x8f\x05\n" +
+	"\x04name\x18\x13 \x01(\tR\x04name\x12\x18\n" +
+	"\atrusted\x18\x14 \x01(\bR\atrusted\"\xbc\x05\n" +
 	"\x06RunJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x18\n" +
@@ -2458,7 +2611,8 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
 	"\fcompleted_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12\x18\n" +
-	"\aversion\x18\x13 \x01(\x03R\aversion\"\xf1\x02\n" +
+	"\aversion\x18\x13 \x01(\x03R\aversion\x12+\n" +
+	"\x11concurrency_group\x18\x14 \x01(\tR\x10concurrencyGroup\"\xf1\x02\n" +
 	"\x04Step\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
@@ -2576,6 +2730,16 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\vfailed_only\x18\x03 \x01(\bR\n" +
 	"failedOnly\"1\n" +
 	"\x10RerunRunResponse\x12\x1d\n" +
+	"\x03run\x18\x01 \x01(\v2\v.ermite.RunR\x03run\"\xe4\x01\n" +
+	"\x17DispatchWorkflowRequest\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12#\n" +
+	"\rworkflow_path\x18\x02 \x01(\tR\fworkflowPath\x12\x10\n" +
+	"\x03ref\x18\x03 \x01(\tR\x03ref\x12C\n" +
+	"\x06inputs\x18\x04 \x03(\v2+.ermite.DispatchWorkflowRequest.InputsEntryR\x06inputs\x1a9\n" +
+	"\vInputsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"9\n" +
+	"\x18DispatchWorkflowResponse\x12\x1d\n" +
 	"\x03run\x18\x01 \x01(\v2\v.ermite.RunR\x03run\"9\n" +
 	"\x11ListChecksRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x10\n" +
@@ -2592,7 +2756,7 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"2\n" +
 	"\x13RemoveRunnerRequest\x12\x1b\n" +
 	"\trunner_id\x18\x01 \x01(\tR\brunnerId\"\x16\n" +
-	"\x14RemoveRunnerResponse2\x85\x06\n" +
+	"\x14RemoveRunnerResponse2\xdc\x06\n" +
 	"\n" +
 	"RunService\x12=\n" +
 	"\bListRuns\x12\x17.ermite.ListRunsRequest\x1a\x18.ermite.ListRunsResponse\x127\n" +
@@ -2602,7 +2766,8 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\x10GetStepSummaries\x12\x1f.ermite.GetStepSummariesRequest\x1a .ermite.GetStepSummariesResponse\x12B\n" +
 	"\tGetJobLog\x12\x18.ermite.GetJobLogRequest\x1a\x19.ermite.GetJobLogResponse0\x01\x12@\n" +
 	"\tCancelRun\x12\x18.ermite.CancelRunRequest\x1a\x19.ermite.CancelRunResponse\x12=\n" +
-	"\bRerunRun\x12\x17.ermite.RerunRunRequest\x1a\x18.ermite.RerunRunResponse\x12C\n" +
+	"\bRerunRun\x12\x17.ermite.RerunRunRequest\x1a\x18.ermite.RerunRunResponse\x12U\n" +
+	"\x10DispatchWorkflow\x12\x1f.ermite.DispatchWorkflowRequest\x1a .ermite.DispatchWorkflowResponse\x12C\n" +
 	"\n" +
 	"ListChecks\x12\x19.ermite.ListChecksRequest\x1a\x1a.ermite.ListChecksResponse\x12F\n" +
 	"\vListRunners\x12\x1a.ermite.ListRunnersRequest\x1a\x1b.ermite.ListRunnersResponse\x12I\n" +
@@ -2622,7 +2787,7 @@ func file_ermite_run_proto_rawDescGZIP() []byte {
 	return file_ermite_run_proto_rawDescData
 }
 
-var file_ermite_run_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_ermite_run_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_ermite_run_proto_goTypes = []any{
 	(*Run)(nil),                      // 0: ermite.Run
 	(*RunJob)(nil),                   // 1: ermite.RunJob
@@ -2648,85 +2813,92 @@ var file_ermite_run_proto_goTypes = []any{
 	(*CancelRunResponse)(nil),        // 21: ermite.CancelRunResponse
 	(*RerunRunRequest)(nil),          // 22: ermite.RerunRunRequest
 	(*RerunRunResponse)(nil),         // 23: ermite.RerunRunResponse
-	(*ListChecksRequest)(nil),        // 24: ermite.ListChecksRequest
-	(*ListChecksResponse)(nil),       // 25: ermite.ListChecksResponse
-	(*ListRunnersRequest)(nil),       // 26: ermite.ListRunnersRequest
-	(*ListRunnersResponse)(nil),      // 27: ermite.ListRunnersResponse
-	(*RemoveRunnerRequest)(nil),      // 28: ermite.RemoveRunnerRequest
-	(*RemoveRunnerResponse)(nil),     // 29: ermite.RemoveRunnerResponse
-	(CiStatus)(0),                    // 30: ermite.CiStatus
-	(CiConclusion)(0),                // 31: ermite.CiConclusion
-	(*timestamppb.Timestamp)(nil),    // 32: google.protobuf.Timestamp
-	(RunnerIsolation)(0),             // 33: ermite.RunnerIsolation
-	(StepState)(0),                   // 34: ermite.StepState
-	(*Annotation)(nil),               // 35: ermite.Annotation
+	(*DispatchWorkflowRequest)(nil),  // 24: ermite.DispatchWorkflowRequest
+	(*DispatchWorkflowResponse)(nil), // 25: ermite.DispatchWorkflowResponse
+	(*ListChecksRequest)(nil),        // 26: ermite.ListChecksRequest
+	(*ListChecksResponse)(nil),       // 27: ermite.ListChecksResponse
+	(*ListRunnersRequest)(nil),       // 28: ermite.ListRunnersRequest
+	(*ListRunnersResponse)(nil),      // 29: ermite.ListRunnersResponse
+	(*RemoveRunnerRequest)(nil),      // 30: ermite.RemoveRunnerRequest
+	(*RemoveRunnerResponse)(nil),     // 31: ermite.RemoveRunnerResponse
+	nil,                              // 32: ermite.DispatchWorkflowRequest.InputsEntry
+	(CiStatus)(0),                    // 33: ermite.CiStatus
+	(CiConclusion)(0),                // 34: ermite.CiConclusion
+	(*timestamppb.Timestamp)(nil),    // 35: google.protobuf.Timestamp
+	(RunnerIsolation)(0),             // 36: ermite.RunnerIsolation
+	(StepState)(0),                   // 37: ermite.StepState
+	(*Annotation)(nil),               // 38: ermite.Annotation
 }
 var file_ermite_run_proto_depIdxs = []int32{
-	30, // 0: ermite.Run.status:type_name -> ermite.CiStatus
-	31, // 1: ermite.Run.conclusion:type_name -> ermite.CiConclusion
-	32, // 2: ermite.Run.created_at:type_name -> google.protobuf.Timestamp
-	32, // 3: ermite.Run.started_at:type_name -> google.protobuf.Timestamp
-	32, // 4: ermite.Run.completed_at:type_name -> google.protobuf.Timestamp
-	30, // 5: ermite.RunJob.status:type_name -> ermite.CiStatus
-	31, // 6: ermite.RunJob.conclusion:type_name -> ermite.CiConclusion
-	33, // 7: ermite.RunJob.isolation:type_name -> ermite.RunnerIsolation
+	33, // 0: ermite.Run.status:type_name -> ermite.CiStatus
+	34, // 1: ermite.Run.conclusion:type_name -> ermite.CiConclusion
+	35, // 2: ermite.Run.created_at:type_name -> google.protobuf.Timestamp
+	35, // 3: ermite.Run.started_at:type_name -> google.protobuf.Timestamp
+	35, // 4: ermite.Run.completed_at:type_name -> google.protobuf.Timestamp
+	33, // 5: ermite.RunJob.status:type_name -> ermite.CiStatus
+	34, // 6: ermite.RunJob.conclusion:type_name -> ermite.CiConclusion
+	36, // 7: ermite.RunJob.isolation:type_name -> ermite.RunnerIsolation
 	2,  // 8: ermite.RunJob.steps:type_name -> ermite.Step
-	32, // 9: ermite.RunJob.created_at:type_name -> google.protobuf.Timestamp
-	32, // 10: ermite.RunJob.started_at:type_name -> google.protobuf.Timestamp
-	32, // 11: ermite.RunJob.completed_at:type_name -> google.protobuf.Timestamp
-	34, // 12: ermite.Step.state:type_name -> ermite.StepState
-	31, // 13: ermite.Step.conclusion:type_name -> ermite.CiConclusion
-	32, // 14: ermite.Step.started_at:type_name -> google.protobuf.Timestamp
-	32, // 15: ermite.Step.completed_at:type_name -> google.protobuf.Timestamp
-	31, // 16: ermite.Step.outcome:type_name -> ermite.CiConclusion
-	30, // 17: ermite.Check.status:type_name -> ermite.CiStatus
-	31, // 18: ermite.Check.conclusion:type_name -> ermite.CiConclusion
-	32, // 19: ermite.Check.started_at:type_name -> google.protobuf.Timestamp
-	32, // 20: ermite.Check.completed_at:type_name -> google.protobuf.Timestamp
-	33, // 21: ermite.Runner.isolation:type_name -> ermite.RunnerIsolation
-	32, // 22: ermite.Runner.registered_at:type_name -> google.protobuf.Timestamp
-	32, // 23: ermite.Runner.last_seen:type_name -> google.protobuf.Timestamp
-	30, // 24: ermite.ListRunsRequest.status:type_name -> ermite.CiStatus
+	35, // 9: ermite.RunJob.created_at:type_name -> google.protobuf.Timestamp
+	35, // 10: ermite.RunJob.started_at:type_name -> google.protobuf.Timestamp
+	35, // 11: ermite.RunJob.completed_at:type_name -> google.protobuf.Timestamp
+	37, // 12: ermite.Step.state:type_name -> ermite.StepState
+	34, // 13: ermite.Step.conclusion:type_name -> ermite.CiConclusion
+	35, // 14: ermite.Step.started_at:type_name -> google.protobuf.Timestamp
+	35, // 15: ermite.Step.completed_at:type_name -> google.protobuf.Timestamp
+	34, // 16: ermite.Step.outcome:type_name -> ermite.CiConclusion
+	33, // 17: ermite.Check.status:type_name -> ermite.CiStatus
+	34, // 18: ermite.Check.conclusion:type_name -> ermite.CiConclusion
+	35, // 19: ermite.Check.started_at:type_name -> google.protobuf.Timestamp
+	35, // 20: ermite.Check.completed_at:type_name -> google.protobuf.Timestamp
+	36, // 21: ermite.Runner.isolation:type_name -> ermite.RunnerIsolation
+	35, // 22: ermite.Runner.registered_at:type_name -> google.protobuf.Timestamp
+	35, // 23: ermite.Runner.last_seen:type_name -> google.protobuf.Timestamp
+	33, // 24: ermite.ListRunsRequest.status:type_name -> ermite.CiStatus
 	0,  // 25: ermite.ListRunsResponse.runs:type_name -> ermite.Run
 	0,  // 26: ermite.GetRunResponse.run:type_name -> ermite.Run
 	1,  // 27: ermite.GetRunResponse.jobs:type_name -> ermite.RunJob
 	1,  // 28: ermite.GetJobResponse.job:type_name -> ermite.RunJob
 	13, // 29: ermite.ListAnnotationsResponse.annotations:type_name -> ermite.JobAnnotation
-	35, // 30: ermite.JobAnnotation.annotation:type_name -> ermite.Annotation
+	38, // 30: ermite.JobAnnotation.annotation:type_name -> ermite.Annotation
 	16, // 31: ermite.GetStepSummariesResponse.summaries:type_name -> ermite.StepSummary
 	19, // 32: ermite.GetJobLogResponse.lines:type_name -> ermite.JobLogLine
-	32, // 33: ermite.JobLogLine.time:type_name -> google.protobuf.Timestamp
+	35, // 33: ermite.JobLogLine.time:type_name -> google.protobuf.Timestamp
 	0,  // 34: ermite.CancelRunResponse.run:type_name -> ermite.Run
 	0,  // 35: ermite.RerunRunResponse.run:type_name -> ermite.Run
-	3,  // 36: ermite.ListChecksResponse.checks:type_name -> ermite.Check
-	4,  // 37: ermite.ListRunnersResponse.runners:type_name -> ermite.Runner
-	5,  // 38: ermite.RunService.ListRuns:input_type -> ermite.ListRunsRequest
-	7,  // 39: ermite.RunService.GetRun:input_type -> ermite.GetRunRequest
-	9,  // 40: ermite.RunService.GetJob:input_type -> ermite.GetJobRequest
-	11, // 41: ermite.RunService.ListAnnotations:input_type -> ermite.ListAnnotationsRequest
-	14, // 42: ermite.RunService.GetStepSummaries:input_type -> ermite.GetStepSummariesRequest
-	17, // 43: ermite.RunService.GetJobLog:input_type -> ermite.GetJobLogRequest
-	20, // 44: ermite.RunService.CancelRun:input_type -> ermite.CancelRunRequest
-	22, // 45: ermite.RunService.RerunRun:input_type -> ermite.RerunRunRequest
-	24, // 46: ermite.RunService.ListChecks:input_type -> ermite.ListChecksRequest
-	26, // 47: ermite.RunService.ListRunners:input_type -> ermite.ListRunnersRequest
-	28, // 48: ermite.RunService.RemoveRunner:input_type -> ermite.RemoveRunnerRequest
-	6,  // 49: ermite.RunService.ListRuns:output_type -> ermite.ListRunsResponse
-	8,  // 50: ermite.RunService.GetRun:output_type -> ermite.GetRunResponse
-	10, // 51: ermite.RunService.GetJob:output_type -> ermite.GetJobResponse
-	12, // 52: ermite.RunService.ListAnnotations:output_type -> ermite.ListAnnotationsResponse
-	15, // 53: ermite.RunService.GetStepSummaries:output_type -> ermite.GetStepSummariesResponse
-	18, // 54: ermite.RunService.GetJobLog:output_type -> ermite.GetJobLogResponse
-	21, // 55: ermite.RunService.CancelRun:output_type -> ermite.CancelRunResponse
-	23, // 56: ermite.RunService.RerunRun:output_type -> ermite.RerunRunResponse
-	25, // 57: ermite.RunService.ListChecks:output_type -> ermite.ListChecksResponse
-	27, // 58: ermite.RunService.ListRunners:output_type -> ermite.ListRunnersResponse
-	29, // 59: ermite.RunService.RemoveRunner:output_type -> ermite.RemoveRunnerResponse
-	49, // [49:60] is the sub-list for method output_type
-	38, // [38:49] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	32, // 36: ermite.DispatchWorkflowRequest.inputs:type_name -> ermite.DispatchWorkflowRequest.InputsEntry
+	0,  // 37: ermite.DispatchWorkflowResponse.run:type_name -> ermite.Run
+	3,  // 38: ermite.ListChecksResponse.checks:type_name -> ermite.Check
+	4,  // 39: ermite.ListRunnersResponse.runners:type_name -> ermite.Runner
+	5,  // 40: ermite.RunService.ListRuns:input_type -> ermite.ListRunsRequest
+	7,  // 41: ermite.RunService.GetRun:input_type -> ermite.GetRunRequest
+	9,  // 42: ermite.RunService.GetJob:input_type -> ermite.GetJobRequest
+	11, // 43: ermite.RunService.ListAnnotations:input_type -> ermite.ListAnnotationsRequest
+	14, // 44: ermite.RunService.GetStepSummaries:input_type -> ermite.GetStepSummariesRequest
+	17, // 45: ermite.RunService.GetJobLog:input_type -> ermite.GetJobLogRequest
+	20, // 46: ermite.RunService.CancelRun:input_type -> ermite.CancelRunRequest
+	22, // 47: ermite.RunService.RerunRun:input_type -> ermite.RerunRunRequest
+	24, // 48: ermite.RunService.DispatchWorkflow:input_type -> ermite.DispatchWorkflowRequest
+	26, // 49: ermite.RunService.ListChecks:input_type -> ermite.ListChecksRequest
+	28, // 50: ermite.RunService.ListRunners:input_type -> ermite.ListRunnersRequest
+	30, // 51: ermite.RunService.RemoveRunner:input_type -> ermite.RemoveRunnerRequest
+	6,  // 52: ermite.RunService.ListRuns:output_type -> ermite.ListRunsResponse
+	8,  // 53: ermite.RunService.GetRun:output_type -> ermite.GetRunResponse
+	10, // 54: ermite.RunService.GetJob:output_type -> ermite.GetJobResponse
+	12, // 55: ermite.RunService.ListAnnotations:output_type -> ermite.ListAnnotationsResponse
+	15, // 56: ermite.RunService.GetStepSummaries:output_type -> ermite.GetStepSummariesResponse
+	18, // 57: ermite.RunService.GetJobLog:output_type -> ermite.GetJobLogResponse
+	21, // 58: ermite.RunService.CancelRun:output_type -> ermite.CancelRunResponse
+	23, // 59: ermite.RunService.RerunRun:output_type -> ermite.RerunRunResponse
+	25, // 60: ermite.RunService.DispatchWorkflow:output_type -> ermite.DispatchWorkflowResponse
+	27, // 61: ermite.RunService.ListChecks:output_type -> ermite.ListChecksResponse
+	29, // 62: ermite.RunService.ListRunners:output_type -> ermite.ListRunnersResponse
+	31, // 63: ermite.RunService.RemoveRunner:output_type -> ermite.RemoveRunnerResponse
+	52, // [52:64] is the sub-list for method output_type
+	40, // [40:52] is the sub-list for method input_type
+	40, // [40:40] is the sub-list for extension type_name
+	40, // [40:40] is the sub-list for extension extendee
+	0,  // [0:40] is the sub-list for field type_name
 }
 
 func init() { file_ermite_run_proto_init() }
@@ -2741,7 +2913,7 @@ func file_ermite_run_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_run_proto_rawDesc), len(file_ermite_run_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   30,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

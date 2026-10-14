@@ -53,6 +53,9 @@ const (
 	RunServiceCancelRunProcedure = "/ermite.RunService/CancelRun"
 	// RunServiceRerunRunProcedure is the fully-qualified name of the RunService's RerunRun RPC.
 	RunServiceRerunRunProcedure = "/ermite.RunService/RerunRun"
+	// RunServiceDispatchWorkflowProcedure is the fully-qualified name of the RunService's
+	// DispatchWorkflow RPC.
+	RunServiceDispatchWorkflowProcedure = "/ermite.RunService/DispatchWorkflow"
 	// RunServiceListChecksProcedure is the fully-qualified name of the RunService's ListChecks RPC.
 	RunServiceListChecksProcedure = "/ermite.RunService/ListChecks"
 	// RunServiceListRunnersProcedure is the fully-qualified name of the RunService's ListRunners RPC.
@@ -127,6 +130,21 @@ type RunServiceClient interface {
 	// with failed_precondition if the latest attempt has not completed, or if
 	// failed_only is set and no job failed. The new attempt is returned QUEUED.
 	RerunRun(context.Context, *connect.Request[ermite.RerunRunRequest]) (*connect.Response[ermite.RerunRunResponse], error)
+	// DispatchWorkflow starts a run of a workflow file by hand, like `gh
+	// workflow run` and GitHub's "workflow_dispatch" event. Needs the ci:write
+	// scope on the repository. The workflow is read at ref and must have
+	// "workflow_dispatch" among its events. The run has event
+	// "workflow_dispatch", ref and the commit ref points to, and the caller as
+	// actor; it is trusted when the caller is the owner and not trusted when the
+	// caller is a token limited to branches. The run is returned QUEUED, before
+	// any job has been given to a runner. Only servers with the feature
+	// "ci.dispatch" implement it (unimplemented otherwise). Fails with
+	// not_found if the repository, the workflow file or ref does not exist,
+	// with failed_precondition if the workflow does not declare
+	// "workflow_dispatch", and with invalid_argument if an input is unknown, is
+	// missing while required without default, or has a value of the wrong type
+	// or outside its choices, or if the workflow file is not valid.
+	DispatchWorkflow(context.Context, *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error)
 	// ListChecks lists the checks of a commit: for each job of each run on that
 	// sha, the one of the latest attempt, ordered by creation time then name.
 	// A commit without a run has no check: the list is empty, which is not an
@@ -203,6 +221,12 @@ func NewRunServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(runServiceMethods.ByName("RerunRun")),
 			connect.WithClientOptions(opts...),
 		),
+		dispatchWorkflow: connect.NewClient[ermite.DispatchWorkflowRequest, ermite.DispatchWorkflowResponse](
+			httpClient,
+			baseURL+RunServiceDispatchWorkflowProcedure,
+			connect.WithSchema(runServiceMethods.ByName("DispatchWorkflow")),
+			connect.WithClientOptions(opts...),
+		),
 		listChecks: connect.NewClient[ermite.ListChecksRequest, ermite.ListChecksResponse](
 			httpClient,
 			baseURL+RunServiceListChecksProcedure,
@@ -234,6 +258,7 @@ type runServiceClient struct {
 	getJobLog        *connect.Client[ermite.GetJobLogRequest, ermite.GetJobLogResponse]
 	cancelRun        *connect.Client[ermite.CancelRunRequest, ermite.CancelRunResponse]
 	rerunRun         *connect.Client[ermite.RerunRunRequest, ermite.RerunRunResponse]
+	dispatchWorkflow *connect.Client[ermite.DispatchWorkflowRequest, ermite.DispatchWorkflowResponse]
 	listChecks       *connect.Client[ermite.ListChecksRequest, ermite.ListChecksResponse]
 	listRunners      *connect.Client[ermite.ListRunnersRequest, ermite.ListRunnersResponse]
 	removeRunner     *connect.Client[ermite.RemoveRunnerRequest, ermite.RemoveRunnerResponse]
@@ -277,6 +302,11 @@ func (c *runServiceClient) CancelRun(ctx context.Context, req *connect.Request[e
 // RerunRun calls ermite.RunService.RerunRun.
 func (c *runServiceClient) RerunRun(ctx context.Context, req *connect.Request[ermite.RerunRunRequest]) (*connect.Response[ermite.RerunRunResponse], error) {
 	return c.rerunRun.CallUnary(ctx, req)
+}
+
+// DispatchWorkflow calls ermite.RunService.DispatchWorkflow.
+func (c *runServiceClient) DispatchWorkflow(ctx context.Context, req *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error) {
+	return c.dispatchWorkflow.CallUnary(ctx, req)
 }
 
 // ListChecks calls ermite.RunService.ListChecks.
@@ -360,6 +390,21 @@ type RunServiceHandler interface {
 	// with failed_precondition if the latest attempt has not completed, or if
 	// failed_only is set and no job failed. The new attempt is returned QUEUED.
 	RerunRun(context.Context, *connect.Request[ermite.RerunRunRequest]) (*connect.Response[ermite.RerunRunResponse], error)
+	// DispatchWorkflow starts a run of a workflow file by hand, like `gh
+	// workflow run` and GitHub's "workflow_dispatch" event. Needs the ci:write
+	// scope on the repository. The workflow is read at ref and must have
+	// "workflow_dispatch" among its events. The run has event
+	// "workflow_dispatch", ref and the commit ref points to, and the caller as
+	// actor; it is trusted when the caller is the owner and not trusted when the
+	// caller is a token limited to branches. The run is returned QUEUED, before
+	// any job has been given to a runner. Only servers with the feature
+	// "ci.dispatch" implement it (unimplemented otherwise). Fails with
+	// not_found if the repository, the workflow file or ref does not exist,
+	// with failed_precondition if the workflow does not declare
+	// "workflow_dispatch", and with invalid_argument if an input is unknown, is
+	// missing while required without default, or has a value of the wrong type
+	// or outside its choices, or if the workflow file is not valid.
+	DispatchWorkflow(context.Context, *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error)
 	// ListChecks lists the checks of a commit: for each job of each run on that
 	// sha, the one of the latest attempt, ordered by creation time then name.
 	// A commit without a run has no check: the list is empty, which is not an
@@ -432,6 +477,12 @@ func NewRunServiceHandler(svc RunServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(runServiceMethods.ByName("RerunRun")),
 		connect.WithHandlerOptions(opts...),
 	)
+	runServiceDispatchWorkflowHandler := connect.NewUnaryHandler(
+		RunServiceDispatchWorkflowProcedure,
+		svc.DispatchWorkflow,
+		connect.WithSchema(runServiceMethods.ByName("DispatchWorkflow")),
+		connect.WithHandlerOptions(opts...),
+	)
 	runServiceListChecksHandler := connect.NewUnaryHandler(
 		RunServiceListChecksProcedure,
 		svc.ListChecks,
@@ -468,6 +519,8 @@ func NewRunServiceHandler(svc RunServiceHandler, opts ...connect.HandlerOption) 
 			runServiceCancelRunHandler.ServeHTTP(w, r)
 		case RunServiceRerunRunProcedure:
 			runServiceRerunRunHandler.ServeHTTP(w, r)
+		case RunServiceDispatchWorkflowProcedure:
+			runServiceDispatchWorkflowHandler.ServeHTTP(w, r)
 		case RunServiceListChecksProcedure:
 			runServiceListChecksHandler.ServeHTTP(w, r)
 		case RunServiceListRunnersProcedure:
@@ -513,6 +566,10 @@ func (UnimplementedRunServiceHandler) CancelRun(context.Context, *connect.Reques
 
 func (UnimplementedRunServiceHandler) RerunRun(context.Context, *connect.Request[ermite.RerunRunRequest]) (*connect.Response[ermite.RerunRunResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.RerunRun is not implemented"))
+}
+
+func (UnimplementedRunServiceHandler) DispatchWorkflow(context.Context, *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.DispatchWorkflow is not implemented"))
 }
 
 func (UnimplementedRunServiceHandler) ListChecks(context.Context, *connect.Request[ermite.ListChecksRequest]) (*connect.Response[ermite.ListChecksResponse], error) {

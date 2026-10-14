@@ -39,6 +39,11 @@ const (
 	CiStatus_CI_STATUS_IN_PROGRESS CiStatus = 2
 	// Over. The conclusion says how it ended.
 	CiStatus_CI_STATUS_COMPLETED CiStatus = 3
+	// Held back by a concurrency group: another run or job of the group is
+	// running, or a newer one is waiting (see RunJob.concurrency_group). Only for
+	// jobs and checks, and only from servers with the feature "ci.concurrency";
+	// a client that does not know the value shows it as queued.
+	CiStatus_CI_STATUS_PENDING CiStatus = 4
 )
 
 // Enum value maps for CiStatus.
@@ -48,12 +53,14 @@ var (
 		1: "CI_STATUS_QUEUED",
 		2: "CI_STATUS_IN_PROGRESS",
 		3: "CI_STATUS_COMPLETED",
+		4: "CI_STATUS_PENDING",
 	}
 	CiStatus_value = map[string]int32{
 		"CI_STATUS_UNSPECIFIED": 0,
 		"CI_STATUS_QUEUED":      1,
 		"CI_STATUS_IN_PROGRESS": 2,
 		"CI_STATUS_COMPLETED":   3,
+		"CI_STATUS_PENDING":     4,
 	}
 )
 
@@ -819,14 +826,56 @@ type Job struct {
 	// "secrets.GITHUB_TOKEN" of the job: "ermitegh_" and 43 base64url characters
 	// (32 random bytes, no padding). Unlike job_token it is meant for the code of
 	// the job: the runner gives it to the sandbox (actions/checkout clones with
-	// it). It can only read the repository of the run (read-only, whatever
-	// "permissions:" says), and is valid from the assignment until the job ends
+	// it). It can only act on the repository of the run: read-only from servers
+	// without the feature "ci.secrets", whatever "permissions:" says, and with
+	// the rights of permissions from those that have it (never more than read
+	// when trusted is false). It is valid from the assignment until the job ends
 	// (it is revoked then, on cancellation and when the job is lost). It is a
 	// secret: the runner registers it in its masker before anything runs, and
 	// neither the runner nor the server logs it. It is shown only in this
 	// response, or in a repeat of the same poll_id; a new assignment of the same
 	// job has a new one. Empty from servers without the feature "ci.actions".
-	GithubToken   string `protobuf:"bytes,15,opt,name=github_token,json=githubToken,proto3" json:"github_token,omitempty"`
+	GithubToken string `protobuf:"bytes,15,opt,name=github_token,json=githubToken,proto3" json:"github_token,omitempty"`
+	// Secrets are the secrets of the job by name (upper case), in plain text:
+	// the ones the job's workflow refers to, from the instance, the repository
+	// and the environment, with the environment overriding the repository and
+	// the repository the instance. The server picks them; the runner uses them
+	// as they are. They are empty when the job is not trusted, when the job
+	// refers to none, and from servers without the feature "ci.secrets"; the
+	// "GITHUB_TOKEN" secret is github_token, not an entry here. They travel only
+	// over the runner's authenticated channel. The runner never logs them, never
+	// writes them to disk or to its recovery state, and registers them in its
+	// log masker before the first step runs, as GitHub's runner does: each value
+	// trimmed, each non-empty trimmed line of it (split on CR and LF), and the
+	// encoded forms of each. The server never stores them in the run record nor
+	// logs them. Treat the whole map as a secret.
+	Secrets map[string]string `protobuf:"bytes,16,rep,name=secrets,proto3" json:"secrets,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Vars are the configuration variables of the job by name (upper case),
+	// already merged by the server with environment over repository over
+	// instance. They are not secret. The same values are in the "vars" context
+	// of contexts, which the runner may use instead. Empty from servers without
+	// the feature "ci.secrets".
+	Vars map[string]string `protobuf:"bytes,17,rep,name=vars,proto3" json:"vars,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Environment is the name of the environment the job deploys to (the
+	// evaluated "environment:" of the job). Empty when the job has none. It is
+	// environment that secrets and vars were resolved for.
+	Environment string `protobuf:"bytes,18,opt,name=environment,proto3" json:"environment,omitempty"`
+	// Permissions are the effective permissions of github_token. Unset from
+	// servers without the feature "ci.secrets"; the token is then read-only.
+	Permissions *JobPermissions `protobuf:"bytes,19,opt,name=permissions,proto3" json:"permissions,omitempty"`
+	// Cache tells the runner which cache entries the job may read and write.
+	// Unset when the server gives the job no cache (the runner then serves no
+	// cache) and from servers without the feature "ci.cache".
+	Cache *JobCache `protobuf:"bytes,20,opt,name=cache,proto3" json:"cache,omitempty"`
+	// Trusted is true when the run's actor is the owner (or a re-run of a
+	// trusted run by the owner): only then are secrets sent and a write
+	// permission granted. It is false when the actor is a token limited to
+	// branches (an automated agent could otherwise print any secret by pushing a
+	// workflow) and for a re-run of such a run, and then secrets is empty and
+	// github_token is read-only whatever "permissions:" says. The runner states
+	// this in the log of "Set up job". False from servers that do not send it:
+	// the safe reading.
+	Trusted       bool `protobuf:"varint,21,opt,name=trusted,proto3" json:"trusted,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -966,6 +1015,170 @@ func (x *Job) GetGithubToken() string {
 	return ""
 }
 
+func (x *Job) GetSecrets() map[string]string {
+	if x != nil {
+		return x.Secrets
+	}
+	return nil
+}
+
+func (x *Job) GetVars() map[string]string {
+	if x != nil {
+		return x.Vars
+	}
+	return nil
+}
+
+func (x *Job) GetEnvironment() string {
+	if x != nil {
+		return x.Environment
+	}
+	return ""
+}
+
+func (x *Job) GetPermissions() *JobPermissions {
+	if x != nil {
+		return x.Permissions
+	}
+	return nil
+}
+
+func (x *Job) GetCache() *JobCache {
+	if x != nil {
+		return x.Cache
+	}
+	return nil
+}
+
+func (x *Job) GetTrusted() bool {
+	if x != nil {
+		return x.Trusted
+	}
+	return false
+}
+
+// JobPermissions are the permissions of the job repository token, with the
+// keys and values of the "permissions:" of a GitHub workflow.
+type JobPermissions struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Levels maps a permission key ("contents", "pull-requests", "id-token",
+	// "actions", ...) to "read", "write" or "none". They are the permissions in
+	// effect after the server merged the workflow's and the job's "permissions:"
+	// (and the caller's, for a reusable workflow) and applied the trust rule of
+	// Job.trusted; a key absent from the map is "none". Keys are lowercase as in
+	// the workflow. The runner prints them in "Set up job" and does not
+	// enforce them: the server checks the token.
+	Levels        map[string]string `protobuf:"bytes,1,rep,name=levels,proto3" json:"levels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobPermissions) Reset() {
+	*x = JobPermissions{}
+	mi := &file_ermite_runner_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobPermissions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobPermissions) ProtoMessage() {}
+
+func (x *JobPermissions) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobPermissions.ProtoReflect.Descriptor instead.
+func (*JobPermissions) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *JobPermissions) GetLevels() map[string]string {
+	if x != nil {
+		return x.Levels
+	}
+	return nil
+}
+
+// JobCache is the scope of the cache of one job. The cache is served by the
+// runner and shared by the jobs of a repository, as GitHub scopes it.
+type JobCache struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Repository is the name of the repository whose cache the job uses. Entries
+	// of another repository are never visible to it.
+	Repository string `protobuf:"bytes,1,opt,name=repository,proto3" json:"repository,omitempty"`
+	// WriteRef is the only ref the job may save entries under, for example
+	// "refs/heads/main" or "refs/pull/7/merge".
+	WriteRef string `protobuf:"bytes,2,opt,name=write_ref,json=writeRef,proto3" json:"write_ref,omitempty"`
+	// ReadRefs are the refs the job may restore entries from, most specific
+	// first: the ref of the run, then the base branch for a pull request, then
+	// the default branch. Entries under other refs are never restored.
+	ReadRefs      []string `protobuf:"bytes,3,rep,name=read_refs,json=readRefs,proto3" json:"read_refs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobCache) Reset() {
+	*x = JobCache{}
+	mi := &file_ermite_runner_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobCache) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobCache) ProtoMessage() {}
+
+func (x *JobCache) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobCache.ProtoReflect.Descriptor instead.
+func (*JobCache) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *JobCache) GetRepository() string {
+	if x != nil {
+		return x.Repository
+	}
+	return ""
+}
+
+func (x *JobCache) GetWriteRef() string {
+	if x != nil {
+		return x.WriteRef
+	}
+	return ""
+}
+
+func (x *JobCache) GetReadRefs() []string {
+	if x != nil {
+		return x.ReadRefs
+	}
+	return nil
+}
+
 // UpdateJobRequest reports the steps of a running job.
 type UpdateJobRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -990,7 +1203,7 @@ type UpdateJobRequest struct {
 
 func (x *UpdateJobRequest) Reset() {
 	*x = UpdateJobRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[5]
+	mi := &file_ermite_runner_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1002,7 +1215,7 @@ func (x *UpdateJobRequest) String() string {
 func (*UpdateJobRequest) ProtoMessage() {}
 
 func (x *UpdateJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[5]
+	mi := &file_ermite_runner_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1015,7 +1228,7 @@ func (x *UpdateJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateJobRequest.ProtoReflect.Descriptor instead.
 func (*UpdateJobRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{5}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdateJobRequest) GetJobId() string {
@@ -1075,7 +1288,7 @@ type StepUpdate struct {
 
 func (x *StepUpdate) Reset() {
 	*x = StepUpdate{}
-	mi := &file_ermite_runner_proto_msgTypes[6]
+	mi := &file_ermite_runner_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1087,7 +1300,7 @@ func (x *StepUpdate) String() string {
 func (*StepUpdate) ProtoMessage() {}
 
 func (x *StepUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[6]
+	mi := &file_ermite_runner_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1100,7 +1313,7 @@ func (x *StepUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepUpdate.ProtoReflect.Descriptor instead.
 func (*StepUpdate) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{6}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *StepUpdate) GetNumber() int32 {
@@ -1161,7 +1374,7 @@ type UpdateJobResponse struct {
 
 func (x *UpdateJobResponse) Reset() {
 	*x = UpdateJobResponse{}
-	mi := &file_ermite_runner_proto_msgTypes[7]
+	mi := &file_ermite_runner_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1173,7 +1386,7 @@ func (x *UpdateJobResponse) String() string {
 func (*UpdateJobResponse) ProtoMessage() {}
 
 func (x *UpdateJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[7]
+	mi := &file_ermite_runner_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1186,7 +1399,7 @@ func (x *UpdateJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateJobResponse.ProtoReflect.Descriptor instead.
 func (*UpdateJobResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{7}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{9}
 }
 
 // CompleteJobRequest ends a job.
@@ -1205,7 +1418,10 @@ type CompleteJobRequest struct {
 	// are invalid_argument. Each value is at most 1 MiB, and all names and
 	// values together at most 1 MiB (1,048,576 bytes); beyond that the whole call
 	// is rejected with invalid_argument and the runner reports the failure of
-	// the job without outputs, with a line in the log.
+	// the job without outputs, with a line in the log. The runner leaves out an
+	// output whose value its masker would change, with the warning "Skip output
+	// '<name>' since it may contain secret." (as GitHub's runner), so no secret
+	// reaches the server through outputs.
 	Outputs map[string]string `protobuf:"bytes,3,rep,name=outputs,proto3" json:"outputs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// RunnerShutdown is true when the runner ends the job because it was told to
 	// stop (service stopped, signal). Only allowed with CI_CONCLUSION_CANCELLED.
@@ -1228,7 +1444,7 @@ type CompleteJobRequest struct {
 
 func (x *CompleteJobRequest) Reset() {
 	*x = CompleteJobRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[8]
+	mi := &file_ermite_runner_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1240,7 +1456,7 @@ func (x *CompleteJobRequest) String() string {
 func (*CompleteJobRequest) ProtoMessage() {}
 
 func (x *CompleteJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[8]
+	mi := &file_ermite_runner_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1253,7 +1469,7 @@ func (x *CompleteJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteJobRequest.ProtoReflect.Descriptor instead.
 func (*CompleteJobRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{8}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CompleteJobRequest) GetJobId() string {
@@ -1316,7 +1532,7 @@ type CompleteJobResponse struct {
 
 func (x *CompleteJobResponse) Reset() {
 	*x = CompleteJobResponse{}
-	mi := &file_ermite_runner_proto_msgTypes[9]
+	mi := &file_ermite_runner_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1328,7 +1544,7 @@ func (x *CompleteJobResponse) String() string {
 func (*CompleteJobResponse) ProtoMessage() {}
 
 func (x *CompleteJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[9]
+	mi := &file_ermite_runner_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1341,7 +1557,7 @@ func (x *CompleteJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteJobResponse.ProtoReflect.Descriptor instead.
 func (*CompleteJobResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{9}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CompleteJobResponse) GetConclusion() CiConclusion {
@@ -1381,7 +1597,7 @@ type JobEnded struct {
 
 func (x *JobEnded) Reset() {
 	*x = JobEnded{}
-	mi := &file_ermite_runner_proto_msgTypes[10]
+	mi := &file_ermite_runner_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1393,7 +1609,7 @@ func (x *JobEnded) String() string {
 func (*JobEnded) ProtoMessage() {}
 
 func (x *JobEnded) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[10]
+	mi := &file_ermite_runner_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1406,7 +1622,7 @@ func (x *JobEnded) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JobEnded.ProtoReflect.Descriptor instead.
 func (*JobEnded) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{10}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *JobEnded) GetConclusion() CiConclusion {
@@ -1445,7 +1661,7 @@ type AppendLogRequest struct {
 
 func (x *AppendLogRequest) Reset() {
 	*x = AppendLogRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[11]
+	mi := &file_ermite_runner_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1457,7 +1673,7 @@ func (x *AppendLogRequest) String() string {
 func (*AppendLogRequest) ProtoMessage() {}
 
 func (x *AppendLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[11]
+	mi := &file_ermite_runner_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1470,7 +1686,7 @@ func (x *AppendLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendLogRequest.ProtoReflect.Descriptor instead.
 func (*AppendLogRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{11}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AppendLogRequest) GetJobId() string {
@@ -1527,7 +1743,7 @@ type LogLine struct {
 
 func (x *LogLine) Reset() {
 	*x = LogLine{}
-	mi := &file_ermite_runner_proto_msgTypes[12]
+	mi := &file_ermite_runner_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1539,7 +1755,7 @@ func (x *LogLine) String() string {
 func (*LogLine) ProtoMessage() {}
 
 func (x *LogLine) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[12]
+	mi := &file_ermite_runner_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1552,7 +1768,7 @@ func (x *LogLine) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogLine.ProtoReflect.Descriptor instead.
 func (*LogLine) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{12}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *LogLine) GetTime() *timestamppb.Timestamp {
@@ -1588,7 +1804,7 @@ type AppendLogResponse struct {
 
 func (x *AppendLogResponse) Reset() {
 	*x = AppendLogResponse{}
-	mi := &file_ermite_runner_proto_msgTypes[13]
+	mi := &file_ermite_runner_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1600,7 +1816,7 @@ func (x *AppendLogResponse) String() string {
 func (*AppendLogResponse) ProtoMessage() {}
 
 func (x *AppendLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[13]
+	mi := &file_ermite_runner_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1613,7 +1829,7 @@ func (x *AppendLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendLogResponse.ProtoReflect.Descriptor instead.
 func (*AppendLogResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{13}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AppendLogResponse) GetNextOffset() int64 {
@@ -1634,7 +1850,7 @@ type HeartbeatRequest struct {
 
 func (x *HeartbeatRequest) Reset() {
 	*x = HeartbeatRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[14]
+	mi := &file_ermite_runner_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1646,7 +1862,7 @@ func (x *HeartbeatRequest) String() string {
 func (*HeartbeatRequest) ProtoMessage() {}
 
 func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[14]
+	mi := &file_ermite_runner_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1659,7 +1875,7 @@ func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{14}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *HeartbeatRequest) GetJobId() string {
@@ -1678,7 +1894,7 @@ type HeartbeatResponse struct {
 
 func (x *HeartbeatResponse) Reset() {
 	*x = HeartbeatResponse{}
-	mi := &file_ermite_runner_proto_msgTypes[15]
+	mi := &file_ermite_runner_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1690,7 +1906,7 @@ func (x *HeartbeatResponse) String() string {
 func (*HeartbeatResponse) ProtoMessage() {}
 
 func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[15]
+	mi := &file_ermite_runner_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1703,7 +1919,7 @@ func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{15}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{17}
 }
 
 // WatchJobRequest names the job to watch.
@@ -1717,7 +1933,7 @@ type WatchJobRequest struct {
 
 func (x *WatchJobRequest) Reset() {
 	*x = WatchJobRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[16]
+	mi := &file_ermite_runner_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1729,7 +1945,7 @@ func (x *WatchJobRequest) String() string {
 func (*WatchJobRequest) ProtoMessage() {}
 
 func (x *WatchJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[16]
+	mi := &file_ermite_runner_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1742,7 +1958,7 @@ func (x *WatchJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchJobRequest.ProtoReflect.Descriptor instead.
 func (*WatchJobRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{16}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *WatchJobRequest) GetJobId() string {
@@ -1770,7 +1986,7 @@ type WatchJobResponse struct {
 
 func (x *WatchJobResponse) Reset() {
 	*x = WatchJobResponse{}
-	mi := &file_ermite_runner_proto_msgTypes[17]
+	mi := &file_ermite_runner_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1782,7 +1998,7 @@ func (x *WatchJobResponse) String() string {
 func (*WatchJobResponse) ProtoMessage() {}
 
 func (x *WatchJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[17]
+	mi := &file_ermite_runner_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1795,7 +2011,7 @@ func (x *WatchJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchJobResponse.ProtoReflect.Descriptor instead.
 func (*WatchJobResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{17}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *WatchJobResponse) GetMsg() isWatchJobResponse_Msg {
@@ -1867,7 +2083,7 @@ type Keepalive struct {
 
 func (x *Keepalive) Reset() {
 	*x = Keepalive{}
-	mi := &file_ermite_runner_proto_msgTypes[18]
+	mi := &file_ermite_runner_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1879,7 +2095,7 @@ func (x *Keepalive) String() string {
 func (*Keepalive) ProtoMessage() {}
 
 func (x *Keepalive) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[18]
+	mi := &file_ermite_runner_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1892,7 +2108,7 @@ func (x *Keepalive) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Keepalive.ProtoReflect.Descriptor instead.
 func (*Keepalive) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{18}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{20}
 }
 
 // CancelRequest asks the runner to stop a job.
@@ -1913,7 +2129,7 @@ type CancelRequest struct {
 
 func (x *CancelRequest) Reset() {
 	*x = CancelRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[19]
+	mi := &file_ermite_runner_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1925,7 +2141,7 @@ func (x *CancelRequest) String() string {
 func (*CancelRequest) ProtoMessage() {}
 
 func (x *CancelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[19]
+	mi := &file_ermite_runner_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1938,7 +2154,7 @@ func (x *CancelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRequest.ProtoReflect.Descriptor instead.
 func (*CancelRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{19}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CancelRequest) GetReason() CancelReason {
@@ -2004,7 +2220,7 @@ type Annotation struct {
 
 func (x *Annotation) Reset() {
 	*x = Annotation{}
-	mi := &file_ermite_runner_proto_msgTypes[20]
+	mi := &file_ermite_runner_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2016,7 +2232,7 @@ func (x *Annotation) String() string {
 func (*Annotation) ProtoMessage() {}
 
 func (x *Annotation) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[20]
+	mi := &file_ermite_runner_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2029,7 +2245,7 @@ func (x *Annotation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Annotation.ProtoReflect.Descriptor instead.
 func (*Annotation) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{20}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Annotation) GetLevel() AnnotationLevel {
@@ -2107,7 +2323,7 @@ type ActionRef struct {
 
 func (x *ActionRef) Reset() {
 	*x = ActionRef{}
-	mi := &file_ermite_runner_proto_msgTypes[21]
+	mi := &file_ermite_runner_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2119,7 +2335,7 @@ func (x *ActionRef) String() string {
 func (*ActionRef) ProtoMessage() {}
 
 func (x *ActionRef) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[21]
+	mi := &file_ermite_runner_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2132,7 +2348,7 @@ func (x *ActionRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ActionRef.ProtoReflect.Descriptor instead.
 func (*ActionRef) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{21}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ActionRef) GetUses() string {
@@ -2156,7 +2372,7 @@ type ResolveActionsRequest struct {
 
 func (x *ResolveActionsRequest) Reset() {
 	*x = ResolveActionsRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[22]
+	mi := &file_ermite_runner_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2168,7 +2384,7 @@ func (x *ResolveActionsRequest) String() string {
 func (*ResolveActionsRequest) ProtoMessage() {}
 
 func (x *ResolveActionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[22]
+	mi := &file_ermite_runner_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2181,7 +2397,7 @@ func (x *ResolveActionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveActionsRequest.ProtoReflect.Descriptor instead.
 func (*ResolveActionsRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{22}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ResolveActionsRequest) GetJobId() string {
@@ -2209,7 +2425,7 @@ type ResolveActionsResponse struct {
 
 func (x *ResolveActionsResponse) Reset() {
 	*x = ResolveActionsResponse{}
-	mi := &file_ermite_runner_proto_msgTypes[23]
+	mi := &file_ermite_runner_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2221,7 +2437,7 @@ func (x *ResolveActionsResponse) String() string {
 func (*ResolveActionsResponse) ProtoMessage() {}
 
 func (x *ResolveActionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[23]
+	mi := &file_ermite_runner_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2234,7 +2450,7 @@ func (x *ResolveActionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveActionsResponse.ProtoReflect.Descriptor instead.
 func (*ResolveActionsResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{23}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ResolveActionsResponse) GetActions() []*ResolvedAction {
@@ -2289,7 +2505,7 @@ type ResolvedAction struct {
 
 func (x *ResolvedAction) Reset() {
 	*x = ResolvedAction{}
-	mi := &file_ermite_runner_proto_msgTypes[24]
+	mi := &file_ermite_runner_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2301,7 +2517,7 @@ func (x *ResolvedAction) String() string {
 func (*ResolvedAction) ProtoMessage() {}
 
 func (x *ResolvedAction) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[24]
+	mi := &file_ermite_runner_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2314,7 +2530,7 @@ func (x *ResolvedAction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolvedAction.ProtoReflect.Descriptor instead.
 func (*ResolvedAction) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{24}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ResolvedAction) GetRef() string {
@@ -2390,7 +2606,7 @@ type UploadSummaryRequest struct {
 
 func (x *UploadSummaryRequest) Reset() {
 	*x = UploadSummaryRequest{}
-	mi := &file_ermite_runner_proto_msgTypes[25]
+	mi := &file_ermite_runner_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2402,7 +2618,7 @@ func (x *UploadSummaryRequest) String() string {
 func (*UploadSummaryRequest) ProtoMessage() {}
 
 func (x *UploadSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[25]
+	mi := &file_ermite_runner_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2415,7 +2631,7 @@ func (x *UploadSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadSummaryRequest.ProtoReflect.Descriptor instead.
 func (*UploadSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{25}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *UploadSummaryRequest) GetJobId() string {
@@ -2448,7 +2664,7 @@ type UploadSummaryResponse struct {
 
 func (x *UploadSummaryResponse) Reset() {
 	*x = UploadSummaryResponse{}
-	mi := &file_ermite_runner_proto_msgTypes[26]
+	mi := &file_ermite_runner_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2460,7 +2676,7 @@ func (x *UploadSummaryResponse) String() string {
 func (*UploadSummaryResponse) ProtoMessage() {}
 
 func (x *UploadSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_runner_proto_msgTypes[26]
+	mi := &file_ermite_runner_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2473,7 +2689,7 @@ func (x *UploadSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadSummaryResponse.ProtoReflect.Descriptor instead.
 func (*UploadSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_runner_proto_rawDescGZIP(), []int{26}
+	return file_ermite_runner_proto_rawDescGZIP(), []int{28}
 }
 
 var File_ermite_runner_proto protoreflect.FileDescriptor
@@ -2498,7 +2714,7 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x10FetchJobResponse\x12\x1d\n" +
 	"\x03job\x18\x01 \x01(\v2\v.ermite.JobR\x03job\x12:\n" +
 	"\vretry_after\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\n" +
-	"retryAfter\"\x9d\x03\n" +
+	"retryAfter\"\x8f\x06\n" +
 	"\x03Job\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x18\n" +
@@ -2515,7 +2731,30 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x04repo\x18\f \x01(\tR\x04repo\x12\x10\n" +
 	"\x03sha\x18\r \x01(\tR\x03sha\x12\x10\n" +
 	"\x03ref\x18\x0e \x01(\tR\x03ref\x12!\n" +
-	"\fgithub_token\x18\x0f \x01(\tR\vgithubToken\"\x89\x01\n" +
+	"\fgithub_token\x18\x0f \x01(\tR\vgithubToken\x122\n" +
+	"\asecrets\x18\x10 \x03(\v2\x18.ermite.Job.SecretsEntryR\asecrets\x12)\n" +
+	"\x04vars\x18\x11 \x03(\v2\x15.ermite.Job.VarsEntryR\x04vars\x12 \n" +
+	"\venvironment\x18\x12 \x01(\tR\venvironment\x128\n" +
+	"\vpermissions\x18\x13 \x01(\v2\x16.ermite.JobPermissionsR\vpermissions\x12&\n" +
+	"\x05cache\x18\x14 \x01(\v2\x10.ermite.JobCacheR\x05cache\x12\x18\n" +
+	"\atrusted\x18\x15 \x01(\bR\atrusted\x1a:\n" +
+	"\fSecretsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a7\n" +
+	"\tVarsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x87\x01\n" +
+	"\x0eJobPermissions\x12:\n" +
+	"\x06levels\x18\x01 \x03(\v2\".ermite.JobPermissions.LevelsEntryR\x06levels\x1a9\n" +
+	"\vLevelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"d\n" +
+	"\bJobCache\x12\x1e\n" +
+	"\n" +
+	"repository\x18\x01 \x01(\tR\n" +
+	"repository\x12\x1b\n" +
+	"\twrite_ref\x18\x02 \x01(\tR\bwriteRef\x12\x1b\n" +
+	"\tread_refs\x18\x03 \x03(\tR\breadRefs\"\x89\x01\n" +
 	"\x10UpdateJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12(\n" +
 	"\x05steps\x18\x02 \x03(\v2\x12.ermite.StepUpdateR\x05steps\x124\n" +
@@ -2619,12 +2858,13 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\vstep_number\x18\x02 \x01(\x05R\n" +
 	"stepNumber\x12\x1a\n" +
 	"\bmarkdown\x18\x03 \x01(\tR\bmarkdown\"\x17\n" +
-	"\x15UploadSummaryResponse*o\n" +
+	"\x15UploadSummaryResponse*\x86\x01\n" +
 	"\bCiStatus\x12\x19\n" +
 	"\x15CI_STATUS_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10CI_STATUS_QUEUED\x10\x01\x12\x19\n" +
 	"\x15CI_STATUS_IN_PROGRESS\x10\x02\x12\x17\n" +
-	"\x13CI_STATUS_COMPLETED\x10\x03*\xf6\x01\n" +
+	"\x13CI_STATUS_COMPLETED\x10\x03\x12\x15\n" +
+	"\x11CI_STATUS_PENDING\x10\x04*\xf6\x01\n" +
 	"\fCiConclusion\x12\x1d\n" +
 	"\x19CI_CONCLUSION_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15CI_CONCLUSION_SUCCESS\x10\x01\x12\x19\n" +
@@ -2684,7 +2924,7 @@ func file_ermite_runner_proto_rawDescGZIP() []byte {
 }
 
 var file_ermite_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_ermite_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_ermite_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_ermite_runner_proto_goTypes = []any{
 	(CiStatus)(0),                  // 0: ermite.CiStatus
 	(CiConclusion)(0),              // 1: ermite.CiConclusion
@@ -2698,83 +2938,93 @@ var file_ermite_runner_proto_goTypes = []any{
 	(*FetchJobRequest)(nil),        // 9: ermite.FetchJobRequest
 	(*FetchJobResponse)(nil),       // 10: ermite.FetchJobResponse
 	(*Job)(nil),                    // 11: ermite.Job
-	(*UpdateJobRequest)(nil),       // 12: ermite.UpdateJobRequest
-	(*StepUpdate)(nil),             // 13: ermite.StepUpdate
-	(*UpdateJobResponse)(nil),      // 14: ermite.UpdateJobResponse
-	(*CompleteJobRequest)(nil),     // 15: ermite.CompleteJobRequest
-	(*CompleteJobResponse)(nil),    // 16: ermite.CompleteJobResponse
-	(*JobEnded)(nil),               // 17: ermite.JobEnded
-	(*AppendLogRequest)(nil),       // 18: ermite.AppendLogRequest
-	(*LogLine)(nil),                // 19: ermite.LogLine
-	(*AppendLogResponse)(nil),      // 20: ermite.AppendLogResponse
-	(*HeartbeatRequest)(nil),       // 21: ermite.HeartbeatRequest
-	(*HeartbeatResponse)(nil),      // 22: ermite.HeartbeatResponse
-	(*WatchJobRequest)(nil),        // 23: ermite.WatchJobRequest
-	(*WatchJobResponse)(nil),       // 24: ermite.WatchJobResponse
-	(*Keepalive)(nil),              // 25: ermite.Keepalive
-	(*CancelRequest)(nil),          // 26: ermite.CancelRequest
-	(*Annotation)(nil),             // 27: ermite.Annotation
-	(*ActionRef)(nil),              // 28: ermite.ActionRef
-	(*ResolveActionsRequest)(nil),  // 29: ermite.ResolveActionsRequest
-	(*ResolveActionsResponse)(nil), // 30: ermite.ResolveActionsResponse
-	(*ResolvedAction)(nil),         // 31: ermite.ResolvedAction
-	(*UploadSummaryRequest)(nil),   // 32: ermite.UploadSummaryRequest
-	(*UploadSummaryResponse)(nil),  // 33: ermite.UploadSummaryResponse
-	nil,                            // 34: ermite.CompleteJobRequest.OutputsEntry
-	(*durationpb.Duration)(nil),    // 35: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),  // 36: google.protobuf.Timestamp
+	(*JobPermissions)(nil),         // 12: ermite.JobPermissions
+	(*JobCache)(nil),               // 13: ermite.JobCache
+	(*UpdateJobRequest)(nil),       // 14: ermite.UpdateJobRequest
+	(*StepUpdate)(nil),             // 15: ermite.StepUpdate
+	(*UpdateJobResponse)(nil),      // 16: ermite.UpdateJobResponse
+	(*CompleteJobRequest)(nil),     // 17: ermite.CompleteJobRequest
+	(*CompleteJobResponse)(nil),    // 18: ermite.CompleteJobResponse
+	(*JobEnded)(nil),               // 19: ermite.JobEnded
+	(*AppendLogRequest)(nil),       // 20: ermite.AppendLogRequest
+	(*LogLine)(nil),                // 21: ermite.LogLine
+	(*AppendLogResponse)(nil),      // 22: ermite.AppendLogResponse
+	(*HeartbeatRequest)(nil),       // 23: ermite.HeartbeatRequest
+	(*HeartbeatResponse)(nil),      // 24: ermite.HeartbeatResponse
+	(*WatchJobRequest)(nil),        // 25: ermite.WatchJobRequest
+	(*WatchJobResponse)(nil),       // 26: ermite.WatchJobResponse
+	(*Keepalive)(nil),              // 27: ermite.Keepalive
+	(*CancelRequest)(nil),          // 28: ermite.CancelRequest
+	(*Annotation)(nil),             // 29: ermite.Annotation
+	(*ActionRef)(nil),              // 30: ermite.ActionRef
+	(*ResolveActionsRequest)(nil),  // 31: ermite.ResolveActionsRequest
+	(*ResolveActionsResponse)(nil), // 32: ermite.ResolveActionsResponse
+	(*ResolvedAction)(nil),         // 33: ermite.ResolvedAction
+	(*UploadSummaryRequest)(nil),   // 34: ermite.UploadSummaryRequest
+	(*UploadSummaryResponse)(nil),  // 35: ermite.UploadSummaryResponse
+	nil,                            // 36: ermite.Job.SecretsEntry
+	nil,                            // 37: ermite.Job.VarsEntry
+	nil,                            // 38: ermite.JobPermissions.LevelsEntry
+	nil,                            // 39: ermite.CompleteJobRequest.OutputsEntry
+	(*durationpb.Duration)(nil),    // 40: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),  // 41: google.protobuf.Timestamp
 }
 var file_ermite_runner_proto_depIdxs = []int32{
 	3,  // 0: ermite.RegisterRunnerRequest.isolation:type_name -> ermite.RunnerIsolation
 	11, // 1: ermite.FetchJobResponse.job:type_name -> ermite.Job
-	35, // 2: ermite.FetchJobResponse.retry_after:type_name -> google.protobuf.Duration
-	13, // 3: ermite.UpdateJobRequest.steps:type_name -> ermite.StepUpdate
-	27, // 4: ermite.UpdateJobRequest.annotations:type_name -> ermite.Annotation
-	2,  // 5: ermite.StepUpdate.state:type_name -> ermite.StepState
-	1,  // 6: ermite.StepUpdate.conclusion:type_name -> ermite.CiConclusion
-	36, // 7: ermite.StepUpdate.started_at:type_name -> google.protobuf.Timestamp
-	36, // 8: ermite.StepUpdate.completed_at:type_name -> google.protobuf.Timestamp
-	1,  // 9: ermite.StepUpdate.outcome:type_name -> ermite.CiConclusion
-	1,  // 10: ermite.CompleteJobRequest.conclusion:type_name -> ermite.CiConclusion
-	34, // 11: ermite.CompleteJobRequest.outputs:type_name -> ermite.CompleteJobRequest.OutputsEntry
-	13, // 12: ermite.CompleteJobRequest.steps:type_name -> ermite.StepUpdate
-	27, // 13: ermite.CompleteJobRequest.annotations:type_name -> ermite.Annotation
-	1,  // 14: ermite.CompleteJobResponse.conclusion:type_name -> ermite.CiConclusion
-	1,  // 15: ermite.JobEnded.conclusion:type_name -> ermite.CiConclusion
-	19, // 16: ermite.AppendLogRequest.lines:type_name -> ermite.LogLine
-	36, // 17: ermite.LogLine.time:type_name -> google.protobuf.Timestamp
-	25, // 18: ermite.WatchJobResponse.keepalive:type_name -> ermite.Keepalive
-	26, // 19: ermite.WatchJobResponse.cancel:type_name -> ermite.CancelRequest
-	17, // 20: ermite.WatchJobResponse.ended:type_name -> ermite.JobEnded
-	4,  // 21: ermite.CancelRequest.reason:type_name -> ermite.CancelReason
-	36, // 22: ermite.CancelRequest.requested_at:type_name -> google.protobuf.Timestamp
-	5,  // 23: ermite.Annotation.level:type_name -> ermite.AnnotationLevel
-	28, // 24: ermite.ResolveActionsRequest.refs:type_name -> ermite.ActionRef
-	31, // 25: ermite.ResolveActionsResponse.actions:type_name -> ermite.ResolvedAction
-	6,  // 26: ermite.ResolvedAction.source:type_name -> ermite.ActionSource
-	7,  // 27: ermite.RunnerService.RegisterRunner:input_type -> ermite.RegisterRunnerRequest
-	9,  // 28: ermite.RunnerService.FetchJob:input_type -> ermite.FetchJobRequest
-	12, // 29: ermite.RunnerService.UpdateJob:input_type -> ermite.UpdateJobRequest
-	18, // 30: ermite.RunnerService.AppendLog:input_type -> ermite.AppendLogRequest
-	21, // 31: ermite.RunnerService.Heartbeat:input_type -> ermite.HeartbeatRequest
-	23, // 32: ermite.RunnerService.WatchJob:input_type -> ermite.WatchJobRequest
-	15, // 33: ermite.RunnerService.CompleteJob:input_type -> ermite.CompleteJobRequest
-	29, // 34: ermite.RunnerService.ResolveActions:input_type -> ermite.ResolveActionsRequest
-	32, // 35: ermite.RunnerService.UploadSummary:input_type -> ermite.UploadSummaryRequest
-	8,  // 36: ermite.RunnerService.RegisterRunner:output_type -> ermite.RegisterRunnerResponse
-	10, // 37: ermite.RunnerService.FetchJob:output_type -> ermite.FetchJobResponse
-	14, // 38: ermite.RunnerService.UpdateJob:output_type -> ermite.UpdateJobResponse
-	20, // 39: ermite.RunnerService.AppendLog:output_type -> ermite.AppendLogResponse
-	22, // 40: ermite.RunnerService.Heartbeat:output_type -> ermite.HeartbeatResponse
-	24, // 41: ermite.RunnerService.WatchJob:output_type -> ermite.WatchJobResponse
-	16, // 42: ermite.RunnerService.CompleteJob:output_type -> ermite.CompleteJobResponse
-	30, // 43: ermite.RunnerService.ResolveActions:output_type -> ermite.ResolveActionsResponse
-	33, // 44: ermite.RunnerService.UploadSummary:output_type -> ermite.UploadSummaryResponse
-	36, // [36:45] is the sub-list for method output_type
-	27, // [27:36] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	40, // 2: ermite.FetchJobResponse.retry_after:type_name -> google.protobuf.Duration
+	36, // 3: ermite.Job.secrets:type_name -> ermite.Job.SecretsEntry
+	37, // 4: ermite.Job.vars:type_name -> ermite.Job.VarsEntry
+	12, // 5: ermite.Job.permissions:type_name -> ermite.JobPermissions
+	13, // 6: ermite.Job.cache:type_name -> ermite.JobCache
+	38, // 7: ermite.JobPermissions.levels:type_name -> ermite.JobPermissions.LevelsEntry
+	15, // 8: ermite.UpdateJobRequest.steps:type_name -> ermite.StepUpdate
+	29, // 9: ermite.UpdateJobRequest.annotations:type_name -> ermite.Annotation
+	2,  // 10: ermite.StepUpdate.state:type_name -> ermite.StepState
+	1,  // 11: ermite.StepUpdate.conclusion:type_name -> ermite.CiConclusion
+	41, // 12: ermite.StepUpdate.started_at:type_name -> google.protobuf.Timestamp
+	41, // 13: ermite.StepUpdate.completed_at:type_name -> google.protobuf.Timestamp
+	1,  // 14: ermite.StepUpdate.outcome:type_name -> ermite.CiConclusion
+	1,  // 15: ermite.CompleteJobRequest.conclusion:type_name -> ermite.CiConclusion
+	39, // 16: ermite.CompleteJobRequest.outputs:type_name -> ermite.CompleteJobRequest.OutputsEntry
+	15, // 17: ermite.CompleteJobRequest.steps:type_name -> ermite.StepUpdate
+	29, // 18: ermite.CompleteJobRequest.annotations:type_name -> ermite.Annotation
+	1,  // 19: ermite.CompleteJobResponse.conclusion:type_name -> ermite.CiConclusion
+	1,  // 20: ermite.JobEnded.conclusion:type_name -> ermite.CiConclusion
+	21, // 21: ermite.AppendLogRequest.lines:type_name -> ermite.LogLine
+	41, // 22: ermite.LogLine.time:type_name -> google.protobuf.Timestamp
+	27, // 23: ermite.WatchJobResponse.keepalive:type_name -> ermite.Keepalive
+	28, // 24: ermite.WatchJobResponse.cancel:type_name -> ermite.CancelRequest
+	19, // 25: ermite.WatchJobResponse.ended:type_name -> ermite.JobEnded
+	4,  // 26: ermite.CancelRequest.reason:type_name -> ermite.CancelReason
+	41, // 27: ermite.CancelRequest.requested_at:type_name -> google.protobuf.Timestamp
+	5,  // 28: ermite.Annotation.level:type_name -> ermite.AnnotationLevel
+	30, // 29: ermite.ResolveActionsRequest.refs:type_name -> ermite.ActionRef
+	33, // 30: ermite.ResolveActionsResponse.actions:type_name -> ermite.ResolvedAction
+	6,  // 31: ermite.ResolvedAction.source:type_name -> ermite.ActionSource
+	7,  // 32: ermite.RunnerService.RegisterRunner:input_type -> ermite.RegisterRunnerRequest
+	9,  // 33: ermite.RunnerService.FetchJob:input_type -> ermite.FetchJobRequest
+	14, // 34: ermite.RunnerService.UpdateJob:input_type -> ermite.UpdateJobRequest
+	20, // 35: ermite.RunnerService.AppendLog:input_type -> ermite.AppendLogRequest
+	23, // 36: ermite.RunnerService.Heartbeat:input_type -> ermite.HeartbeatRequest
+	25, // 37: ermite.RunnerService.WatchJob:input_type -> ermite.WatchJobRequest
+	17, // 38: ermite.RunnerService.CompleteJob:input_type -> ermite.CompleteJobRequest
+	31, // 39: ermite.RunnerService.ResolveActions:input_type -> ermite.ResolveActionsRequest
+	34, // 40: ermite.RunnerService.UploadSummary:input_type -> ermite.UploadSummaryRequest
+	8,  // 41: ermite.RunnerService.RegisterRunner:output_type -> ermite.RegisterRunnerResponse
+	10, // 42: ermite.RunnerService.FetchJob:output_type -> ermite.FetchJobResponse
+	16, // 43: ermite.RunnerService.UpdateJob:output_type -> ermite.UpdateJobResponse
+	22, // 44: ermite.RunnerService.AppendLog:output_type -> ermite.AppendLogResponse
+	24, // 45: ermite.RunnerService.Heartbeat:output_type -> ermite.HeartbeatResponse
+	26, // 46: ermite.RunnerService.WatchJob:output_type -> ermite.WatchJobResponse
+	18, // 47: ermite.RunnerService.CompleteJob:output_type -> ermite.CompleteJobResponse
+	32, // 48: ermite.RunnerService.ResolveActions:output_type -> ermite.ResolveActionsResponse
+	35, // 49: ermite.RunnerService.UploadSummary:output_type -> ermite.UploadSummaryResponse
+	41, // [41:50] is the sub-list for method output_type
+	32, // [32:41] is the sub-list for method input_type
+	32, // [32:32] is the sub-list for extension type_name
+	32, // [32:32] is the sub-list for extension extendee
+	0,  // [0:32] is the sub-list for field type_name
 }
 
 func init() { file_ermite_runner_proto_init() }
@@ -2782,7 +3032,7 @@ func file_ermite_runner_proto_init() {
 	if File_ermite_runner_proto != nil {
 		return
 	}
-	file_ermite_runner_proto_msgTypes[17].OneofWrappers = []any{
+	file_ermite_runner_proto_msgTypes[19].OneofWrappers = []any{
 		(*WatchJobResponse_Keepalive)(nil),
 		(*WatchJobResponse_Cancel)(nil),
 		(*WatchJobResponse_Ended)(nil),
@@ -2793,7 +3043,7 @@ func file_ermite_runner_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_runner_proto_rawDesc), len(file_ermite_runner_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   28,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

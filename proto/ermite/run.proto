@@ -36,9 +36,10 @@ message Run {
   // the name of the workflow registered for workflow_path (the "name" of that
   // file on the default branch, else workflow_name).
   string title = 7;
-  // Event is the event that triggered the run, in GitHub's name: "push" (the
-  // only one for now; push to a branch or a tag, and merge of a merge
-  // request). New values may be added; clients show the ones they do not
+  // Event is the event that triggered the run, in GitHub's name: "push" (push
+  // to a branch or a tag, and merge of a merge request), and from servers with
+  // the matching trigger "pull_request", "workflow_dispatch", "schedule" and
+  // "workflow_run". New values may be added; clients show the ones they do not
   // know as they are.
   string event = 8;
   // Ref is the full ref name that was pushed, for example "refs/heads/main"
@@ -84,6 +85,14 @@ message Run {
   // the workflow has a "run-name". A run stored before this field existed
   // reads as workflow_name.
   string name = 19;
+  // Trusted is true when the run may use secrets and a job token with write
+  // permissions: its actor is the owner, a "workflow_run" inherits it from the
+  // run that triggered it, and a re-run keeps it only if the original run had
+  // it and the caller of the re-run is the owner. It is false when the actor
+  // is a token limited to branches (see Job.trusted). It never goes from false
+  // to true. False for a run stored before this field existed and from servers
+  // without the feature "ci.secrets".
+  bool trusted = 20;
 }
 
 // RunJob is a job of a run as people see it: the state of one job instance
@@ -109,7 +118,7 @@ message RunJob {
   // name of the job's check.
   string name = 6;
   // Status is where the job is. A job waits QUEUED for a runner and for the
-  // jobs it needs.
+  // jobs it needs, and PENDING for its concurrency group.
   CiStatus status = 7;
   // Conclusion is how the job ended. Unset until status is COMPLETED.
   CiConclusion conclusion = 8;
@@ -148,6 +157,12 @@ message RunJob {
   // and never goes back. A client that holds two copies of a job keeps the
   // one with the higher version and drops the other, as for Run.version.
   int64 version = 19;
+  // ConcurrencyGroup is the evaluated concurrency group of the job (its
+  // "concurrency:", or the one of its workflow), compared without regard to
+  // case within the repository. Empty when the job has none and from servers
+  // without the feature "ci.concurrency". The job is PENDING while another job
+  // of the group runs or a newer one is waiting.
+  string concurrency_group = 20;
 }
 
 // Step is one step of a job, with where its lines are in the job log.
@@ -261,12 +276,15 @@ message Runner {
 // request (other fields must be unchanged).
 //
 // Servers that implement the runs side (every RPC but ListRunners,
-// RemoveRunner, ListAnnotations and GetStepSummaries) list "ci.runs" in
+// RemoveRunner, ListAnnotations, GetStepSummaries and DispatchWorkflow) list
+// "ci.runs" in
 // GetVersionResponse.features; those that
 // implement the runners side list "ci.runners", as RunnerService does. A server
 // that honours the filters of ListRunsRequest also lists "ci.runs.filters".
 // ListAnnotations needs "ci.annotations" and GetStepSummaries "ci.summaries",
-// which are also the features of the runner side of each.
+// which are also the features of the runner side of each. DispatchWorkflow
+// needs "ci.dispatch". RunJob.concurrency_group and CI_STATUS_PENDING belong
+// to "ci.concurrency", Run.trusted to "ci.secrets".
 service RunService {
   // ListRuns lists the runs of a repository, highest id (newest) first. Each
   // run is described by its latest attempt. The filters narrow the result; a
@@ -332,6 +350,21 @@ service RunService {
   // with failed_precondition if the latest attempt has not completed, or if
   // failed_only is set and no job failed. The new attempt is returned QUEUED.
   rpc RerunRun(RerunRunRequest) returns (RerunRunResponse);
+  // DispatchWorkflow starts a run of a workflow file by hand, like `gh
+  // workflow run` and GitHub's "workflow_dispatch" event. Needs the ci:write
+  // scope on the repository. The workflow is read at ref and must have
+  // "workflow_dispatch" among its events. The run has event
+  // "workflow_dispatch", ref and the commit ref points to, and the caller as
+  // actor; it is trusted when the caller is the owner and not trusted when the
+  // caller is a token limited to branches. The run is returned QUEUED, before
+  // any job has been given to a runner. Only servers with the feature
+  // "ci.dispatch" implement it (unimplemented otherwise). Fails with
+  // not_found if the repository, the workflow file or ref does not exist,
+  // with failed_precondition if the workflow does not declare
+  // "workflow_dispatch", and with invalid_argument if an input is unknown, is
+  // missing while required without default, or has a value of the wrong type
+  // or outside its choices, or if the workflow file is not valid.
+  rpc DispatchWorkflow(DispatchWorkflowRequest) returns (DispatchWorkflowResponse);
   // ListChecks lists the checks of a commit: for each job of each run on that
   // sha, the one of the latest attempt, ordered by creation time then name.
   // A commit without a run has no check: the list is empty, which is not an
@@ -553,6 +586,28 @@ message RerunRunRequest {
 // RerunRunResponse holds the new attempt.
 message RerunRunResponse {
   // Run is the run as of the new attempt, QUEUED.
+  Run run = 1;
+}
+
+// DispatchWorkflowRequest names the workflow to run and its inputs.
+message DispatchWorkflowRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // WorkflowPath is the path of the workflow file at ref, for example
+  // ".github/workflows/ci.yml", or its file name ("ci.yml").
+  string workflow_path = 2;
+  // Ref is the branch or tag to run on, by short name ("main") or full name
+  // ("refs/heads/main"). Empty means the default branch of the repository.
+  string ref = 3;
+  // Inputs are the values of the "inputs" of the workflow's
+  // "workflow_dispatch" by name, as strings: a boolean is "true" or "false", a
+  // number its decimal text. An input left out takes its default.
+  map<string, string> inputs = 4;
+}
+
+// DispatchWorkflowResponse holds the new run.
+message DispatchWorkflowResponse {
+  // Run is the new run, QUEUED, attempt 1.
   Run run = 1;
 }
 

@@ -48,8 +48,10 @@ const (
 	// SCOPE_CI_WRITE allows re-running or cancelling CI runs. Wire name:
 	// ci:write.
 	Scope_SCOPE_CI_WRITE Scope = 6
-	// SCOPE_SECRETS_WRITE allows setting and deleting secrets and variables.
-	// Wire name: secrets:write.
+	// SCOPE_SECRETS_WRITE allows managing secrets, variables and environments
+	// (SecretService, VariableService, EnvironmentService), reads included. A
+	// token limited to branches is refused them even with this scope. Wire name:
+	// secrets:write.
 	Scope_SCOPE_SECRETS_WRITE Scope = 7
 	// SCOPE_RUNNER_REGISTER allows registering a CI runner. Wire name:
 	// runner:register.

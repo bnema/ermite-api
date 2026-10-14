@@ -1,0 +1,297 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/timestamp.proto";
+
+// SettingsScope says where a secret or a variable lives, like the scopes of
+// GitHub Actions. A job sees the ones of its instance, its repository and its
+// environment, and the narrowest scope wins: environment over repository over
+// instance.
+message SettingsScope {
+  // Where is the scope. It is required: a request without it is
+  // invalid_argument.
+  oneof where {
+    // Instance is the whole server. It must be true when set. It needs a token
+    // that is not restricted to repositories, or the root token.
+    bool instance = 1;
+    // Repo is the name of a repository.
+    string repo = 2;
+    // Environment is an environment of a repository.
+    EnvironmentRef environment = 3;
+  }
+}
+
+// EnvironmentRef names an environment of a repository.
+message EnvironmentRef {
+  // Repo is the repository name.
+  string repo = 1;
+  // Name is the environment name, see Environment.name.
+  string name = 2;
+}
+
+// Secret describes a stored secret. It never contains the value: a value can
+// be set but not read back.
+message Secret {
+  // Name is the name of the secret, in upper case as the server stores it.
+  string name = 1;
+  // UpdatedAt is when the value was last set.
+  google.protobuf.Timestamp updated_at = 2;
+}
+
+// Variable is a configuration variable. Unlike a secret its value can be read
+// back and it may appear in logs.
+message Variable {
+  // Name is the name of the variable, in upper case as the server stores it.
+  string name = 1;
+  // Value is the value, at most 48 KiB.
+  string value = 2;
+  // UpdatedAt is when the value was last set.
+  google.protobuf.Timestamp updated_at = 3;
+}
+
+// Environment is a named deployment target of a repository, to which secrets
+// and variables can be attached. A workflow job that names an environment
+// creates it on first use, as on GitHub.
+message Environment {
+  // Repo is the repository name.
+  string repo = 1;
+  // Name is the name of the environment, 1 to 255 characters without control
+  // characters, unique in the repository without regard to case. The server
+  // keeps the case it was given.
+  string name = 2;
+  // CreatedAt is when the environment was created.
+  google.protobuf.Timestamp created_at = 3;
+}
+
+// SecretService manages the encrypted secrets that CI jobs receive, like `gh
+// secret` does on GitHub. Names are 1 to 255 characters among letters, digits
+// and "_", do not begin with a digit or with "GITHUB_", and are
+// case-insensitive: the server stores them in upper case.
+//
+// Every RPC needs the secrets:write scope on a token that may access the
+// repository of the scope (a repository-restricted token cannot use the
+// instance scope), or the root token. Tokens limited to branches are refused
+// with permission_denied, whatever their scopes: they never hold the owner's
+// rights. A repository that does not exist or that the caller cannot access
+// gives not_found.
+//
+// Values are encrypted at rest with the server's key. A server without a key
+// refuses to set a secret with failed_precondition and sends no secrets to
+// jobs. The API never returns a value, and the server never logs one.
+//
+// Page sizes and page tokens work as in the other services.
+//
+// Servers that implement it list "ci.secrets" in GetVersionResponse.features.
+service SecretService {
+  // SetSecret creates the secret or replaces its value. Fails with
+  // invalid_argument if the name is not valid, if the value is empty or longer
+  // than 48 KiB (49,152 bytes), or if scope is not set, with not_found if the
+  // environment of the scope does not exist, and with failed_precondition if
+  // the server has no encryption key.
+  rpc SetSecret(SetSecretRequest) returns (SetSecretResponse);
+  // ListSecrets lists the secrets of one scope, ordered by name. It lists only
+  // the secrets set in that scope, not the ones the scope inherits. It never
+  // returns values.
+  rpc ListSecrets(ListSecretsRequest) returns (ListSecretsResponse);
+  // DeleteSecret deletes a secret. Fails with not_found if it does not exist.
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
+}
+
+// SetSecretRequest names a secret and gives its value.
+message SetSecretRequest {
+  // Scope is where the secret lives.
+  SettingsScope scope = 1;
+  // Name is the name of the secret.
+  string name = 2;
+  // Value is the value in plain text, 1 byte to 48 KiB. It may contain
+  // several lines.
+  string value = 3;
+}
+
+// SetSecretResponse describes the stored secret.
+message SetSecretResponse {
+  // Secret is the secret, without its value.
+  Secret secret = 1;
+}
+
+// ListSecretsRequest selects a page of the secrets of a scope.
+message ListSecretsRequest {
+  // Scope is the scope to list.
+  SettingsScope scope = 1;
+  // PageSize is the maximum number of secrets to return. 0 means the server
+  // default; values above the server maximum are lowered to it.
+  int32 page_size = 2;
+  // PageToken is the next_page_token of a previous response. Empty for the
+  // first page.
+  string page_token = 3;
+}
+
+// ListSecretsResponse is one page of secrets.
+message ListSecretsResponse {
+  // Secrets are the secrets of this page, ordered by name, without values.
+  repeated Secret secrets = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// DeleteSecretRequest names the secret to delete.
+message DeleteSecretRequest {
+  // Scope is where the secret lives.
+  SettingsScope scope = 1;
+  // Name is the name of the secret, without regard to case.
+  string name = 2;
+}
+
+// DeleteSecretResponse is empty.
+message DeleteSecretResponse {}
+
+// VariableService manages the configuration variables that CI jobs receive in
+// the "vars" context, like `gh variable` does on GitHub. Names follow the
+// rules of SecretService. Access rules, errors and page handling are those of
+// SecretService, and the same servers (feature "ci.secrets") implement it.
+service VariableService {
+  // SetVariable creates the variable or replaces its value. Fails with
+  // invalid_argument if the name is not valid, if the value is longer than 48
+  // KiB (49,152 bytes) or if scope is not set, and with not_found if the
+  // environment of the scope does not exist. An empty value is allowed.
+  rpc SetVariable(SetVariableRequest) returns (SetVariableResponse);
+  // GetVariable returns one variable of one scope, with its value. Fails with
+  // not_found if it does not exist in that scope.
+  rpc GetVariable(GetVariableRequest) returns (GetVariableResponse);
+  // ListVariables lists the variables of one scope, ordered by name, with
+  // their values. It lists only the variables set in that scope.
+  rpc ListVariables(ListVariablesRequest) returns (ListVariablesResponse);
+  // DeleteVariable deletes a variable. Fails with not_found if it does not
+  // exist.
+  rpc DeleteVariable(DeleteVariableRequest) returns (DeleteVariableResponse);
+}
+
+// SetVariableRequest names a variable and gives its value.
+message SetVariableRequest {
+  // Scope is where the variable lives.
+  SettingsScope scope = 1;
+  // Name is the name of the variable.
+  string name = 2;
+  // Value is the value, at most 48 KiB.
+  string value = 3;
+}
+
+// SetVariableResponse holds the stored variable.
+message SetVariableResponse {
+  // Variable is the variable as stored.
+  Variable variable = 1;
+}
+
+// GetVariableRequest names a variable.
+message GetVariableRequest {
+  // Scope is where the variable lives.
+  SettingsScope scope = 1;
+  // Name is the name of the variable, without regard to case.
+  string name = 2;
+}
+
+// GetVariableResponse holds a variable.
+message GetVariableResponse {
+  // Variable is the variable.
+  Variable variable = 1;
+}
+
+// ListVariablesRequest selects a page of the variables of a scope.
+message ListVariablesRequest {
+  // Scope is the scope to list.
+  SettingsScope scope = 1;
+  // PageSize is the maximum number of variables to return. 0 means the server
+  // default; values above the server maximum are lowered to it.
+  int32 page_size = 2;
+  // PageToken is the next_page_token of a previous response. Empty for the
+  // first page.
+  string page_token = 3;
+}
+
+// ListVariablesResponse is one page of variables.
+message ListVariablesResponse {
+  // Variables are the variables of this page, ordered by name.
+  repeated Variable variables = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// DeleteVariableRequest names the variable to delete.
+message DeleteVariableRequest {
+  // Scope is where the variable lives.
+  SettingsScope scope = 1;
+  // Name is the name of the variable, without regard to case.
+  string name = 2;
+}
+
+// DeleteVariableResponse is empty.
+message DeleteVariableResponse {}
+
+// EnvironmentService manages the environments of a repository, to which
+// secrets and variables are attached. Environments have no protection rules
+// and no deployments. Access rules and errors are those of SecretService (the
+// secrets:write scope, no token limited to branches), and the same servers
+// (feature "ci.secrets") implement it.
+service EnvironmentService {
+  // CreateEnvironment creates an environment. It succeeds and changes nothing
+  // if the environment already exists (without regard to case), as GitHub's
+  // create-or-update does. Fails with invalid_argument if the name is not
+  // valid and with not_found if the repository does not exist.
+  rpc CreateEnvironment(CreateEnvironmentRequest) returns (CreateEnvironmentResponse);
+  // ListEnvironments lists the environments of a repository, ordered by name.
+  rpc ListEnvironments(ListEnvironmentsRequest) returns (ListEnvironmentsResponse);
+  // DeleteEnvironment deletes an environment with its secrets and variables.
+  // Fails with not_found if it does not exist.
+  rpc DeleteEnvironment(DeleteEnvironmentRequest) returns (DeleteEnvironmentResponse);
+}
+
+// CreateEnvironmentRequest names the environment to create.
+message CreateEnvironmentRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Name is the name of the environment, see Environment.name.
+  string name = 2;
+}
+
+// CreateEnvironmentResponse holds the environment.
+message CreateEnvironmentResponse {
+  // Environment is the environment, new or existing.
+  Environment environment = 1;
+}
+
+// ListEnvironmentsRequest selects a page of the environments of a repository.
+message ListEnvironmentsRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // PageSize is the maximum number of environments to return. 0 means the
+  // server default; values above the server maximum are lowered to it.
+  int32 page_size = 2;
+  // PageToken is the next_page_token of a previous response. Empty for the
+  // first page.
+  string page_token = 3;
+}
+
+// ListEnvironmentsResponse is one page of environments.
+message ListEnvironmentsResponse {
+  // Environments are the environments of this page, ordered by name.
+  repeated Environment environments = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// DeleteEnvironmentRequest names the environment to delete.
+message DeleteEnvironmentRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Name is the name of the environment, without regard to case.
+  string name = 2;
+}
+
+// DeleteEnvironmentResponse is empty.
+message DeleteEnvironmentResponse {}

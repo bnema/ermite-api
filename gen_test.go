@@ -64,9 +64,20 @@ func TestProcedures(t *testing.T) {
 		{ermiteconnect.RunServiceGetStepSummariesProcedure, "/ermite.RunService/GetStepSummaries"},
 		{ermiteconnect.RunServiceCancelRunProcedure, "/ermite.RunService/CancelRun"},
 		{ermiteconnect.RunServiceRerunRunProcedure, "/ermite.RunService/RerunRun"},
+		{ermiteconnect.RunServiceDispatchWorkflowProcedure, "/ermite.RunService/DispatchWorkflow"},
 		{ermiteconnect.RunServiceListChecksProcedure, "/ermite.RunService/ListChecks"},
 		{ermiteconnect.RunServiceListRunnersProcedure, "/ermite.RunService/ListRunners"},
 		{ermiteconnect.RunServiceRemoveRunnerProcedure, "/ermite.RunService/RemoveRunner"},
+		{ermiteconnect.SecretServiceSetSecretProcedure, "/ermite.SecretService/SetSecret"},
+		{ermiteconnect.SecretServiceListSecretsProcedure, "/ermite.SecretService/ListSecrets"},
+		{ermiteconnect.SecretServiceDeleteSecretProcedure, "/ermite.SecretService/DeleteSecret"},
+		{ermiteconnect.VariableServiceSetVariableProcedure, "/ermite.VariableService/SetVariable"},
+		{ermiteconnect.VariableServiceGetVariableProcedure, "/ermite.VariableService/GetVariable"},
+		{ermiteconnect.VariableServiceListVariablesProcedure, "/ermite.VariableService/ListVariables"},
+		{ermiteconnect.VariableServiceDeleteVariableProcedure, "/ermite.VariableService/DeleteVariable"},
+		{ermiteconnect.EnvironmentServiceCreateEnvironmentProcedure, "/ermite.EnvironmentService/CreateEnvironment"},
+		{ermiteconnect.EnvironmentServiceListEnvironmentsProcedure, "/ermite.EnvironmentService/ListEnvironments"},
+		{ermiteconnect.EnvironmentServiceDeleteEnvironmentProcedure, "/ermite.EnvironmentService/DeleteEnvironment"},
 	}
 	for _, tt := range tests {
 		if tt.got != tt.want {
@@ -104,6 +115,7 @@ func TestEnumNumbers(t *testing.T) {
 		{"CI_STATUS_QUEUED", int32(ermite.CiStatus_CI_STATUS_QUEUED), 1},
 		{"CI_STATUS_IN_PROGRESS", int32(ermite.CiStatus_CI_STATUS_IN_PROGRESS), 2},
 		{"CI_STATUS_COMPLETED", int32(ermite.CiStatus_CI_STATUS_COMPLETED), 3},
+		{"CI_STATUS_PENDING", int32(ermite.CiStatus_CI_STATUS_PENDING), 4},
 		{"CI_CONCLUSION_UNSPECIFIED", int32(ermite.CiConclusion_CI_CONCLUSION_UNSPECIFIED), 0},
 		{"CI_CONCLUSION_SUCCESS", int32(ermite.CiConclusion_CI_CONCLUSION_SUCCESS), 1},
 		{"CI_CONCLUSION_FAILURE", int32(ermite.CiConclusion_CI_CONCLUSION_FAILURE), 2},
@@ -435,6 +447,83 @@ func TestCI2RoundTrip(t *testing.T) {
 		&ermite.ListAnnotationsResponse{Annotations: []*ermite.JobAnnotation{{JobId: "j1", Annotation: &ermite.Annotation{Message: "m"}}}, Truncated: true},
 		&ermite.GetStepSummariesResponse{Summaries: []*ermite.StepSummary{{StepNumber: 2, Markdown: "# hi"}}, Truncated: true},
 		&ermite.RunJob{Id: "j1", Steps: []*ermite.Step{{Number: 2, Outcome: ermite.CiConclusion_CI_CONCLUSION_FAILURE}}},
+	}
+	for _, in := range msgs {
+		b, err := proto.Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := in.ProtoReflect().New().Interface()
+		if err := proto.Unmarshal(b, out); err != nil {
+			t.Fatal(err)
+		}
+		if !proto.Equal(in, out) {
+			t.Errorf("%T: round trip mismatch: %v != %v", in, out, in)
+		}
+	}
+}
+
+// TestCI3FieldNumbers pins the numbers of the fields added for CI-3.
+func TestCI3FieldNumbers(t *testing.T) {
+	tests := []struct {
+		msg    proto.Message
+		fields map[string]int
+	}{
+		{&ermite.Job{}, map[string]int{
+			"secrets": 16, "vars": 17, "environment": 18, "permissions": 19, "cache": 20, "trusted": 21,
+		}},
+		{&ermite.JobPermissions{}, map[string]int{"levels": 1}},
+		{&ermite.JobCache{}, map[string]int{"repository": 1, "write_ref": 2, "read_refs": 3}},
+		{&ermite.Run{}, map[string]int{"trusted": 20}},
+		{&ermite.RunJob{}, map[string]int{"concurrency_group": 20}},
+		{&ermite.DispatchWorkflowRequest{}, map[string]int{"repo": 1, "workflow_path": 2, "ref": 3, "inputs": 4}},
+		{&ermite.DispatchWorkflowResponse{}, map[string]int{"run": 1}},
+		{&ermite.SettingsScope{}, map[string]int{"instance": 1, "repo": 2, "environment": 3}},
+		{&ermite.EnvironmentRef{}, map[string]int{"repo": 1, "name": 2}},
+		{&ermite.Secret{}, map[string]int{"name": 1, "updated_at": 2}},
+		{&ermite.Variable{}, map[string]int{"name": 1, "value": 2, "updated_at": 3}},
+		{&ermite.Environment{}, map[string]int{"repo": 1, "name": 2, "created_at": 3}},
+		{&ermite.SetSecretRequest{}, map[string]int{"scope": 1, "name": 2, "value": 3}},
+		{&ermite.ListSecretsRequest{}, map[string]int{"scope": 1, "page_size": 2, "page_token": 3}},
+		{&ermite.ListSecretsResponse{}, map[string]int{"secrets": 1, "next_page_token": 2}},
+		{&ermite.ListVariablesResponse{}, map[string]int{"variables": 1, "next_page_token": 2}},
+		{&ermite.ListEnvironmentsRequest{}, map[string]int{"repo": 1, "page_size": 2, "page_token": 3}},
+		{&ermite.ListEnvironmentsResponse{}, map[string]int{"environments": 1, "next_page_token": 2}},
+	}
+	for _, tt := range tests {
+		md := tt.msg.ProtoReflect().Descriptor()
+		for name, num := range tt.fields {
+			if fd := md.Fields().ByName(protoreflect.Name(name)); fd == nil || int(fd.Number()) != num {
+				t.Errorf("%s.%s: %v, want number %d", md.Name(), name, fd, num)
+			}
+		}
+	}
+}
+
+// TestCI3RoundTrip checks that the CI-3 messages survive the wire.
+func TestCI3RoundTrip(t *testing.T) {
+	msgs := []proto.Message{
+		&ermite.Job{
+			JobId: "j1", Secrets: map[string]string{"TOKEN": "s3cret"}, Vars: map[string]string{"REGION": "eu"},
+			Environment: "staging", Trusted: true,
+			Permissions: &ermite.JobPermissions{Levels: map[string]string{"contents": "write", "packages": "none"}},
+			Cache: &ermite.JobCache{
+				Repository: "ermite", WriteRef: "refs/pull/7/merge",
+				ReadRefs: []string{"refs/pull/7/merge", "refs/heads/main"},
+			},
+		},
+		&ermite.Run{Id: 9, Event: "workflow_dispatch", Trusted: true},
+		&ermite.RunJob{Id: "j1", Status: ermite.CiStatus_CI_STATUS_PENDING, ConcurrencyGroup: "deploy"},
+		&ermite.DispatchWorkflowRequest{Repo: "ermite", WorkflowPath: "ci.yml", Ref: "main", Inputs: map[string]string{"debug": "true"}},
+		&ermite.DispatchWorkflowResponse{Run: &ermite.Run{Id: 9, Event: "workflow_dispatch"}},
+		&ermite.SetSecretRequest{Scope: &ermite.SettingsScope{Where: &ermite.SettingsScope_Instance{Instance: true}}, Name: "A", Value: "v"},
+		&ermite.SetSecretRequest{Scope: &ermite.SettingsScope{Where: &ermite.SettingsScope_Repo{Repo: "ermite"}}, Name: "A", Value: "v"},
+		&ermite.SetVariableRequest{
+			Scope: &ermite.SettingsScope{Where: &ermite.SettingsScope_Environment{Environment: &ermite.EnvironmentRef{Repo: "ermite", Name: "prod"}}},
+			Name:  "A", Value: "v",
+		},
+		&ermite.ListSecretsResponse{Secrets: []*ermite.Secret{{Name: "A"}}, NextPageToken: "t"},
+		&ermite.ListEnvironmentsResponse{Environments: []*ermite.Environment{{Repo: "ermite", Name: "prod"}}},
 	}
 	for _, in := range msgs {
 		b, err := proto.Marshal(in)
