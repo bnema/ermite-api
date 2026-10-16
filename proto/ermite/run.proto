@@ -253,6 +253,12 @@ message Runner {
   google.protobuf.Timestamp last_seen = 9;
   // Busy is true while the runner has a job in progress.
   bool busy = 10;
+  // Online is true when the server heard from the runner (see last_seen) less
+  // than 2 minutes ago, by the server's own clock at the time of the answer.
+  // Clients show this instead of comparing last_seen with their clock, which
+  // may be minutes off. A server that predates the field leaves it false:
+  // clients that need to tell can fall back to last_seen.
+  bool online = 11;
 }
 
 // RunService reads and controls CI runs, like `gh run` does on GitHub. It is for

@@ -653,7 +653,13 @@ type FetchJobRequest struct {
 	// same poll_id, and gets the assignment the first call made, if it made one
 	// (see FetchJob). A new poll uses a new id. Empty means no retry protection:
 	// a lost assignment is then recovered by the acknowledgement timeout alone.
-	PollId        string `protobuf:"bytes,2,opt,name=poll_id,json=pollId,proto3" json:"poll_id,omitempty"`
+	PollId string `protobuf:"bytes,2,opt,name=poll_id,json=pollId,proto3" json:"poll_id,omitempty"`
+	// Version is the release of the running runner software, for example
+	// "v0.1.0", or "devel", at most 64 characters. Optional: the server stores it
+	// as the runner's version (Runner.version in ListRunners), replacing the one
+	// given at registration, so that the list shows what runs now. Empty, from
+	// an older runner, leaves the stored version unchanged.
+	Version       string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -698,6 +704,13 @@ func (x *FetchJobRequest) GetLabels() []string {
 func (x *FetchJobRequest) GetPollId() string {
 	if x != nil {
 		return x.PollId
+	}
+	return ""
+}
+
+func (x *FetchJobRequest) GetVersion() string {
+	if x != nil {
+		return x.Version
 	}
 	return ""
 }
@@ -2708,10 +2721,11 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\areplace\x18\a \x01(\bR\areplace\"X\n" +
 	"\x16RegisterRunnerResponse\x12\x1b\n" +
 	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12!\n" +
-	"\frunner_token\x18\x02 \x01(\tR\vrunnerToken\"B\n" +
+	"\frunner_token\x18\x02 \x01(\tR\vrunnerToken\"\\\n" +
 	"\x0fFetchJobRequest\x12\x16\n" +
 	"\x06labels\x18\x01 \x03(\tR\x06labels\x12\x17\n" +
-	"\apoll_id\x18\x02 \x01(\tR\x06pollId\"m\n" +
+	"\apoll_id\x18\x02 \x01(\tR\x06pollId\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\tR\aversion\"m\n" +
 	"\x10FetchJobResponse\x12\x1d\n" +
 	"\x03job\x18\x01 \x01(\v2\v.ermite.JobR\x03job\x12:\n" +
 	"\vretry_after\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\n" +

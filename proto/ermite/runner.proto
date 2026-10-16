@@ -463,6 +463,12 @@ message FetchJobRequest {
   // (see FetchJob). A new poll uses a new id. Empty means no retry protection:
   // a lost assignment is then recovered by the acknowledgement timeout alone.
   string poll_id = 2;
+  // Version is the release of the running runner software, for example
+  // "v0.1.0", or "devel", at most 64 characters. Optional: the server stores it
+  // as the runner's version (Runner.version in ListRunners), replacing the one
+  // given at registration, so that the list shows what runs now. Empty, from
+  // an older runner, leaves the stored version unchanged.
+  string version = 3;
 }
 
 // FetchJobResponse holds the job given to the runner, if any.

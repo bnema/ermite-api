@@ -829,7 +829,13 @@ type Runner struct {
 	// offline.
 	LastSeen *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
 	// Busy is true while the runner has a job in progress.
-	Busy          bool `protobuf:"varint,10,opt,name=busy,proto3" json:"busy,omitempty"`
+	Busy bool `protobuf:"varint,10,opt,name=busy,proto3" json:"busy,omitempty"`
+	// Online is true when the server heard from the runner (see last_seen) less
+	// than 2 minutes ago, by the server's own clock at the time of the answer.
+	// Clients show this instead of comparing last_seen with their clock, which
+	// may be minutes off. A server that predates the field leaves it false:
+	// clients that need to tell can fall back to last_seen.
+	Online        bool `protobuf:"varint,11,opt,name=online,proto3" json:"online,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -930,6 +936,13 @@ func (x *Runner) GetLastSeen() *timestamppb.Timestamp {
 func (x *Runner) GetBusy() bool {
 	if x != nil {
 		return x.Busy
+	}
+	return false
+}
+
+func (x *Runner) GetOnline() bool {
+	if x != nil {
+		return x.Online
 	}
 	return false
 }
@@ -2642,7 +2655,7 @@ const file_ermite_run_proto_rawDesc = "" +
 	" \x01(\tR\fworkflowName\x129\n" +
 	"\n" +
 	"started_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
-	"\fcompleted_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xc7\x02\n" +
+	"\fcompleted_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xdf\x02\n" +
 	"\x06Runner\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -2654,7 +2667,8 @@ const file_ermite_run_proto_rawDesc = "" +
 	"\rregistered_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\fregisteredAt\x127\n" +
 	"\tlast_seen\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\x12\x12\n" +
 	"\x04busy\x18\n" +
-	" \x01(\bR\x04busy\"\xbf\x01\n" +
+	" \x01(\bR\x04busy\x12\x16\n" +
+	"\x06online\x18\v \x01(\bR\x06online\"\xbf\x01\n" +
 	"\x0fListRunsRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
