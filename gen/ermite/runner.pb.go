@@ -2191,7 +2191,8 @@ type Annotation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Level is the severity. Required.
 	Level AnnotationLevel `protobuf:"varint,1,opt,name=level,proto3,enum=ermite.AnnotationLevel" json:"level,omitempty"`
-	// Title is the optional title, at most 255 characters. Empty when not given.
+	// Title is the optional title, at most 4,096 characters like the message; a
+	// longer one is invalid_argument. Empty when not given.
 	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	// Message is the text. Required, not empty, at most 4,096 characters; a
 	// longer one is invalid_argument. The runner never sends a longer one: like
