@@ -2,7 +2,7 @@
 
 The public API contract of [ermite](https://git.bnema.dev/bnema/ermite), a single-user Git forge: protobuf definitions for its ConnectRPC services and the Go code generated from them.
 
-Status: early development. The contract defines twelve services (below); the server that implements them is being built.
+Status: early development. The contract defines fourteen services (below); the server that implements them is being built.
 
 ```go
 import "bnema.dev/ermite-api/gen/ermite"
@@ -27,13 +27,15 @@ Handlers are mounted under `/-/api/` by the server. Errors are Connect codes.
 | `SecretService` | `SetSecret`, `ListSecrets` (names only, never values), `DeleteSecret`; scopes instance, repository and environment |
 | `VariableService` | `SetVariable`, `GetVariable`, `ListVariables`, `DeleteVariable`; same scopes |
 | `EnvironmentService` | `CreateEnvironment`, `ListEnvironments`, `DeleteEnvironment` |
+| `JobArtifactService` | `CreateJobArtifact`, `UploadJobArtifactBlock` (client stream), `CommitJobArtifact`, `FinalizeJobArtifact`, `ListJobArtifacts`, `DownloadJobArtifact` (streamed, resumable), `DeleteJobArtifact`; artifacts v4 for CI runners, scoped to the run of the job token |
+| `ArtifactService` | `ListArtifacts`, `DownloadArtifact` (streamed, resumable), `DeleteArtifact`; artifacts of a run for people |
 | `ServerService` | `GetVersion` (server version and feature list), `GetSigningKey` (commit signing key) |
 
 Tokens carry scopes only; presets such as `cli` or `agent` are a client concern.
 
 ## Layout
 
-- `proto/ermite/`: `.proto` files of the `ermite` package, one per service (`repo`, `git`, `merge_request`, `token`, `session`, `event`, `server`, `runner`, `run`, `ci_settings`) plus shared `types`. Checked by `buf lint` and `buf breaking`.
+- `proto/ermite/`: `.proto` files of the `ermite` package, one per service (`repo`, `git`, `merge_request`, `token`, `session`, `event`, `server`, `runner`, `run`, `ci_settings`, `artifact`) plus shared `types`. Checked by `buf lint` and `buf breaking`.
 - `gen/ermite/`: generated Go messages. `gen/ermite/ermiteconnect/`: generated Connect clients and handlers. Committed, never edited by hand.
 
 ## Generate

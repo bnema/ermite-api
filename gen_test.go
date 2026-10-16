@@ -78,6 +78,16 @@ func TestProcedures(t *testing.T) {
 		{ermiteconnect.EnvironmentServiceCreateEnvironmentProcedure, "/ermite.EnvironmentService/CreateEnvironment"},
 		{ermiteconnect.EnvironmentServiceListEnvironmentsProcedure, "/ermite.EnvironmentService/ListEnvironments"},
 		{ermiteconnect.EnvironmentServiceDeleteEnvironmentProcedure, "/ermite.EnvironmentService/DeleteEnvironment"},
+		{ermiteconnect.JobArtifactServiceCreateJobArtifactProcedure, "/ermite.JobArtifactService/CreateJobArtifact"},
+		{ermiteconnect.JobArtifactServiceUploadJobArtifactBlockProcedure, "/ermite.JobArtifactService/UploadJobArtifactBlock"},
+		{ermiteconnect.JobArtifactServiceCommitJobArtifactProcedure, "/ermite.JobArtifactService/CommitJobArtifact"},
+		{ermiteconnect.JobArtifactServiceFinalizeJobArtifactProcedure, "/ermite.JobArtifactService/FinalizeJobArtifact"},
+		{ermiteconnect.JobArtifactServiceListJobArtifactsProcedure, "/ermite.JobArtifactService/ListJobArtifacts"},
+		{ermiteconnect.JobArtifactServiceDownloadJobArtifactProcedure, "/ermite.JobArtifactService/DownloadJobArtifact"},
+		{ermiteconnect.JobArtifactServiceDeleteJobArtifactProcedure, "/ermite.JobArtifactService/DeleteJobArtifact"},
+		{ermiteconnect.ArtifactServiceListArtifactsProcedure, "/ermite.ArtifactService/ListArtifacts"},
+		{ermiteconnect.ArtifactServiceDownloadArtifactProcedure, "/ermite.ArtifactService/DownloadArtifact"},
+		{ermiteconnect.ArtifactServiceDeleteArtifactProcedure, "/ermite.ArtifactService/DeleteArtifact"},
 	}
 	for _, tt := range tests {
 		if tt.got != tt.want {

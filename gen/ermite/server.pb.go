@@ -83,7 +83,8 @@ type GetVersionResponse struct {
 	// (SecretService, VariableService and EnvironmentService, and in Job the
 	// secrets, vars, environment, permissions and trusted fields and Run.trusted),
 	// "ci.dispatch" (RunService.DispatchWorkflow), "ci.concurrency"
-	// (CI_STATUS_PENDING and RunJob.concurrency_group) and "ci.cache" (Job.cache).
+	// (CI_STATUS_PENDING and RunJob.concurrency_group), "ci.cache" (Job.cache)
+	// and "ci.artifacts" (JobArtifactService and ArtifactService).
 	Features      []string `protobuf:"bytes,2,rep,name=features,proto3" json:"features,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

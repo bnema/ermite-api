@@ -1,0 +1,350 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/timestamp.proto";
+
+// Artifact is a file that a job of a run uploaded with actions/upload-artifact
+// (artifacts v4): in most cases a zip archive, or a single file uploaded as is
+// ("archive: false"). It belongs to a run, not to one attempt: every job of the
+// run, in any attempt, sees the artifacts of the run. Only finalized artifacts
+// are described; an upload in progress is invisible.
+message Artifact {
+  // Id identifies the artifact on the server: unique across repositories and
+  // runs, never reused, and higher for a later artifact. It is GitHub's
+  // "artifact id" (databaseId), the id of the REST API.
+  int64 id = 1;
+  // Repo is the name of the repository of the run.
+  string repo = 2;
+  // RunId is the run the artifact belongs to.
+  int64 run_id = 3;
+  // Attempt is the attempt of the run whose job uploaded it.
+  int32 attempt = 4;
+  // JobId is the Job.job_id of the job that uploaded it.
+  string job_id = 5;
+  // Name is the name of the artifact, unique among the artifacts of the run:
+  // 1 to 256 characters of valid UTF-8, without control characters, '"', ':',
+  // '<', '>', '|', '*', '?', '\' or '/' (the characters @actions/artifact
+  // refuses).
+  string name = 6;
+  // Size is the number of bytes of the content.
+  int64 size = 7;
+  // Digest is the SHA-256 of the content, "sha256:" and 64 lowercase
+  // hexadecimal characters, as GitHub gives it.
+  string digest = 8;
+  // MediaType is the media type of the content: "application/zip" for an
+  // archive, the type the uploader gave for a file uploaded as is.
+  string media_type = 9;
+  // CreatedAt is when the upload began.
+  google.protobuf.Timestamp created_at = 10;
+  // ExpiresAt is when the server deletes the artifact (see
+  // CreateJobArtifactRequest.expires_at).
+  google.protobuf.Timestamp expires_at = 11;
+}
+
+// JobArtifactService is the artifacts side of a CI runner: what ermite-runner
+// calls when the job's code uploads or downloads artifacts through the
+// results service the runner serves in the sandbox (Twirp
+// github.actions.results.api.v1.ArtifactService and Azure block blobs). The
+// runner translates that protocol; the server stores the content, enforces the
+// limits and decides what the job may see. It is not for people: owners use
+// ArtifactService.
+//
+// Every RPC needs the job token of the job ("Authorization: Bearer
+// ermitejob_..."), and job_id must be the job of the token, with the errors of
+// RunnerService (unauthenticated, permission_denied, and failed_precondition
+// with a JobEnded detail once the job has ended). The run is always the one of
+// the token: no request names a run, so a job can only reach the artifacts of
+// its own run, and the run and job ids that the job's code puts in its Twirp
+// requests are never passed on.
+//
+// An upload goes: CreateJobArtifact (a pending artifact and its id), any number
+// of UploadJobArtifactBlock (in any order and concurrently), one
+// CommitJobArtifact (the order of the blocks: the content), then
+// FinalizeJobArtifact (the artifact becomes visible). Every step is safe to
+// retry after a network error. A pending artifact that is not finalized when
+// its job ends is deleted with its blocks.
+//
+// Limits are settings of the server: the size of one artifact, the space of all
+// the artifacts of a repository (pending uploads included) and the longest
+// retention. A call that would go over a size limit fails with
+// resource_exhausted and a message that names the limit; nothing of the call
+// is kept.
+//
+// Servers that implement this service and ArtifactService list "ci.artifacts"
+// in GetVersionResponse.features; others answer unimplemented. A runner without
+// that feature serves no results service, and artifact actions fail as on a
+// GitHub Enterprise Server without artifacts v4.
+service JobArtifactService {
+  // CreateJobArtifact begins the upload of an artifact of the job's run and
+  // returns its id. Fails with invalid_argument if the name or expires_at break
+  // a rule, already_exists if an artifact of that name was finalized by a job
+  // of the same attempt of the run (the uploader deletes it first to replace
+  // it: DeleteJobArtifact), and resource_exhausted if the artifacts of the
+  // repository already use all their space. A pending artifact of the same
+  // job and name is discarded: a new create is a new upload.
+  rpc CreateJobArtifact(CreateJobArtifactRequest) returns (CreateJobArtifactResponse);
+  // UploadJobArtifactBlock stores one block of a pending artifact. It is a
+  // client stream: the first message names the job, the artifact and the
+  // block, every message may carry data, and the block is the data of all the
+  // messages in order. The block is stored when the client closes the stream
+  // and the server answers; a stream that breaks or fails stores nothing.
+  // Storing a block id again replaces the block, so a retry is safe. Blocks
+  // that the commit does not name are dropped.
+  //
+  // Fails with not_found if the artifact is not a pending artifact of this job,
+  // failed_precondition if it is already committed, invalid_argument if a rule
+  // of the messages is broken, and resource_exhausted if the blocks of the
+  // artifact would exceed the size of one artifact or the space of the
+  // repository.
+  rpc UploadJobArtifactBlock(stream UploadJobArtifactBlockRequest) returns (UploadJobArtifactBlockResponse);
+  // CommitJobArtifact sets the content of a pending artifact: the blocks named,
+  // in that order (Azure's Put Block List). An empty list is an empty content
+  // (a 0-byte upload). The server then knows the size and the digest, and
+  // drops the blocks. A repeat of the same call after a success returns the
+  // same result; a different list on a committed artifact is
+  // failed_precondition. Fails with not_found if the artifact is not a pending
+  // artifact of this job, and invalid_argument if a block id was never
+  // uploaded or the list has more than 50,000 ids.
+  rpc CommitJobArtifact(CommitJobArtifactRequest) returns (CommitJobArtifactResponse);
+  // FinalizeJobArtifact makes the latest committed artifact of the job with
+  // that name visible to the run, and returns it. An artifact of the same name
+  // from an earlier attempt of the run is deleted at the same moment (a re-run
+  // replaces what the first attempt uploaded). A repeat after a success
+  // returns the same artifact. Fails with not_found if the job has no pending
+  // artifact of that name, failed_precondition if it is not committed,
+  // invalid_argument if digest is set and differs from the content, and
+  // already_exists if a job of the same attempt finalized an artifact of that
+  // name in the meantime.
+  rpc FinalizeJobArtifact(FinalizeJobArtifactRequest) returns (FinalizeJobArtifactResponse);
+  // ListJobArtifacts lists the finalized, unexpired artifacts of the job's run,
+  // all attempts, by id. An empty list is not an error.
+  rpc ListJobArtifacts(ListJobArtifactsRequest) returns (ListJobArtifactsResponse);
+  // DownloadJobArtifact streams the content of an artifact of the job's run.
+  // The first message carries the artifact, then the chunks follow in order
+  // from offset. A client that loses the stream calls again with the offset
+  // after the last byte it received. Fails with not_found if the artifact is
+  // not a finalized artifact of the run (or has expired), and out_of_range if
+  // offset is beyond its size.
+  rpc DownloadJobArtifact(DownloadJobArtifactRequest) returns (stream DownloadJobArtifactResponse);
+  // DeleteJobArtifact deletes the finalized artifact of that name of the job's
+  // run (upload-artifact's "overwrite", and its merge action's
+  // "delete-merged"). Fails with not_found if there is none.
+  rpc DeleteJobArtifact(DeleteJobArtifactRequest) returns (DeleteJobArtifactResponse);
+}
+
+// CreateJobArtifactRequest begins an upload.
+message CreateJobArtifactRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // Name is the name of the artifact, see Artifact.name.
+  string name = 2;
+  // MediaType is the media type of a file uploaded as is (the toolkit's
+  // mime_type), at most 255 characters. Empty means "application/zip".
+  string media_type = 3;
+  // ExpiresAt is when the artifact should be deleted (the toolkit's
+  // expires_at, from "retention-days"). Unset means the default retention of
+  // the server. The server keeps it between one day from now and its longest
+  // retention, and returns the time it kept.
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+// CreateJobArtifactResponse identifies the pending artifact.
+message CreateJobArtifactResponse {
+  // ArtifactId is the id the artifact will have once finalized (Artifact.id).
+  int64 artifact_id = 1;
+  // ExpiresAt is the expiry the server kept.
+  google.protobuf.Timestamp expires_at = 2;
+}
+
+// UploadJobArtifactBlockRequest is one message of the stream of a block.
+message UploadJobArtifactBlockRequest {
+  // JobId is the Job.job_id, in the first message only. It must be the job of
+  // the token.
+  string job_id = 1;
+  // ArtifactId is the CreateJobArtifactResponse.artifact_id, in the first
+  // message only.
+  int64 artifact_id = 2;
+  // BlockId identifies the block within the artifact: 1 to 64 bytes (Azure's
+  // block id, decoded from base64), in the first message only.
+  bytes block_id = 3;
+  // Data is the next part of the block, at most 1 MiB (1,048,576 bytes). Any
+  // message may have none.
+  bytes data = 4;
+}
+
+// UploadJobArtifactBlockResponse confirms a stored block.
+message UploadJobArtifactBlockResponse {
+  // Size is the number of bytes of the block as stored.
+  int64 size = 1;
+}
+
+// CommitJobArtifactRequest sets the content of a pending artifact.
+message CommitJobArtifactRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // ArtifactId is the CreateJobArtifactResponse.artifact_id.
+  int64 artifact_id = 2;
+  // BlockIds are the blocks of the content, in order, each one as given to
+  // UploadJobArtifactBlock. At most 50,000; the same id may appear more than
+  // once.
+  repeated bytes block_ids = 3;
+}
+
+// CommitJobArtifactResponse describes the committed content.
+message CommitJobArtifactResponse {
+  // Size is the number of bytes of the content.
+  int64 size = 1;
+  // Digest is the SHA-256 of the content, see Artifact.digest.
+  string digest = 2;
+}
+
+// FinalizeJobArtifactRequest ends an upload.
+message FinalizeJobArtifactRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // Name is the name given to CreateJobArtifact. The toolkit finalizes by name.
+  string name = 2;
+  // Size is the size the uploader counted. Informational: the server keeps the
+  // size of the content it stored, and only logs a difference.
+  int64 size = 3;
+  // Digest is the digest the uploader computed ("sha256:<hex>"), or empty.
+  // When set it must be the digest of the content.
+  string digest = 4;
+}
+
+// FinalizeJobArtifactResponse describes the artifact now visible.
+message FinalizeJobArtifactResponse {
+  // Artifact is the finalized artifact.
+  Artifact artifact = 1;
+}
+
+// ListJobArtifactsRequest selects artifacts of the job's run.
+message ListJobArtifactsRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // Name keeps only the artifact of that name. Empty means every name.
+  string name = 2;
+  // ArtifactId keeps only the artifact of that id. 0 means every id.
+  int64 artifact_id = 3;
+}
+
+// ListJobArtifactsResponse lists artifacts of the job's run.
+message ListJobArtifactsResponse {
+  // Artifacts are the artifacts, by id.
+  repeated Artifact artifacts = 1;
+}
+
+// DownloadJobArtifactRequest selects the content of an artifact.
+message DownloadJobArtifactRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // ArtifactId is the Artifact.id of an artifact of the job's run.
+  int64 artifact_id = 2;
+  // Offset is the first byte to send, from 0 to the size of the artifact.
+  int64 offset = 3;
+}
+
+// DownloadJobArtifactResponse is one message of the content stream.
+message DownloadJobArtifactResponse {
+  // Artifact describes the artifact. Set in the first message of the stream
+  // only.
+  Artifact artifact = 1;
+  // Chunk is the next part of the content, at most 1 MiB, in order. The first
+  // message may have an empty chunk. The chunks of a stream add up to the size
+  // of the artifact minus the offset.
+  bytes chunk = 2;
+}
+
+// DeleteJobArtifactRequest names the artifact to delete.
+message DeleteJobArtifactRequest {
+  // JobId is the Job.job_id. It must be the job of the token.
+  string job_id = 1;
+  // Name is the name of a finalized artifact of the job's run.
+  string name = 2;
+}
+
+// DeleteJobArtifactResponse identifies the deleted artifact.
+message DeleteJobArtifactResponse {
+  // ArtifactId is the Artifact.id of the artifact that was deleted.
+  int64 artifact_id = 1;
+}
+
+// ArtifactService lets people list, download and delete the artifacts of the
+// runs of a repository (run page, `ermite run download`). Listing and
+// downloading need a signed-in caller with read access to the repository (the
+// repo:read scope for a token), even for a public repository: like GitHub,
+// artifacts are not served anonymously. Deleting needs the ci:write scope. A
+// repository or a run that does not exist or that the caller cannot read gives
+// not_found.
+//
+// Artifacts are deleted when they expire (Artifact.expires_at), with their run
+// (run retention) and with their repository.
+//
+// Only servers with the feature "ci.artifacts" implement it (unimplemented
+// otherwise).
+service ArtifactService {
+  // ListArtifacts lists the artifacts of a run, by id, with the space that the
+  // artifacts of the repository use.
+  rpc ListArtifacts(ListArtifactsRequest) returns (ListArtifactsResponse);
+  // DownloadArtifact streams the content of an artifact, as
+  // JobArtifactService.DownloadJobArtifact does. Fails with not_found if the
+  // artifact is not an artifact of the repository, and out_of_range if offset
+  // is beyond its size.
+  rpc DownloadArtifact(DownloadArtifactRequest) returns (stream DownloadArtifactResponse);
+  // DeleteArtifact deletes an artifact. Fails with not_found if it is not an
+  // artifact of the repository.
+  rpc DeleteArtifact(DeleteArtifactRequest) returns (DeleteArtifactResponse);
+}
+
+// ListArtifactsRequest selects the artifacts of a run.
+message ListArtifactsRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // RunId is the run.
+  int64 run_id = 2;
+}
+
+// ListArtifactsResponse lists the artifacts of a run.
+message ListArtifactsResponse {
+  // Artifacts are the artifacts of the run, all attempts, by id.
+  repeated Artifact artifacts = 1;
+  // UsedBytes is the space that all the artifacts of the repository use,
+  // uploads in progress included.
+  int64 used_bytes = 2;
+  // QuotaBytes is the space the artifacts of the repository may use.
+  int64 quota_bytes = 3;
+}
+
+// DownloadArtifactRequest selects the content of an artifact.
+message DownloadArtifactRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // ArtifactId is the Artifact.id.
+  int64 artifact_id = 2;
+  // Offset is the first byte to send, from 0 to the size of the artifact.
+  int64 offset = 3;
+}
+
+// DownloadArtifactResponse is one message of the content stream.
+message DownloadArtifactResponse {
+  // Artifact describes the artifact. Set in the first message of the stream
+  // only.
+  Artifact artifact = 1;
+  // Chunk is the next part of the content, at most 1 MiB, in order. The first
+  // message may have an empty chunk.
+  bytes chunk = 2;
+}
+
+// DeleteArtifactRequest names the artifact to delete.
+message DeleteArtifactRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // ArtifactId is the Artifact.id.
+  int64 artifact_id = 2;
+}
+
+// DeleteArtifactResponse is empty.
+message DeleteArtifactResponse {}
