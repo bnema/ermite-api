@@ -41,6 +41,9 @@ const (
 	// ServerServiceGetSigningKeyProcedure is the fully-qualified name of the ServerService's
 	// GetSigningKey RPC.
 	ServerServiceGetSigningKeyProcedure = "/ermite.ServerService/GetSigningKey"
+	// ServerServiceRotateOIDCKeyProcedure is the fully-qualified name of the ServerService's
+	// RotateOIDCKey RPC.
+	ServerServiceRotateOIDCKeyProcedure = "/ermite.ServerService/RotateOIDCKey"
 )
 
 // ServerServiceClient is a client for the ermite.ServerService service.
@@ -55,6 +58,17 @@ type ServerServiceClient interface {
 	// Servers that implement it list "signing_key" in
 	// GetVersionResponse.features.
 	GetSigningKey(context.Context, *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error)
+	// RotateOIDCKey replaces the key with which the server signs the OIDC ID
+	// tokens of CI jobs (Job.id_token_url) by a new one. The previous key stops
+	// signing at once but stays in the server's JWKS
+	// ("/-/oidc/.well-known/jwks") for 24 hours, so that tokens it signed still
+	// verify until they expire. It needs owner rights: the admin token, the
+	// owner's session, or a token with every scope and no repository list or
+	// branch prefixes (permission_denied otherwise). It fails with
+	// failed_precondition when the server issues no ID tokens (it has no
+	// secrets key to seal the key with). Servers that implement it list
+	// "ci.oidc" in GetVersionResponse.features.
+	RotateOIDCKey(context.Context, *connect.Request[ermite.RotateOIDCKeyRequest]) (*connect.Response[ermite.RotateOIDCKeyResponse], error)
 }
 
 // NewServerServiceClient constructs a client for the ermite.ServerService service. By default, it
@@ -80,6 +94,12 @@ func NewServerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(serverServiceMethods.ByName("GetSigningKey")),
 			connect.WithClientOptions(opts...),
 		),
+		rotateOIDCKey: connect.NewClient[ermite.RotateOIDCKeyRequest, ermite.RotateOIDCKeyResponse](
+			httpClient,
+			baseURL+ServerServiceRotateOIDCKeyProcedure,
+			connect.WithSchema(serverServiceMethods.ByName("RotateOIDCKey")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -87,6 +107,7 @@ func NewServerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 type serverServiceClient struct {
 	getVersion    *connect.Client[ermite.GetVersionRequest, ermite.GetVersionResponse]
 	getSigningKey *connect.Client[ermite.GetSigningKeyRequest, ermite.GetSigningKeyResponse]
+	rotateOIDCKey *connect.Client[ermite.RotateOIDCKeyRequest, ermite.RotateOIDCKeyResponse]
 }
 
 // GetVersion calls ermite.ServerService.GetVersion.
@@ -97,6 +118,11 @@ func (c *serverServiceClient) GetVersion(ctx context.Context, req *connect.Reque
 // GetSigningKey calls ermite.ServerService.GetSigningKey.
 func (c *serverServiceClient) GetSigningKey(ctx context.Context, req *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error) {
 	return c.getSigningKey.CallUnary(ctx, req)
+}
+
+// RotateOIDCKey calls ermite.ServerService.RotateOIDCKey.
+func (c *serverServiceClient) RotateOIDCKey(ctx context.Context, req *connect.Request[ermite.RotateOIDCKeyRequest]) (*connect.Response[ermite.RotateOIDCKeyResponse], error) {
+	return c.rotateOIDCKey.CallUnary(ctx, req)
 }
 
 // ServerServiceHandler is an implementation of the ermite.ServerService service.
@@ -111,6 +137,17 @@ type ServerServiceHandler interface {
 	// Servers that implement it list "signing_key" in
 	// GetVersionResponse.features.
 	GetSigningKey(context.Context, *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error)
+	// RotateOIDCKey replaces the key with which the server signs the OIDC ID
+	// tokens of CI jobs (Job.id_token_url) by a new one. The previous key stops
+	// signing at once but stays in the server's JWKS
+	// ("/-/oidc/.well-known/jwks") for 24 hours, so that tokens it signed still
+	// verify until they expire. It needs owner rights: the admin token, the
+	// owner's session, or a token with every scope and no repository list or
+	// branch prefixes (permission_denied otherwise). It fails with
+	// failed_precondition when the server issues no ID tokens (it has no
+	// secrets key to seal the key with). Servers that implement it list
+	// "ci.oidc" in GetVersionResponse.features.
+	RotateOIDCKey(context.Context, *connect.Request[ermite.RotateOIDCKeyRequest]) (*connect.Response[ermite.RotateOIDCKeyResponse], error)
 }
 
 // NewServerServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -132,12 +169,20 @@ func NewServerServiceHandler(svc ServerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(serverServiceMethods.ByName("GetSigningKey")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serverServiceRotateOIDCKeyHandler := connect.NewUnaryHandler(
+		ServerServiceRotateOIDCKeyProcedure,
+		svc.RotateOIDCKey,
+		connect.WithSchema(serverServiceMethods.ByName("RotateOIDCKey")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ermite.ServerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ServerServiceGetVersionProcedure:
 			serverServiceGetVersionHandler.ServeHTTP(w, r)
 		case ServerServiceGetSigningKeyProcedure:
 			serverServiceGetSigningKeyHandler.ServeHTTP(w, r)
+		case ServerServiceRotateOIDCKeyProcedure:
+			serverServiceRotateOIDCKeyHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -153,4 +198,8 @@ func (UnimplementedServerServiceHandler) GetVersion(context.Context, *connect.Re
 
 func (UnimplementedServerServiceHandler) GetSigningKey(context.Context, *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ServerService.GetSigningKey is not implemented"))
+}
+
+func (UnimplementedServerServiceHandler) RotateOIDCKey(context.Context, *connect.Request[ermite.RotateOIDCKeyRequest]) (*connect.Response[ermite.RotateOIDCKeyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ServerService.RotateOIDCKey is not implemented"))
 }

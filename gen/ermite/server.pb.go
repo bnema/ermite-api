@@ -11,6 +11,7 @@ package ermite
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -260,11 +261,126 @@ func (x *GetSigningKeyResponse) GetAllowedSigners() string {
 	return ""
 }
 
+// RotateOIDCKeyRequest is empty.
+type RotateOIDCKeyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RotateOIDCKeyRequest) Reset() {
+	*x = RotateOIDCKeyRequest{}
+	mi := &file_ermite_server_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RotateOIDCKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RotateOIDCKeyRequest) ProtoMessage() {}
+
+func (x *RotateOIDCKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_server_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RotateOIDCKeyRequest.ProtoReflect.Descriptor instead.
+func (*RotateOIDCKeyRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_server_proto_rawDescGZIP(), []int{4}
+}
+
+// RotateOIDCKeyResponse describes the new signing key of the ID tokens.
+type RotateOIDCKeyResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Issuer is the "iss" of the ID tokens, for example
+	// "https://git.example.com/-/oidc". Its discovery document is at
+	// "<issuer>/.well-known/openid-configuration".
+	Issuer string `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	// Kid is the key id of the new key, the "kid" of the tokens it signs: the
+	// RFC 7638 thumbprint of its public key, base64url without padding.
+	Kid string `protobuf:"bytes,2,opt,name=kid,proto3" json:"kid,omitempty"`
+	// RetiredKid is the key id of the key it replaces; empty when there was
+	// none.
+	RetiredKid string `protobuf:"bytes,3,opt,name=retired_kid,json=retiredKid,proto3" json:"retired_kid,omitempty"`
+	// RetiredUntil is when the replaced key leaves the JWKS. Unset when there
+	// was none.
+	RetiredUntil  *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=retired_until,json=retiredUntil,proto3" json:"retired_until,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RotateOIDCKeyResponse) Reset() {
+	*x = RotateOIDCKeyResponse{}
+	mi := &file_ermite_server_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RotateOIDCKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RotateOIDCKeyResponse) ProtoMessage() {}
+
+func (x *RotateOIDCKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_server_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RotateOIDCKeyResponse.ProtoReflect.Descriptor instead.
+func (*RotateOIDCKeyResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_server_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RotateOIDCKeyResponse) GetIssuer() string {
+	if x != nil {
+		return x.Issuer
+	}
+	return ""
+}
+
+func (x *RotateOIDCKeyResponse) GetKid() string {
+	if x != nil {
+		return x.Kid
+	}
+	return ""
+}
+
+func (x *RotateOIDCKeyResponse) GetRetiredKid() string {
+	if x != nil {
+		return x.RetiredKid
+	}
+	return ""
+}
+
+func (x *RotateOIDCKeyResponse) GetRetiredUntil() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RetiredUntil
+	}
+	return nil
+}
+
 var File_ermite_server_proto protoreflect.FileDescriptor
 
 const file_ermite_server_proto_rawDesc = "" +
 	"\n" +
-	"\x13ermite/server.proto\x12\x06ermite\"\x13\n" +
+	"\x13ermite/server.proto\x12\x06ermite\x1a\x1fgoogle/protobuf/timestamp.proto\"\x13\n" +
 	"\x11GetVersionRequest\"J\n" +
 	"\x12GetVersionResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1a\n" +
@@ -276,11 +392,19 @@ const file_ermite_server_proto_rawDesc = "" +
 	"\vfingerprint\x18\x02 \x01(\tR\vfingerprint\x12%\n" +
 	"\x0ecommitter_name\x18\x03 \x01(\tR\rcommitterName\x12'\n" +
 	"\x0fcommitter_email\x18\x04 \x01(\tR\x0ecommitterEmail\x12'\n" +
-	"\x0fallowed_signers\x18\x05 \x01(\tR\x0eallowedSigners2\xa2\x01\n" +
+	"\x0fallowed_signers\x18\x05 \x01(\tR\x0eallowedSigners\"\x16\n" +
+	"\x14RotateOIDCKeyRequest\"\xa3\x01\n" +
+	"\x15RotateOIDCKeyResponse\x12\x16\n" +
+	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x10\n" +
+	"\x03kid\x18\x02 \x01(\tR\x03kid\x12\x1f\n" +
+	"\vretired_kid\x18\x03 \x01(\tR\n" +
+	"retiredKid\x12?\n" +
+	"\rretired_until\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\fretiredUntil2\xf0\x01\n" +
 	"\rServerService\x12C\n" +
 	"\n" +
 	"GetVersion\x12\x19.ermite.GetVersionRequest\x1a\x1a.ermite.GetVersionResponse\x12L\n" +
-	"\rGetSigningKey\x12\x1c.ermite.GetSigningKeyRequest\x1a\x1d.ermite.GetSigningKeyResponseBr\n" +
+	"\rGetSigningKey\x12\x1c.ermite.GetSigningKeyRequest\x1a\x1d.ermite.GetSigningKeyResponse\x12L\n" +
+	"\rRotateOIDCKey\x12\x1c.ermite.RotateOIDCKeyRequest\x1a\x1d.ermite.RotateOIDCKeyResponseBr\n" +
 	"\n" +
 	"com.ermiteB\vServerProtoP\x01Z\x1fbnema.dev/ermite-api/gen/ermite\xa2\x02\x03EXX\xaa\x02\x06Ermite\xca\x02\x06Ermite\xe2\x02\x12Ermite\\GPBMetadata\xea\x02\x06Ermiteb\x06proto3"
 
@@ -296,23 +420,29 @@ func file_ermite_server_proto_rawDescGZIP() []byte {
 	return file_ermite_server_proto_rawDescData
 }
 
-var file_ermite_server_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ermite_server_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ermite_server_proto_goTypes = []any{
 	(*GetVersionRequest)(nil),     // 0: ermite.GetVersionRequest
 	(*GetVersionResponse)(nil),    // 1: ermite.GetVersionResponse
 	(*GetSigningKeyRequest)(nil),  // 2: ermite.GetSigningKeyRequest
 	(*GetSigningKeyResponse)(nil), // 3: ermite.GetSigningKeyResponse
+	(*RotateOIDCKeyRequest)(nil),  // 4: ermite.RotateOIDCKeyRequest
+	(*RotateOIDCKeyResponse)(nil), // 5: ermite.RotateOIDCKeyResponse
+	(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
 }
 var file_ermite_server_proto_depIdxs = []int32{
-	0, // 0: ermite.ServerService.GetVersion:input_type -> ermite.GetVersionRequest
-	2, // 1: ermite.ServerService.GetSigningKey:input_type -> ermite.GetSigningKeyRequest
-	1, // 2: ermite.ServerService.GetVersion:output_type -> ermite.GetVersionResponse
-	3, // 3: ermite.ServerService.GetSigningKey:output_type -> ermite.GetSigningKeyResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	6, // 0: ermite.RotateOIDCKeyResponse.retired_until:type_name -> google.protobuf.Timestamp
+	0, // 1: ermite.ServerService.GetVersion:input_type -> ermite.GetVersionRequest
+	2, // 2: ermite.ServerService.GetSigningKey:input_type -> ermite.GetSigningKeyRequest
+	4, // 3: ermite.ServerService.RotateOIDCKey:input_type -> ermite.RotateOIDCKeyRequest
+	1, // 4: ermite.ServerService.GetVersion:output_type -> ermite.GetVersionResponse
+	3, // 5: ermite.ServerService.GetSigningKey:output_type -> ermite.GetSigningKeyResponse
+	5, // 6: ermite.ServerService.RotateOIDCKey:output_type -> ermite.RotateOIDCKeyResponse
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ermite_server_proto_init() }
@@ -326,7 +456,7 @@ func file_ermite_server_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_server_proto_rawDesc), len(file_ermite_server_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

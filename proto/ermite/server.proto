@@ -4,6 +4,8 @@ syntax = "proto3";
 
 package ermite;
 
+import "google/protobuf/timestamp.proto";
+
 // ServerService describes the server itself.
 service ServerService {
   // GetVersion returns the server version and the optional capabilities of the
@@ -16,6 +18,17 @@ service ServerService {
   // Servers that implement it list "signing_key" in
   // GetVersionResponse.features.
   rpc GetSigningKey(GetSigningKeyRequest) returns (GetSigningKeyResponse);
+  // RotateOIDCKey replaces the key with which the server signs the OIDC ID
+  // tokens of CI jobs (Job.id_token_url) by a new one. The previous key stops
+  // signing at once but stays in the server's JWKS
+  // ("/-/oidc/.well-known/jwks") for 24 hours, so that tokens it signed still
+  // verify until they expire. It needs owner rights: the admin token, the
+  // owner's session, or a token with every scope and no repository list or
+  // branch prefixes (permission_denied otherwise). It fails with
+  // failed_precondition when the server issues no ID tokens (it has no
+  // secrets key to seal the key with). Servers that implement it list
+  // "ci.oidc" in GetVersionResponse.features.
+  rpc RotateOIDCKey(RotateOIDCKeyRequest) returns (RotateOIDCKeyResponse);
 }
 
 // GetVersionRequest is empty.
@@ -70,4 +83,24 @@ message GetSigningKeyResponse {
   // ("<committer_email> <public_key>"), to verify these commits with
   // "git config gpg.ssh.allowedSignersFile".
   string allowed_signers = 5;
+}
+
+// RotateOIDCKeyRequest is empty.
+message RotateOIDCKeyRequest {}
+
+// RotateOIDCKeyResponse describes the new signing key of the ID tokens.
+message RotateOIDCKeyResponse {
+  // Issuer is the "iss" of the ID tokens, for example
+  // "https://git.example.com/-/oidc". Its discovery document is at
+  // "<issuer>/.well-known/openid-configuration".
+  string issuer = 1;
+  // Kid is the key id of the new key, the "kid" of the tokens it signs: the
+  // RFC 7638 thumbprint of its public key, base64url without padding.
+  string kid = 2;
+  // RetiredKid is the key id of the key it replaces; empty when there was
+  // none.
+  string retired_kid = 3;
+  // RetiredUntil is when the replaced key leaves the JWKS. Unset when there
+  // was none.
+  google.protobuf.Timestamp retired_until = 4;
 }

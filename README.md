@@ -29,7 +29,7 @@ Handlers are mounted under `/-/api/` by the server. Errors are Connect codes.
 | `EnvironmentService` | `CreateEnvironment`, `ListEnvironments`, `DeleteEnvironment` |
 | `JobArtifactService` | `CreateJobArtifact`, `UploadJobArtifactBlock` (client stream), `CommitJobArtifact`, `FinalizeJobArtifact`, `ListJobArtifacts`, `DownloadJobArtifact` (streamed, resumable), `DeleteJobArtifact`; artifacts v4 for CI runners, scoped to the run of the job token |
 | `ArtifactService` | `ListArtifacts`, `DownloadArtifact` (streamed, resumable), `DeleteArtifact`; artifacts of a run for people |
-| `ServerService` | `GetVersion` (server version and feature list), `GetSigningKey` (commit signing key) |
+| `ServerService` | `GetVersion` (server version and feature list), `GetSigningKey` (commit signing key), `RotateOIDCKey` (key of the CI OIDC ID tokens, owner only) |
 
 Tokens carry scopes only; presets such as `cli` or `agent` are a client concern.
 

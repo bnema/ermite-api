@@ -888,9 +888,33 @@ type Job struct {
 	// github_token is read-only whatever "permissions:" says. The runner states
 	// this in the log of "Set up job". False from servers that do not send it:
 	// the safe reading.
-	Trusted       bool `protobuf:"varint,21,opt,name=trusted,proto3" json:"trusted,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Trusted bool `protobuf:"varint,21,opt,name=trusted,proto3" json:"trusted,omitempty"`
+	// IdTokenUrl is the URL the job's code fetches OIDC ID tokens from, the
+	// ACTIONS_ID_TOKEN_REQUEST_URL of GitHub's runner: the server's
+	// "/-/oidc/token?api-version=2.0". It already has a query, so clients append
+	// "&audience=<url-encoded audience>" as @actions/core does. A GET with
+	// "Authorization: Bearer <id_token_request_token>" answers
+	// {"value":"<jwt>"}: an RS256 JWT with GitHub's claims, signed by the key
+	// the server publishes at "/-/oidc/.well-known/jwks". The runner sets
+	// ACTIONS_ID_TOKEN_REQUEST_URL to it for run steps, JavaScript actions and
+	// Docker actions, with the origin rewritten as for the other server URLs
+	// the sandbox reaches. Empty when the job may not have ID tokens: when it is
+	// not trusted, when its effective permissions do not include
+	// "id-token: write", when the server has no key to sign with, and from
+	// servers without the feature "ci.oidc". Both fields are set or neither.
+	IdTokenUrl string `protobuf:"bytes,22,opt,name=id_token_url,json=idTokenUrl,proto3" json:"id_token_url,omitempty"`
+	// IdTokenRequestToken is the bearer for id_token_url, the
+	// ACTIONS_ID_TOKEN_REQUEST_TOKEN of GitHub's runner: "ermiteoidc_" and 43
+	// base64url characters (32 random bytes, no padding). It is valid only for
+	// id_token_url, only while the job is assigned or running (it is revoked
+	// when the job ends, on cancellation and when the job is lost), and is
+	// shown only in this response, or in a repeat of the same poll_id. It is a
+	// secret: the runner registers it in its masker before anything runs, and
+	// gives it to the sandbox only with id_token_url. Empty when id_token_url
+	// is.
+	IdTokenRequestToken string `protobuf:"bytes,23,opt,name=id_token_request_token,json=idTokenRequestToken,proto3" json:"id_token_request_token,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Job) Reset() {
@@ -1068,6 +1092,20 @@ func (x *Job) GetTrusted() bool {
 		return x.Trusted
 	}
 	return false
+}
+
+func (x *Job) GetIdTokenUrl() string {
+	if x != nil {
+		return x.IdTokenUrl
+	}
+	return ""
+}
+
+func (x *Job) GetIdTokenRequestToken() string {
+	if x != nil {
+		return x.IdTokenRequestToken
+	}
+	return ""
 }
 
 // JobPermissions are the permissions of the job repository token, with the
@@ -2729,7 +2767,7 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\x10FetchJobResponse\x12\x1d\n" +
 	"\x03job\x18\x01 \x01(\v2\v.ermite.JobR\x03job\x12:\n" +
 	"\vretry_after\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\n" +
-	"retryAfter\"\x8f\x06\n" +
+	"retryAfter\"\xe6\x06\n" +
 	"\x03Job\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x18\n" +
@@ -2752,7 +2790,10 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\venvironment\x18\x12 \x01(\tR\venvironment\x128\n" +
 	"\vpermissions\x18\x13 \x01(\v2\x16.ermite.JobPermissionsR\vpermissions\x12&\n" +
 	"\x05cache\x18\x14 \x01(\v2\x10.ermite.JobCacheR\x05cache\x12\x18\n" +
-	"\atrusted\x18\x15 \x01(\bR\atrusted\x1a:\n" +
+	"\atrusted\x18\x15 \x01(\bR\atrusted\x12 \n" +
+	"\fid_token_url\x18\x16 \x01(\tR\n" +
+	"idTokenUrl\x123\n" +
+	"\x16id_token_request_token\x18\x17 \x01(\tR\x13idTokenRequestToken\x1a:\n" +
 	"\fSecretsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a7\n" +

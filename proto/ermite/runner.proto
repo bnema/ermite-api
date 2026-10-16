@@ -597,6 +597,30 @@ message Job {
   // this in the log of "Set up job". False from servers that do not send it:
   // the safe reading.
   bool trusted = 21;
+  // IdTokenUrl is the URL the job's code fetches OIDC ID tokens from, the
+  // ACTIONS_ID_TOKEN_REQUEST_URL of GitHub's runner: the server's
+  // "/-/oidc/token?api-version=2.0". It already has a query, so clients append
+  // "&audience=<url-encoded audience>" as @actions/core does. A GET with
+  // "Authorization: Bearer <id_token_request_token>" answers
+  // {"value":"<jwt>"}: an RS256 JWT with GitHub's claims, signed by the key
+  // the server publishes at "/-/oidc/.well-known/jwks". The runner sets
+  // ACTIONS_ID_TOKEN_REQUEST_URL to it for run steps, JavaScript actions and
+  // Docker actions, with the origin rewritten as for the other server URLs
+  // the sandbox reaches. Empty when the job may not have ID tokens: when it is
+  // not trusted, when its effective permissions do not include
+  // "id-token: write", when the server has no key to sign with, and from
+  // servers without the feature "ci.oidc". Both fields are set or neither.
+  string id_token_url = 22;
+  // IdTokenRequestToken is the bearer for id_token_url, the
+  // ACTIONS_ID_TOKEN_REQUEST_TOKEN of GitHub's runner: "ermiteoidc_" and 43
+  // base64url characters (32 random bytes, no padding). It is valid only for
+  // id_token_url, only while the job is assigned or running (it is revoked
+  // when the job ends, on cancellation and when the job is lost), and is
+  // shown only in this response, or in a repeat of the same poll_id. It is a
+  // secret: the runner registers it in its masker before anything runs, and
+  // gives it to the sandbox only with id_token_url. Empty when id_token_url
+  // is.
+  string id_token_request_token = 23;
 }
 
 // JobPermissions are the permissions of the job repository token, with the
