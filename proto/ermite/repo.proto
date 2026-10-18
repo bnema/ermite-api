@@ -56,6 +56,10 @@ message Repo {
   // Settings are the merge settings of the repository. Always set in a
   // response, with the defaults for a repository that never changed them.
   RepoSettings settings = 7;
+  // Topics classify the repository, as on GitHub: at most 20, each 1-50
+  // characters from [a-z0-9-], starting with a letter or a digit, sorted
+  // and without duplicates.
+  repeated string topics = 8;
 }
 
 // RepoService manages repositories and their metadata.
@@ -121,6 +125,9 @@ message CreateRepoRequest {
   string description = 2;
   // Visibility of the new repository. VISIBILITY_UNSPECIFIED means private.
   Visibility visibility = 3;
+  // Topics are the optional topics of the new repository (see Repo.topics);
+  // they are lowercased, sorted and deduplicated.
+  repeated string topics = 4;
 }
 
 // CreateRepoResponse holds the new repository.
@@ -145,7 +152,7 @@ message UpdateRepoRequest {
   // the call fails with failed_precondition.
   string default_branch = 4;
   // UpdateMask lists the fields to change: "description", "visibility",
-  // "default_branch", "settings.allowed_merge_modes" and/or
+  // "default_branch", "topics", "settings.allowed_merge_modes" and/or
   // "settings.failing_checks_block". "settings" stands for both settings
   // paths. It must not be empty. Other paths are invalid_argument.
   google.protobuf.FieldMask update_mask = 5;
@@ -155,6 +162,9 @@ message UpdateRepoRequest {
   // invalid_argument. Changing settings needs the repo:admin scope, like any
   // other field.
   RepoSettings settings = 6;
+  // Topics replace the topics of the repository (see Repo.topics). Used only
+  // if update_mask contains "topics"; an empty list then clears them.
+  repeated string topics = 7;
 }
 
 // UpdateRepoResponse holds the repository after the update.

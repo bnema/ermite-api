@@ -163,7 +163,11 @@ type Repo struct {
 	PushedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=pushed_at,json=pushedAt,proto3" json:"pushed_at,omitempty"`
 	// Settings are the merge settings of the repository. Always set in a
 	// response, with the defaults for a repository that never changed them.
-	Settings      *RepoSettings `protobuf:"bytes,7,opt,name=settings,proto3" json:"settings,omitempty"`
+	Settings *RepoSettings `protobuf:"bytes,7,opt,name=settings,proto3" json:"settings,omitempty"`
+	// Topics classify the repository, as on GitHub: at most 20, each 1-50
+	// characters from [a-z0-9-], starting with a letter or a digit, sorted
+	// and without duplicates.
+	Topics        []string `protobuf:"bytes,8,rep,name=topics,proto3" json:"topics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -243,6 +247,13 @@ func (x *Repo) GetPushedAt() *timestamppb.Timestamp {
 func (x *Repo) GetSettings() *RepoSettings {
 	if x != nil {
 		return x.Settings
+	}
+	return nil
+}
+
+func (x *Repo) GetTopics() []string {
+	if x != nil {
+		return x.Topics
 	}
 	return nil
 }
@@ -461,7 +472,10 @@ type CreateRepoRequest struct {
 	// Description is an optional one-line description.
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Visibility of the new repository. VISIBILITY_UNSPECIFIED means private.
-	Visibility    Visibility `protobuf:"varint,3,opt,name=visibility,proto3,enum=ermite.Visibility" json:"visibility,omitempty"`
+	Visibility Visibility `protobuf:"varint,3,opt,name=visibility,proto3,enum=ermite.Visibility" json:"visibility,omitempty"`
+	// Topics are the optional topics of the new repository (see Repo.topics);
+	// they are lowercased, sorted and deduplicated.
+	Topics        []string `protobuf:"bytes,4,rep,name=topics,proto3" json:"topics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -515,6 +529,13 @@ func (x *CreateRepoRequest) GetVisibility() Visibility {
 		return x.Visibility
 	}
 	return Visibility_VISIBILITY_UNSPECIFIED
+}
+
+func (x *CreateRepoRequest) GetTopics() []string {
+	if x != nil {
+		return x.Topics
+	}
+	return nil
 }
 
 // CreateRepoResponse holds the new repository.
@@ -580,7 +601,7 @@ type UpdateRepoRequest struct {
 	// the call fails with failed_precondition.
 	DefaultBranch string `protobuf:"bytes,4,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
 	// UpdateMask lists the fields to change: "description", "visibility",
-	// "default_branch", "settings.allowed_merge_modes" and/or
+	// "default_branch", "topics", "settings.allowed_merge_modes" and/or
 	// "settings.failing_checks_block". "settings" stands for both settings
 	// paths. It must not be empty. Other paths are invalid_argument.
 	UpdateMask *fieldmaskpb.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
@@ -589,7 +610,10 @@ type UpdateRepoRequest struct {
 	// contain MERGE_MODE_UNSPECIFIED, otherwise the call fails with
 	// invalid_argument. Changing settings needs the repo:admin scope, like any
 	// other field.
-	Settings      *RepoSettings `protobuf:"bytes,6,opt,name=settings,proto3" json:"settings,omitempty"`
+	Settings *RepoSettings `protobuf:"bytes,6,opt,name=settings,proto3" json:"settings,omitempty"`
+	// Topics replace the topics of the repository (see Repo.topics). Used only
+	// if update_mask contains "topics"; an empty list then clears them.
+	Topics        []string `protobuf:"bytes,7,rep,name=topics,proto3" json:"topics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -662,6 +686,13 @@ func (x *UpdateRepoRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
 func (x *UpdateRepoRequest) GetSettings() *RepoSettings {
 	if x != nil {
 		return x.Settings
+	}
+	return nil
+}
+
+func (x *UpdateRepoRequest) GetTopics() []string {
+	if x != nil {
+		return x.Topics
 	}
 	return nil
 }
@@ -802,7 +833,7 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x83\x01\n" +
 	"\fRepoSettings\x12A\n" +
 	"\x13allowed_merge_modes\x18\x01 \x03(\x0e2\x11.ermite.MergeModeR\x11allowedMergeModes\x120\n" +
-	"\x14failing_checks_block\x18\x02 \x01(\bR\x12failingChecksBlock\"\xbd\x02\n" +
+	"\x14failing_checks_block\x18\x02 \x01(\bR\x12failingChecksBlock\"\xd5\x02\n" +
 	"\x04Repo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -813,7 +844,8 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x127\n" +
 	"\tpushed_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\bpushedAt\x120\n" +
-	"\bsettings\x18\a \x01(\v2\x14.ermite.RepoSettingsR\bsettings\"N\n" +
+	"\bsettings\x18\a \x01(\v2\x14.ermite.RepoSettingsR\bsettings\x12\x16\n" +
+	"\x06topics\x18\b \x03(\tR\x06topics\"N\n" +
 	"\x10ListReposRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -824,15 +856,16 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"\x0eGetRepoRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\"3\n" +
 	"\x0fGetRepoResponse\x12 \n" +
-	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"}\n" +
+	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\x95\x01\n" +
 	"\x11CreateRepoRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
 	"\n" +
 	"visibility\x18\x03 \x01(\x0e2\x12.ermite.VisibilityR\n" +
-	"visibility\"6\n" +
+	"visibility\x12\x16\n" +
+	"\x06topics\x18\x04 \x03(\tR\x06topics\"6\n" +
 	"\x12CreateRepoResponse\x12 \n" +
-	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\x93\x02\n" +
+	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\xab\x02\n" +
 	"\x11UpdateRepoRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -842,7 +875,8 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"\x0edefault_branch\x18\x04 \x01(\tR\rdefaultBranch\x12;\n" +
 	"\vupdate_mask\x18\x05 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
 	"updateMask\x120\n" +
-	"\bsettings\x18\x06 \x01(\v2\x14.ermite.RepoSettingsR\bsettings\"6\n" +
+	"\bsettings\x18\x06 \x01(\v2\x14.ermite.RepoSettingsR\bsettings\x12\x16\n" +
+	"\x06topics\x18\a \x03(\tR\x06topics\"6\n" +
 	"\x12UpdateRepoResponse\x12 \n" +
 	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"'\n" +
 	"\x11DeleteRepoRequest\x12\x12\n" +
