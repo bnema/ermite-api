@@ -1,6 +1,8 @@
 # ermite-api
 
-The public API contract of [ermite](https://git.bnema.dev/bnema/ermite), a single-user Git forge: protobuf definitions for its ConnectRPC services and the Go code generated from them.
+> Read-only mirror. Development happens at git.bnema.dev; issues and pull requests are closed here.
+
+The public API contract of [ermite](https://github.com/bnema/ermite), a single-user Git forge: protobuf definitions for its ConnectRPC services and the Go code generated from them.
 
 Status: early development. The contract defines fourteen services (below); the server that implements them is being built.
 
