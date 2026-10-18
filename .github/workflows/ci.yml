@@ -8,7 +8,6 @@ on:
 env:
   # Test the module alone, with the versions in go.mod (never a go.work).
   GOWORK: "off"
-  GOPRIVATE: bnema.dev/ermite*
 
 jobs:
   proto:
@@ -22,8 +21,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      # Full URL: the Forgejo runner resolves short names against its own action mirror.
-      - uses: https://github.com/bufbuild/buf-action@v1
+      - uses: bufbuild/buf-action@v1
         with:
           version: 1.73.0
           setup_only: true
