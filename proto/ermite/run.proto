@@ -282,14 +282,16 @@ message Runner {
 // request (other fields must be unchanged).
 //
 // Servers that implement the runs side (every RPC but ListRunners,
-// RemoveRunner, ListAnnotations, GetStepSummaries and DispatchWorkflow) list
+// RemoveRunner, ListAnnotations, GetStepSummaries, DispatchWorkflow and the
+// workflow state RPCs) list
 // "ci.runs" in
 // GetVersionResponse.features; those that
 // implement the runners side list "ci.runners", as RunnerService does. A server
 // that honours the filters of ListRunsRequest also lists "ci.runs.filters".
 // ListAnnotations needs "ci.annotations" and GetStepSummaries "ci.summaries",
 // which are also the features of the runner side of each. DispatchWorkflow
-// needs "ci.dispatch". RunJob.concurrency_group and CI_STATUS_PENDING belong
+// needs "ci.dispatch". ListWorkflows, DisableWorkflow and EnableWorkflow need
+// "ci.workflows". RunJob.concurrency_group and CI_STATUS_PENDING belong
 // to "ci.concurrency", Run.trusted to "ci.secrets".
 service RunService {
   // ListRuns lists the runs of a repository, highest id (newest) first. Each
@@ -371,6 +373,36 @@ service RunService {
   // missing while required without default, or has a value of the wrong type
   // or outside its choices, or if the workflow file is not valid.
   rpc DispatchWorkflow(DispatchWorkflowRequest) returns (DispatchWorkflowResponse);
+  // ListWorkflows lists the workflow files of a repository with their state,
+  // like `gh workflow list --all`, ordered by path: the files of
+  // .github/workflows at the tip of the default branch, and the files that are
+  // disabled even if the default branch has no such file (a repository that
+  // is empty, or a file not pushed yet). Needs the same access as reading the
+  // repository. A repository without a default branch lists only its disabled
+  // files. Only servers with the feature "ci.workflows" implement it
+  // (unimplemented otherwise). Fails with not_found if the repository does not
+  // exist or cannot be read.
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+  // DisableWorkflow disables a workflow file of a repository, like `gh
+  // workflow disable`: no event starts a run of it any more (push,
+  // pull_request, pull_request_target, schedule, workflow_run, create,
+  // delete, and workflow_dispatch). Runs already started are not affected.
+  // The state belongs to the repository and to the file path, not to a
+  // commit or a branch, and the file does not have to exist: it can be set on
+  // an empty repository, before the first push. Disabling a disabled workflow
+  // succeeds and changes nothing. Needs the repo:admin scope on the
+  // repository, and a token that is not limited to branch prefixes. Only
+  // servers with the feature "ci.workflows" implement it (unimplemented
+  // otherwise). Fails with not_found if the repository does not exist or the
+  // caller cannot read it, permission_denied without the scope, and
+  // invalid_argument if the workflow is not a file name or a path of
+  // .github/workflows ending in .yml or .yaml.
+  rpc DisableWorkflow(DisableWorkflowRequest) returns (DisableWorkflowResponse);
+  // EnableWorkflow undoes DisableWorkflow, like `gh workflow enable`. Enabling
+  // a workflow that is not disabled succeeds and changes nothing. Same access
+  // and errors as DisableWorkflow. Events that happened while the workflow was
+  // disabled are not replayed.
+  rpc EnableWorkflow(EnableWorkflowRequest) returns (EnableWorkflowResponse);
   // ListChecks lists the checks of a commit: for each job of each run on that
   // sha, the one of the latest attempt, ordered by creation time then name.
   // A commit without a run has no check: the list is empty, which is not an
@@ -661,3 +693,65 @@ message RemoveRunnerRequest {
 
 // RemoveRunnerResponse is empty.
 message RemoveRunnerResponse {}
+
+// WorkflowState tells whether a workflow file starts runs.
+enum WorkflowState {
+  WORKFLOW_STATE_UNSPECIFIED = 0;
+  // The workflow starts runs for the events it declares.
+  WORKFLOW_STATE_ENABLED = 1;
+  // The workflow starts no run for any event (DisableWorkflow).
+  WORKFLOW_STATE_DISABLED = 2;
+}
+
+// Workflow is a workflow file of a repository and its state.
+message Workflow {
+  // Path is the path of the file, always ".github/workflows/<file>".
+  string path = 1;
+  // Name is the "name:" of the workflow at the tip of the default branch, the
+  // path when the file has none. Empty when the default branch has no such file
+  // or it cannot be read as a workflow.
+  string name = 2;
+  // State is ENABLED or DISABLED.
+  WorkflowState state = 3;
+}
+
+// ListWorkflowsRequest names the repository.
+message ListWorkflowsRequest {
+  // Repo is the repository name.
+  string repo = 1;
+}
+
+// ListWorkflowsResponse holds the workflows of a repository, ordered by path.
+message ListWorkflowsResponse {
+  repeated Workflow workflows = 1;
+}
+
+// DisableWorkflowRequest names the workflow to disable.
+message DisableWorkflowRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Workflow is the path of the file (".github/workflows/release.yml") or its
+  // file name ("release.yml"). The file does not have to exist.
+  string workflow = 2;
+}
+
+// DisableWorkflowResponse holds the workflow after the change.
+message DisableWorkflowResponse {
+  // Workflow has the normalized path and state DISABLED.
+  Workflow workflow = 1;
+}
+
+// EnableWorkflowRequest names the workflow to enable.
+message EnableWorkflowRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Workflow is the path of the file or its file name, as in
+  // DisableWorkflowRequest.
+  string workflow = 2;
+}
+
+// EnableWorkflowResponse holds the workflow after the change.
+message EnableWorkflowResponse {
+  // Workflow has the normalized path and state ENABLED.
+  Workflow workflow = 1;
+}

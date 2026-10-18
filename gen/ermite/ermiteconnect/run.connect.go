@@ -56,6 +56,15 @@ const (
 	// RunServiceDispatchWorkflowProcedure is the fully-qualified name of the RunService's
 	// DispatchWorkflow RPC.
 	RunServiceDispatchWorkflowProcedure = "/ermite.RunService/DispatchWorkflow"
+	// RunServiceListWorkflowsProcedure is the fully-qualified name of the RunService's ListWorkflows
+	// RPC.
+	RunServiceListWorkflowsProcedure = "/ermite.RunService/ListWorkflows"
+	// RunServiceDisableWorkflowProcedure is the fully-qualified name of the RunService's
+	// DisableWorkflow RPC.
+	RunServiceDisableWorkflowProcedure = "/ermite.RunService/DisableWorkflow"
+	// RunServiceEnableWorkflowProcedure is the fully-qualified name of the RunService's EnableWorkflow
+	// RPC.
+	RunServiceEnableWorkflowProcedure = "/ermite.RunService/EnableWorkflow"
 	// RunServiceListChecksProcedure is the fully-qualified name of the RunService's ListChecks RPC.
 	RunServiceListChecksProcedure = "/ermite.RunService/ListChecks"
 	// RunServiceListRunnersProcedure is the fully-qualified name of the RunService's ListRunners RPC.
@@ -145,6 +154,36 @@ type RunServiceClient interface {
 	// missing while required without default, or has a value of the wrong type
 	// or outside its choices, or if the workflow file is not valid.
 	DispatchWorkflow(context.Context, *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error)
+	// ListWorkflows lists the workflow files of a repository with their state,
+	// like `gh workflow list --all`, ordered by path: the files of
+	// .github/workflows at the tip of the default branch, and the files that are
+	// disabled even if the default branch has no such file (a repository that
+	// is empty, or a file not pushed yet). Needs the same access as reading the
+	// repository. A repository without a default branch lists only its disabled
+	// files. Only servers with the feature "ci.workflows" implement it
+	// (unimplemented otherwise). Fails with not_found if the repository does not
+	// exist or cannot be read.
+	ListWorkflows(context.Context, *connect.Request[ermite.ListWorkflowsRequest]) (*connect.Response[ermite.ListWorkflowsResponse], error)
+	// DisableWorkflow disables a workflow file of a repository, like `gh
+	// workflow disable`: no event starts a run of it any more (push,
+	// pull_request, pull_request_target, schedule, workflow_run, create,
+	// delete, and workflow_dispatch). Runs already started are not affected.
+	// The state belongs to the repository and to the file path, not to a
+	// commit or a branch, and the file does not have to exist: it can be set on
+	// an empty repository, before the first push. Disabling a disabled workflow
+	// succeeds and changes nothing. Needs the repo:admin scope on the
+	// repository, and a token that is not limited to branch prefixes. Only
+	// servers with the feature "ci.workflows" implement it (unimplemented
+	// otherwise). Fails with not_found if the repository does not exist or the
+	// caller cannot read it, permission_denied without the scope, and
+	// invalid_argument if the workflow is not a file name or a path of
+	// .github/workflows ending in .yml or .yaml.
+	DisableWorkflow(context.Context, *connect.Request[ermite.DisableWorkflowRequest]) (*connect.Response[ermite.DisableWorkflowResponse], error)
+	// EnableWorkflow undoes DisableWorkflow, like `gh workflow enable`. Enabling
+	// a workflow that is not disabled succeeds and changes nothing. Same access
+	// and errors as DisableWorkflow. Events that happened while the workflow was
+	// disabled are not replayed.
+	EnableWorkflow(context.Context, *connect.Request[ermite.EnableWorkflowRequest]) (*connect.Response[ermite.EnableWorkflowResponse], error)
 	// ListChecks lists the checks of a commit: for each job of each run on that
 	// sha, the one of the latest attempt, ordered by creation time then name.
 	// A commit without a run has no check: the list is empty, which is not an
@@ -227,6 +266,24 @@ func NewRunServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(runServiceMethods.ByName("DispatchWorkflow")),
 			connect.WithClientOptions(opts...),
 		),
+		listWorkflows: connect.NewClient[ermite.ListWorkflowsRequest, ermite.ListWorkflowsResponse](
+			httpClient,
+			baseURL+RunServiceListWorkflowsProcedure,
+			connect.WithSchema(runServiceMethods.ByName("ListWorkflows")),
+			connect.WithClientOptions(opts...),
+		),
+		disableWorkflow: connect.NewClient[ermite.DisableWorkflowRequest, ermite.DisableWorkflowResponse](
+			httpClient,
+			baseURL+RunServiceDisableWorkflowProcedure,
+			connect.WithSchema(runServiceMethods.ByName("DisableWorkflow")),
+			connect.WithClientOptions(opts...),
+		),
+		enableWorkflow: connect.NewClient[ermite.EnableWorkflowRequest, ermite.EnableWorkflowResponse](
+			httpClient,
+			baseURL+RunServiceEnableWorkflowProcedure,
+			connect.WithSchema(runServiceMethods.ByName("EnableWorkflow")),
+			connect.WithClientOptions(opts...),
+		),
 		listChecks: connect.NewClient[ermite.ListChecksRequest, ermite.ListChecksResponse](
 			httpClient,
 			baseURL+RunServiceListChecksProcedure,
@@ -259,6 +316,9 @@ type runServiceClient struct {
 	cancelRun        *connect.Client[ermite.CancelRunRequest, ermite.CancelRunResponse]
 	rerunRun         *connect.Client[ermite.RerunRunRequest, ermite.RerunRunResponse]
 	dispatchWorkflow *connect.Client[ermite.DispatchWorkflowRequest, ermite.DispatchWorkflowResponse]
+	listWorkflows    *connect.Client[ermite.ListWorkflowsRequest, ermite.ListWorkflowsResponse]
+	disableWorkflow  *connect.Client[ermite.DisableWorkflowRequest, ermite.DisableWorkflowResponse]
+	enableWorkflow   *connect.Client[ermite.EnableWorkflowRequest, ermite.EnableWorkflowResponse]
 	listChecks       *connect.Client[ermite.ListChecksRequest, ermite.ListChecksResponse]
 	listRunners      *connect.Client[ermite.ListRunnersRequest, ermite.ListRunnersResponse]
 	removeRunner     *connect.Client[ermite.RemoveRunnerRequest, ermite.RemoveRunnerResponse]
@@ -307,6 +367,21 @@ func (c *runServiceClient) RerunRun(ctx context.Context, req *connect.Request[er
 // DispatchWorkflow calls ermite.RunService.DispatchWorkflow.
 func (c *runServiceClient) DispatchWorkflow(ctx context.Context, req *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error) {
 	return c.dispatchWorkflow.CallUnary(ctx, req)
+}
+
+// ListWorkflows calls ermite.RunService.ListWorkflows.
+func (c *runServiceClient) ListWorkflows(ctx context.Context, req *connect.Request[ermite.ListWorkflowsRequest]) (*connect.Response[ermite.ListWorkflowsResponse], error) {
+	return c.listWorkflows.CallUnary(ctx, req)
+}
+
+// DisableWorkflow calls ermite.RunService.DisableWorkflow.
+func (c *runServiceClient) DisableWorkflow(ctx context.Context, req *connect.Request[ermite.DisableWorkflowRequest]) (*connect.Response[ermite.DisableWorkflowResponse], error) {
+	return c.disableWorkflow.CallUnary(ctx, req)
+}
+
+// EnableWorkflow calls ermite.RunService.EnableWorkflow.
+func (c *runServiceClient) EnableWorkflow(ctx context.Context, req *connect.Request[ermite.EnableWorkflowRequest]) (*connect.Response[ermite.EnableWorkflowResponse], error) {
+	return c.enableWorkflow.CallUnary(ctx, req)
 }
 
 // ListChecks calls ermite.RunService.ListChecks.
@@ -405,6 +480,36 @@ type RunServiceHandler interface {
 	// missing while required without default, or has a value of the wrong type
 	// or outside its choices, or if the workflow file is not valid.
 	DispatchWorkflow(context.Context, *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error)
+	// ListWorkflows lists the workflow files of a repository with their state,
+	// like `gh workflow list --all`, ordered by path: the files of
+	// .github/workflows at the tip of the default branch, and the files that are
+	// disabled even if the default branch has no such file (a repository that
+	// is empty, or a file not pushed yet). Needs the same access as reading the
+	// repository. A repository without a default branch lists only its disabled
+	// files. Only servers with the feature "ci.workflows" implement it
+	// (unimplemented otherwise). Fails with not_found if the repository does not
+	// exist or cannot be read.
+	ListWorkflows(context.Context, *connect.Request[ermite.ListWorkflowsRequest]) (*connect.Response[ermite.ListWorkflowsResponse], error)
+	// DisableWorkflow disables a workflow file of a repository, like `gh
+	// workflow disable`: no event starts a run of it any more (push,
+	// pull_request, pull_request_target, schedule, workflow_run, create,
+	// delete, and workflow_dispatch). Runs already started are not affected.
+	// The state belongs to the repository and to the file path, not to a
+	// commit or a branch, and the file does not have to exist: it can be set on
+	// an empty repository, before the first push. Disabling a disabled workflow
+	// succeeds and changes nothing. Needs the repo:admin scope on the
+	// repository, and a token that is not limited to branch prefixes. Only
+	// servers with the feature "ci.workflows" implement it (unimplemented
+	// otherwise). Fails with not_found if the repository does not exist or the
+	// caller cannot read it, permission_denied without the scope, and
+	// invalid_argument if the workflow is not a file name or a path of
+	// .github/workflows ending in .yml or .yaml.
+	DisableWorkflow(context.Context, *connect.Request[ermite.DisableWorkflowRequest]) (*connect.Response[ermite.DisableWorkflowResponse], error)
+	// EnableWorkflow undoes DisableWorkflow, like `gh workflow enable`. Enabling
+	// a workflow that is not disabled succeeds and changes nothing. Same access
+	// and errors as DisableWorkflow. Events that happened while the workflow was
+	// disabled are not replayed.
+	EnableWorkflow(context.Context, *connect.Request[ermite.EnableWorkflowRequest]) (*connect.Response[ermite.EnableWorkflowResponse], error)
 	// ListChecks lists the checks of a commit: for each job of each run on that
 	// sha, the one of the latest attempt, ordered by creation time then name.
 	// A commit without a run has no check: the list is empty, which is not an
@@ -483,6 +588,24 @@ func NewRunServiceHandler(svc RunServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(runServiceMethods.ByName("DispatchWorkflow")),
 		connect.WithHandlerOptions(opts...),
 	)
+	runServiceListWorkflowsHandler := connect.NewUnaryHandler(
+		RunServiceListWorkflowsProcedure,
+		svc.ListWorkflows,
+		connect.WithSchema(runServiceMethods.ByName("ListWorkflows")),
+		connect.WithHandlerOptions(opts...),
+	)
+	runServiceDisableWorkflowHandler := connect.NewUnaryHandler(
+		RunServiceDisableWorkflowProcedure,
+		svc.DisableWorkflow,
+		connect.WithSchema(runServiceMethods.ByName("DisableWorkflow")),
+		connect.WithHandlerOptions(opts...),
+	)
+	runServiceEnableWorkflowHandler := connect.NewUnaryHandler(
+		RunServiceEnableWorkflowProcedure,
+		svc.EnableWorkflow,
+		connect.WithSchema(runServiceMethods.ByName("EnableWorkflow")),
+		connect.WithHandlerOptions(opts...),
+	)
 	runServiceListChecksHandler := connect.NewUnaryHandler(
 		RunServiceListChecksProcedure,
 		svc.ListChecks,
@@ -521,6 +644,12 @@ func NewRunServiceHandler(svc RunServiceHandler, opts ...connect.HandlerOption) 
 			runServiceRerunRunHandler.ServeHTTP(w, r)
 		case RunServiceDispatchWorkflowProcedure:
 			runServiceDispatchWorkflowHandler.ServeHTTP(w, r)
+		case RunServiceListWorkflowsProcedure:
+			runServiceListWorkflowsHandler.ServeHTTP(w, r)
+		case RunServiceDisableWorkflowProcedure:
+			runServiceDisableWorkflowHandler.ServeHTTP(w, r)
+		case RunServiceEnableWorkflowProcedure:
+			runServiceEnableWorkflowHandler.ServeHTTP(w, r)
 		case RunServiceListChecksProcedure:
 			runServiceListChecksHandler.ServeHTTP(w, r)
 		case RunServiceListRunnersProcedure:
@@ -570,6 +699,18 @@ func (UnimplementedRunServiceHandler) RerunRun(context.Context, *connect.Request
 
 func (UnimplementedRunServiceHandler) DispatchWorkflow(context.Context, *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.DispatchWorkflow is not implemented"))
+}
+
+func (UnimplementedRunServiceHandler) ListWorkflows(context.Context, *connect.Request[ermite.ListWorkflowsRequest]) (*connect.Response[ermite.ListWorkflowsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.ListWorkflows is not implemented"))
+}
+
+func (UnimplementedRunServiceHandler) DisableWorkflow(context.Context, *connect.Request[ermite.DisableWorkflowRequest]) (*connect.Response[ermite.DisableWorkflowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.DisableWorkflow is not implemented"))
+}
+
+func (UnimplementedRunServiceHandler) EnableWorkflow(context.Context, *connect.Request[ermite.EnableWorkflowRequest]) (*connect.Response[ermite.EnableWorkflowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.EnableWorkflow is not implemented"))
 }
 
 func (UnimplementedRunServiceHandler) ListChecks(context.Context, *connect.Request[ermite.ListChecksRequest]) (*connect.Response[ermite.ListChecksResponse], error) {

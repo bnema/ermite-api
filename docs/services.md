@@ -10,7 +10,7 @@
 | `EventService` | `Watch` (streamed, resumable) |
 | `ServerService` | `GetVersion` (version and features), `GetSigningKey`, `RotateOIDCKey` (owner only) |
 | `TrustedKeyService` | `ListTrustedKeys`, `AddTrustedKey` and `RemoveTrustedKey` (owner only). `Commit.verification` carries the result of the check (feature `commit_signatures`) |
-| `RunService` | `ListRuns`, `GetRun`, `GetJob`, `GetJobLog` (streamed, follow), `ListAnnotations`, `GetStepSummaries`, `CancelRun`, `RerunRun`, `DispatchWorkflow`, `ListChecks`, `ListRunners`, `RemoveRunner` |
+| `RunService` | `ListRuns`, `GetRun`, `GetJob`, `GetJobLog` (streamed, follow), `ListAnnotations`, `GetStepSummaries`, `CancelRun`, `RerunRun`, `DispatchWorkflow`, `ListWorkflows`, `DisableWorkflow`, `EnableWorkflow`, `ListChecks`, `ListRunners`, `RemoveRunner` |
 | `RunnerService` | `RegisterRunner`, `FetchJob` (long poll), `UpdateJob`, `AppendLog` (offset-idempotent), `Heartbeat`, `WatchJob` (cancel requests, streamed), `CompleteJob` (idempotent), `ResolveActions`, `UploadSummary` |
 | `SecretService` | `SetSecret`, `ListSecrets` (names only), `DeleteSecret`. Scopes: instance, repository, environment |
 | `VariableService` | `SetVariable`, `GetVariable`, `ListVariables`, `DeleteVariable`. Same scopes |
