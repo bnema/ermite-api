@@ -1,46 +1,53 @@
-# ermite-api
+<h1 align="center">ermite-api</h1>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License: MIT"></a>
+  <a href="https://github.com/bnema/ermite-api/commits/main"><img src="https://badgen.net/github/last-commit/bnema/ermite-api/main?icon=github" alt="Last commit"></a>
+  <a href="https://github.com/bnema/ermite-api/stargazers"><img src="https://badgen.net/github/stars/bnema/ermite-api?icon=github" alt="GitHub stars"></a>
+</p>
+
+<p align="center">The public API of <a href="https://github.com/bnema/ermite">ermite</a>: protobuf definitions and generated Go code for its ConnectRPC services.</p>
 
 > Read-only mirror. Development happens at git.bnema.dev; issues and pull requests are closed here.
 
-The public API contract of [ermite](https://github.com/bnema/ermite), a single-user Git forge: protobuf definitions for its ConnectRPC services and the Go code generated from them.
-
-Status: early development. The contract defines fourteen services (below); the server that implements them is being built.
+---
 
 ```go
-import "bnema.dev/ermite-api/gen/ermite"
+import (
+	"bnema.dev/ermite-api/gen/ermite"
+	"bnema.dev/ermite-api/gen/ermite/ermiteconnect"
+)
 ```
 
-The contract has no version number. It only changes in backward-compatible ways (new fields, messages, RPCs and services), and CI rejects any breaking change.
+- The server mounts the services under `/-/api/`. Errors are Connect codes.
+- No version number: the contract only changes in backward-compatible ways, and CI rejects breaking changes (`buf breaking`).
+- Tokens carry scopes only; presets such as `cli` or `agent` are a client concern.
+
+Status: early development.
 
 ## Services
 
-Handlers are mounted under `/-/api/` by the server. Errors are Connect codes.
-
-| Service | RPCs |
+| Service | Purpose |
 |---|---|
-| `RepoService` | `ListRepos`, `GetRepo`, `CreateRepo`, `UpdateRepo` (field mask, merge settings), `DeleteRepo` |
-| `GitService` | `ListRefs`, `GetTree`, `ListPaths`, `GetBlob` (streamed), `ListCommits`, `GetCommit` (structured diff), `ResolveRevision` |
-| `TokenService` | `CreateToken` (secret shown once), `ListTokens`, `RevokeToken` |
-| `MergeRequestService` | `CreateMergeRequest`, `ListMergeRequests`, `GetMergeRequest` (commits, diff, comments), `AddComment`, `ResolveComment`, `CloseMergeRequest`, `MergeMergeRequest`, `MarkRead` |
-| `SessionService` | `CreateLoginLink`, `SignOutEverywhere` (owner only) |
-| `EventService` | `Watch` (streamed, resumable) |
-| `RunnerService` | `RegisterRunner`, `FetchJob` (long poll), `UpdateJob` (steps, annotations), `AppendLog` (offset-idempotent), `Heartbeat`, `WatchJob` (cancel requests, streamed), `CompleteJob` (idempotent), `ResolveActions` (where to download the `uses:` actions), `UploadSummary` (job summary of a step); for CI runners |
-| `RunService` | `ListRuns`, `GetRun`, `GetJob`, `GetJobLog` (streamed, follow), `ListAnnotations`, `GetStepSummaries`, `CancelRun`, `RerunRun`, `DispatchWorkflow`, `ListChecks`, `ListRunners`, `RemoveRunner` |
-| `SecretService` | `SetSecret`, `ListSecrets` (names only, never values), `DeleteSecret`; scopes instance, repository and environment |
-| `VariableService` | `SetVariable`, `GetVariable`, `ListVariables`, `DeleteVariable`; same scopes |
-| `EnvironmentService` | `CreateEnvironment`, `ListEnvironments`, `DeleteEnvironment` |
-| `JobArtifactService` | `CreateJobArtifact`, `UploadJobArtifactBlock` (client stream), `CommitJobArtifact`, `FinalizeJobArtifact`, `ListJobArtifacts`, `DownloadJobArtifact` (streamed, resumable), `DeleteJobArtifact`; artifacts v4 for CI runners, scoped to the run of the job token |
-| `ArtifactService` | `ListArtifacts`, `DownloadArtifact` (streamed, resumable), `DeleteArtifact`; artifacts of a run for people |
-| `ServerService` | `GetVersion` (server version and feature list), `GetSigningKey` (commit signing key), `RotateOIDCKey` (key of the CI OIDC ID tokens, owner only) |
+| `RepoService` | repositories and their settings |
+| `GitService` | refs, trees, blobs, commits and diffs |
+| `TokenService` | API tokens |
+| `MergeRequestService` | merge requests, comments, merge |
+| `SessionService` | web sign-in links (owner only) |
+| `EventService` | live event stream, resumable |
+| `ServerService` | version, features, signing key, OIDC key rotation |
+| `RunService` | CI runs, jobs, logs, checks, runners |
+| `RunnerService` | used by CI runners to fetch and report jobs |
+| `SecretService`, `VariableService`, `EnvironmentService` | CI settings |
+| `ArtifactService` | CI artifacts, for people |
+| `JobArtifactService` | CI artifacts v4, for runners |
 
-Tokens carry scopes only; presets such as `cli` or `agent` are a client concern.
+Every RPC: [docs/services.md](docs/services.md).
 
 ## Layout
 
-- `proto/ermite/`: `.proto` files of the `ermite` package, one per service (`repo`, `git`, `merge_request`, `token`, `session`, `event`, `server`, `runner`, `run`, `ci_settings`, `artifact`) plus shared `types`. Checked by `buf lint` and `buf breaking`.
-- `gen/ermite/`: generated Go messages. `gen/ermite/ermiteconnect/`: generated Connect clients and handlers. Committed, never edited by hand.
-
-## Generate
+- `proto/ermite/`: one `.proto` per service, plus shared `types.proto`.
+- `gen/ermite/`: generated messages; `gen/ermite/ermiteconnect/`: Connect clients and handlers. Committed, never edited by hand.
 
 ```sh
 buf generate
