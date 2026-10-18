@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package ermite;
 
+import "ermite/signature.proto";
 import "google/protobuf/timestamp.proto";
 
 // Signature identifies who did something in Git and when: the author or the
@@ -34,6 +35,9 @@ message Commit {
   // Message is the full commit message, including the summary. Text that is
   // not valid UTF-8 is converted with the replacement character.
   string message = 6;
+  // Verification tells whether and how the commit is signed. Unset on
+  // servers without the "commit_signatures" feature.
+  CommitVerification verification = 7;
 }
 
 // MergeMode is how a merge request is merged. Both modes need the target to

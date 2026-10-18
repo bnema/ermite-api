@@ -1,0 +1,128 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/timestamp.proto";
+
+// SignatureFormat is the protocol of a commit signature.
+enum SignatureFormat {
+  // Not signed, or not set.
+  SIGNATURE_FORMAT_UNSPECIFIED = 0;
+  // Git SSH signature (gpg.format=ssh, "-----BEGIN SSH SIGNATURE-----").
+  SIGNATURE_FORMAT_SSH = 1;
+  // OpenPGP signature (gpg.format=openpgp, "-----BEGIN PGP SIGNATURE-----").
+  SIGNATURE_FORMAT_GPG = 2;
+  // X.509 (gpgsm) signature. Recognized, never verified.
+  SIGNATURE_FORMAT_X509 = 3;
+}
+
+// SignatureStatus is the outcome of checking the signature of a commit.
+enum SignatureStatus {
+  // The server did not check the commit (it could not be read).
+  SIGNATURE_STATUS_UNSPECIFIED = 0;
+  // The commit carries no signature.
+  SIGNATURE_STATUS_UNSIGNED = 1;
+  // Valid signature by a trusted key that is trusted for the committer email.
+  SIGNATURE_STATUS_VERIFIED = 2;
+  // Well-formed signature by a key the server does not trust.
+  SIGNATURE_STATUS_UNKNOWN_KEY = 3;
+  // The signature is malformed, does not match the commit, or uses a weak
+  // hash (SHA-1 and older).
+  SIGNATURE_STATUS_BAD_SIGNATURE = 4;
+  // Valid signature by a trusted key that is not trusted for the committer
+  // email.
+  SIGNATURE_STATUS_EMAIL_MISMATCH = 5;
+  // The OpenPGP key or signature had expired when the signature was made.
+  SIGNATURE_STATUS_EXPIRED = 6;
+  // The OpenPGP key is revoked.
+  SIGNATURE_STATUS_REVOKED = 7;
+  // The format is not verified by the server (X.509).
+  SIGNATURE_STATUS_UNSUPPORTED = 8;
+}
+
+// CommitVerification tells whether and how a commit is signed.
+message CommitVerification {
+  SignatureFormat format = 1;
+  SignatureStatus status = 2;
+  // Fingerprint of the signing key when the signature names one:
+  // "SHA256:<base64>" for SSH, upper-case hex for OpenPGP (the 16-digit
+  // issuer key id when the key is unknown).
+  string fingerprint = 3;
+  // KeyId is the id of the trusted key that matched; empty when none did.
+  string key_id = 4;
+  // KeyTitle is the title of the trusted key that matched.
+  string key_title = 5;
+}
+
+// TrustedKey is a public key whose signatures the server accepts for the
+// listed committer emails.
+message TrustedKey {
+  // Id is the key fingerprint: "SHA256:<base64>" for SSH, the primary key
+  // fingerprint in upper-case hex for OpenPGP.
+  string id = 1;
+  // Format is SIGNATURE_FORMAT_SSH or SIGNATURE_FORMAT_GPG.
+  SignatureFormat format = 2;
+  string title = 3;
+  // PublicKey is "<type> <base64>" for SSH, the armored public key for
+  // OpenPGP.
+  string public_key = 4;
+  // Emails are the committer emails the key may sign for, lower-case.
+  repeated string emails = 5;
+  google.protobuf.Timestamp created_at = 6;
+  // Builtin is true for the server's own signing key
+  // (ServerService.GetSigningKey): always trusted, cannot be removed.
+  bool builtin = 7;
+}
+
+// TrustedKeyService manages the keys commit signatures are checked against.
+// Servers that implement it list "commit_signatures" in
+// GetVersionResponse.features; their Commit messages then carry
+// verification.
+service TrustedKeyService {
+  // ListTrustedKeys lists the keys, the builtin key first. Any authenticated
+  // caller may.
+  rpc ListTrustedKeys(ListTrustedKeysRequest) returns (ListTrustedKeysResponse);
+  // AddTrustedKey adds a key. Owner only. invalid_argument for a key that
+  // does not parse, a private key, no or too many emails; already_exists for
+  // a key already listed; resource_exhausted beyond 100 keys.
+  rpc AddTrustedKey(AddTrustedKeyRequest) returns (AddTrustedKeyResponse);
+  // RemoveTrustedKey removes a key. Owner only. not_found for an unknown id;
+  // failed_precondition for the builtin key.
+  rpc RemoveTrustedKey(RemoveTrustedKeyRequest) returns (RemoveTrustedKeyResponse);
+}
+
+// ListTrustedKeysRequest is empty.
+message ListTrustedKeysRequest {}
+
+// ListTrustedKeysResponse lists every trusted key.
+message ListTrustedKeysResponse {
+  repeated TrustedKey keys = 1;
+}
+
+// AddTrustedKeyRequest describes the key to trust.
+message AddTrustedKeyRequest {
+  // Format is SIGNATURE_FORMAT_SSH or SIGNATURE_FORMAT_GPG.
+  SignatureFormat format = 1;
+  // Title is a label, 1 to 100 bytes.
+  string title = 2;
+  // PublicKey is an authorized_keys line for SSH, or an armored public key
+  // block for OpenPGP (at most 64 KiB).
+  string public_key = 3;
+  // Emails are the committer emails the key may sign for, 1 to 10.
+  repeated string emails = 4;
+}
+
+// AddTrustedKeyResponse returns the stored key.
+message AddTrustedKeyResponse {
+  TrustedKey key = 1;
+}
+
+// RemoveTrustedKeyRequest names the key to remove.
+message RemoveTrustedKeyRequest {
+  string id = 1;
+}
+
+// RemoveTrustedKeyResponse is empty.
+message RemoveTrustedKeyResponse {}

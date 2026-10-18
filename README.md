@@ -41,6 +41,7 @@ Status: early development.
 | `SecretService`, `VariableService`, `EnvironmentService` | CI settings |
 | `ArtifactService` | CI artifacts, for people |
 | `JobArtifactService` | CI artifacts v4, for runners |
+| `TrustedKeyService` | SSH and OpenPGP keys commit signatures are checked against |
 
 Every RPC: [docs/services.md](docs/services.md).
 

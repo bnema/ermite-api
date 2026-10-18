@@ -169,7 +169,10 @@ type Commit struct {
 	Summary string `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
 	// Message is the full commit message, including the summary. Text that is
 	// not valid UTF-8 is converted with the replacement character.
-	Message       string `protobuf:"bytes,6,opt,name=message,proto3" json:"message,omitempty"`
+	Message string `protobuf:"bytes,6,opt,name=message,proto3" json:"message,omitempty"`
+	// Verification tells whether and how the commit is signed. Unset on
+	// servers without the "commit_signatures" feature.
+	Verification  *CommitVerification `protobuf:"bytes,7,opt,name=verification,proto3" json:"verification,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -246,15 +249,22 @@ func (x *Commit) GetMessage() string {
 	return ""
 }
 
+func (x *Commit) GetVerification() *CommitVerification {
+	if x != nil {
+		return x.Verification
+	}
+	return nil
+}
+
 var File_ermite_types_proto protoreflect.FileDescriptor
 
 const file_ermite_types_proto_rawDesc = "" +
 	"\n" +
-	"\x12ermite/types.proto\x12\x06ermite\x1a\x1fgoogle/protobuf/timestamp.proto\"e\n" +
+	"\x12ermite/types.proto\x12\x06ermite\x1a\x16ermite/signature.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"e\n" +
 	"\tSignature\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12.\n" +
-	"\x04time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\"\xc7\x01\n" +
+	"\x04time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\"\x87\x02\n" +
 	"\x06Commit\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -262,7 +272,8 @@ const file_ermite_types_proto_rawDesc = "" +
 	"\x06author\x18\x03 \x01(\v2\x11.ermite.SignatureR\x06author\x12/\n" +
 	"\tcommitter\x18\x04 \x01(\v2\x11.ermite.SignatureR\tcommitter\x12\x18\n" +
 	"\asummary\x18\x05 \x01(\tR\asummary\x12\x18\n" +
-	"\amessage\x18\x06 \x01(\tR\amessage*[\n" +
+	"\amessage\x18\x06 \x01(\tR\amessage\x12>\n" +
+	"\fverification\x18\a \x01(\v2\x1a.ermite.CommitVerificationR\fverification*[\n" +
 	"\tMergeMode\x12\x1a\n" +
 	"\x16MERGE_MODE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17MERGE_MODE_FAST_FORWARD\x10\x01\x12\x15\n" +
@@ -290,16 +301,18 @@ var file_ermite_types_proto_goTypes = []any{
 	(*Signature)(nil),             // 1: ermite.Signature
 	(*Commit)(nil),                // 2: ermite.Commit
 	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(*CommitVerification)(nil),    // 4: ermite.CommitVerification
 }
 var file_ermite_types_proto_depIdxs = []int32{
 	3, // 0: ermite.Signature.time:type_name -> google.protobuf.Timestamp
 	1, // 1: ermite.Commit.author:type_name -> ermite.Signature
 	1, // 2: ermite.Commit.committer:type_name -> ermite.Signature
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	4, // 3: ermite.Commit.verification:type_name -> ermite.CommitVerification
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ermite_types_proto_init() }
@@ -307,6 +320,7 @@ func file_ermite_types_proto_init() {
 	if File_ermite_types_proto != nil {
 		return
 	}
+	file_ermite_signature_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
