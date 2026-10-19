@@ -127,9 +127,12 @@ type MergeRequestServiceClient interface {
 	// never merged unseen. Fails with invalid_argument if head_id is empty or
 	// not a commit id, and with failed_precondition if the merge request is not
 	// open, if the source branch no longer points to head_id ("branch moved,
-	// read again"), if the target is not an ancestor of the head (rebase and
-	// push again), if the mode is not allowed by RepoSettings, or if a check
-	// fails and RepoSettings.failing_checks_block is set. Merges of one
+	// read again"), if the mode is fast-forward and the target is not an
+	// ancestor of the head (rebase and push again, or merge with squash or
+	// merge commit), if the mode is squash or merge commit and the head
+	// conflicts with the target or shares no history with it (rebase and push
+	// again), if the mode is not allowed by RepoSettings, or if a check fails
+	// and RepoSettings.failing_checks_block is set. Merges of one
 	// repository run one at a time. Repeating a call that succeeded fails with
 	// failed_precondition (not open). On success the server publishes
 	// MergeRequestMerged then Pushed for the target branch.
@@ -339,9 +342,12 @@ type MergeRequestServiceHandler interface {
 	// never merged unseen. Fails with invalid_argument if head_id is empty or
 	// not a commit id, and with failed_precondition if the merge request is not
 	// open, if the source branch no longer points to head_id ("branch moved,
-	// read again"), if the target is not an ancestor of the head (rebase and
-	// push again), if the mode is not allowed by RepoSettings, or if a check
-	// fails and RepoSettings.failing_checks_block is set. Merges of one
+	// read again"), if the mode is fast-forward and the target is not an
+	// ancestor of the head (rebase and push again, or merge with squash or
+	// merge commit), if the mode is squash or merge commit and the head
+	// conflicts with the target or shares no history with it (rebase and push
+	// again), if the mode is not allowed by RepoSettings, or if a check fails
+	// and RepoSettings.failing_checks_block is set. Merges of one
 	// repository run one at a time. Repeating a call that succeeded fails with
 	// failed_precondition (not open). On success the server publishes
 	// MergeRequestMerged then Pushed for the target branch.

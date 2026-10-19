@@ -44,6 +44,50 @@ enum Verdict {
   VERDICT_CHANGES_REQUESTED = 2;
 }
 
+// MergeabilityState tells whether the head of an open merge request can be
+// merged into its target.
+enum MergeabilityState {
+  // Not set.
+  MERGEABILITY_STATE_UNSPECIFIED = 0;
+  // The server has no result yet for the current tips of both branches. It
+  // is replaced by another state when the check completes.
+  MERGEABILITY_STATE_CHECKING = 1;
+  // The target is an ancestor of the head: every mode can merge.
+  MERGEABILITY_STATE_UP_TO_DATE = 2;
+  // The target has commits the head lacks, but the head merges cleanly:
+  // squash and merge commit can merge, fast-forward cannot.
+  MERGEABILITY_STATE_BEHIND = 3;
+  // The head does not merge cleanly into the target, or the branches share no
+  // history: no mode can merge.
+  MERGEABILITY_STATE_CONFLICT = 4;
+}
+
+// Mergeability is the result of checking an open merge request against the
+// tips of its branches.
+message Mergeability {
+  // State is the result.
+  MergeabilityState state = 1;
+  // TargetId is the commit the target branch pointed to when checked. Empty
+  // while CHECKING.
+  string target_id = 2;
+  // HeadId is the commit the source branch pointed to when checked. Empty
+  // while CHECKING.
+  string head_id = 3;
+  // Behind is the number of commits of the target that the head lacks. Set
+  // only when state is BEHIND.
+  int32 behind = 4;
+  // BehindCapped says that Behind is a lower bound: the server stops counting
+  // at 1,000.
+  bool behind_capped = 5;
+  // ConflictPaths are the paths that conflict, at most 20. Set only when
+  // state is CONFLICT; empty when the branches share no history.
+  repeated string conflict_paths = 6;
+  // ConflictPathsTruncated says that more paths conflict than listed.
+  bool conflict_paths_truncated = 7;
+  // CheckedAt is when the server computed the result. Unset while CHECKING.
+  google.protobuf.Timestamp checked_at = 8;
+}
+
 // MergeRequest asks to merge one branch of a repository into another branch
 // of the same repository. It is about a branch, not about who wrote it.
 message MergeRequest {
@@ -81,12 +125,19 @@ message MergeRequest {
   // merged or closed it is the head at that moment.
   string head_id = 11;
   // MergedCommitId is the id of the commit the target branch points to after
-  // the merge: the head for a fast-forward, the new commit for a squash.
+  // the merge: the head for a fast-forward, the new commit for a squash or a
+  // merge commit.
   // Empty unless state is MERGED.
   string merged_commit_id = 12;
   // MergeMode is how the merge request was merged. MERGE_MODE_UNSPECIFIED
   // unless state is MERGED.
   MergeMode merge_mode = 13;
+  // Mergeability tells whether the head can be merged into the target. Set
+  // while the merge request is OPEN, with state CHECKING until the server has
+  // a result for the current tips; never set once merged or closed. It is a
+  // hint: MergeMergeRequest checks again. Set only by servers with the
+  // "merge_requests.mergeability" feature.
+  Mergeability mergeability = 14;
 }
 
 // Comment is a note on a merge request, either general or attached to a line
@@ -233,9 +284,12 @@ service MergeRequestService {
   // never merged unseen. Fails with invalid_argument if head_id is empty or
   // not a commit id, and with failed_precondition if the merge request is not
   // open, if the source branch no longer points to head_id ("branch moved,
-  // read again"), if the target is not an ancestor of the head (rebase and
-  // push again), if the mode is not allowed by RepoSettings, or if a check
-  // fails and RepoSettings.failing_checks_block is set. Merges of one
+  // read again"), if the mode is fast-forward and the target is not an
+  // ancestor of the head (rebase and push again, or merge with squash or
+  // merge commit), if the mode is squash or merge commit and the head
+  // conflicts with the target or shares no history with it (rebase and push
+  // again), if the mode is not allowed by RepoSettings, or if a check fails
+  // and RepoSettings.failing_checks_block is set. Merges of one
   // repository run one at a time. Repeating a call that succeeded fails with
   // failed_precondition (not open). On success the server publishes
   // MergeRequestMerged then Pushed for the target branch.

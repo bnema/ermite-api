@@ -191,6 +191,186 @@ func (Verdict) EnumDescriptor() ([]byte, []int) {
 	return file_ermite_merge_request_proto_rawDescGZIP(), []int{2}
 }
 
+// MergeabilityState tells whether the head of an open merge request can be
+// merged into its target.
+type MergeabilityState int32
+
+const (
+	// Not set.
+	MergeabilityState_MERGEABILITY_STATE_UNSPECIFIED MergeabilityState = 0
+	// The server has no result yet for the current tips of both branches. It
+	// is replaced by another state when the check completes.
+	MergeabilityState_MERGEABILITY_STATE_CHECKING MergeabilityState = 1
+	// The target is an ancestor of the head: every mode can merge.
+	MergeabilityState_MERGEABILITY_STATE_UP_TO_DATE MergeabilityState = 2
+	// The target has commits the head lacks, but the head merges cleanly:
+	// squash and merge commit can merge, fast-forward cannot.
+	MergeabilityState_MERGEABILITY_STATE_BEHIND MergeabilityState = 3
+	// The head does not merge cleanly into the target, or the branches share no
+	// history: no mode can merge.
+	MergeabilityState_MERGEABILITY_STATE_CONFLICT MergeabilityState = 4
+)
+
+// Enum value maps for MergeabilityState.
+var (
+	MergeabilityState_name = map[int32]string{
+		0: "MERGEABILITY_STATE_UNSPECIFIED",
+		1: "MERGEABILITY_STATE_CHECKING",
+		2: "MERGEABILITY_STATE_UP_TO_DATE",
+		3: "MERGEABILITY_STATE_BEHIND",
+		4: "MERGEABILITY_STATE_CONFLICT",
+	}
+	MergeabilityState_value = map[string]int32{
+		"MERGEABILITY_STATE_UNSPECIFIED": 0,
+		"MERGEABILITY_STATE_CHECKING":    1,
+		"MERGEABILITY_STATE_UP_TO_DATE":  2,
+		"MERGEABILITY_STATE_BEHIND":      3,
+		"MERGEABILITY_STATE_CONFLICT":    4,
+	}
+)
+
+func (x MergeabilityState) Enum() *MergeabilityState {
+	p := new(MergeabilityState)
+	*p = x
+	return p
+}
+
+func (x MergeabilityState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MergeabilityState) Descriptor() protoreflect.EnumDescriptor {
+	return file_ermite_merge_request_proto_enumTypes[3].Descriptor()
+}
+
+func (MergeabilityState) Type() protoreflect.EnumType {
+	return &file_ermite_merge_request_proto_enumTypes[3]
+}
+
+func (x MergeabilityState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MergeabilityState.Descriptor instead.
+func (MergeabilityState) EnumDescriptor() ([]byte, []int) {
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{3}
+}
+
+// Mergeability is the result of checking an open merge request against the
+// tips of its branches.
+type Mergeability struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// State is the result.
+	State MergeabilityState `protobuf:"varint,1,opt,name=state,proto3,enum=ermite.MergeabilityState" json:"state,omitempty"`
+	// TargetId is the commit the target branch pointed to when checked. Empty
+	// while CHECKING.
+	TargetId string `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	// HeadId is the commit the source branch pointed to when checked. Empty
+	// while CHECKING.
+	HeadId string `protobuf:"bytes,3,opt,name=head_id,json=headId,proto3" json:"head_id,omitempty"`
+	// Behind is the number of commits of the target that the head lacks. Set
+	// only when state is BEHIND.
+	Behind int32 `protobuf:"varint,4,opt,name=behind,proto3" json:"behind,omitempty"`
+	// BehindCapped says that Behind is a lower bound: the server stops counting
+	// at 1,000.
+	BehindCapped bool `protobuf:"varint,5,opt,name=behind_capped,json=behindCapped,proto3" json:"behind_capped,omitempty"`
+	// ConflictPaths are the paths that conflict, at most 20. Set only when
+	// state is CONFLICT; empty when the branches share no history.
+	ConflictPaths []string `protobuf:"bytes,6,rep,name=conflict_paths,json=conflictPaths,proto3" json:"conflict_paths,omitempty"`
+	// ConflictPathsTruncated says that more paths conflict than listed.
+	ConflictPathsTruncated bool `protobuf:"varint,7,opt,name=conflict_paths_truncated,json=conflictPathsTruncated,proto3" json:"conflict_paths_truncated,omitempty"`
+	// CheckedAt is when the server computed the result. Unset while CHECKING.
+	CheckedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=checked_at,json=checkedAt,proto3" json:"checked_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Mergeability) Reset() {
+	*x = Mergeability{}
+	mi := &file_ermite_merge_request_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Mergeability) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Mergeability) ProtoMessage() {}
+
+func (x *Mergeability) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_merge_request_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Mergeability.ProtoReflect.Descriptor instead.
+func (*Mergeability) Descriptor() ([]byte, []int) {
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Mergeability) GetState() MergeabilityState {
+	if x != nil {
+		return x.State
+	}
+	return MergeabilityState_MERGEABILITY_STATE_UNSPECIFIED
+}
+
+func (x *Mergeability) GetTargetId() string {
+	if x != nil {
+		return x.TargetId
+	}
+	return ""
+}
+
+func (x *Mergeability) GetHeadId() string {
+	if x != nil {
+		return x.HeadId
+	}
+	return ""
+}
+
+func (x *Mergeability) GetBehind() int32 {
+	if x != nil {
+		return x.Behind
+	}
+	return 0
+}
+
+func (x *Mergeability) GetBehindCapped() bool {
+	if x != nil {
+		return x.BehindCapped
+	}
+	return false
+}
+
+func (x *Mergeability) GetConflictPaths() []string {
+	if x != nil {
+		return x.ConflictPaths
+	}
+	return nil
+}
+
+func (x *Mergeability) GetConflictPathsTruncated() bool {
+	if x != nil {
+		return x.ConflictPathsTruncated
+	}
+	return false
+}
+
+func (x *Mergeability) GetCheckedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CheckedAt
+	}
+	return nil
+}
+
 // MergeRequest asks to merge one branch of a repository into another branch
 // of the same repository. It is about a branch, not about who wrote it.
 type MergeRequest struct {
@@ -229,19 +409,26 @@ type MergeRequest struct {
 	// merged or closed it is the head at that moment.
 	HeadId string `protobuf:"bytes,11,opt,name=head_id,json=headId,proto3" json:"head_id,omitempty"`
 	// MergedCommitId is the id of the commit the target branch points to after
-	// the merge: the head for a fast-forward, the new commit for a squash.
+	// the merge: the head for a fast-forward, the new commit for a squash or a
+	// merge commit.
 	// Empty unless state is MERGED.
 	MergedCommitId string `protobuf:"bytes,12,opt,name=merged_commit_id,json=mergedCommitId,proto3" json:"merged_commit_id,omitempty"`
 	// MergeMode is how the merge request was merged. MERGE_MODE_UNSPECIFIED
 	// unless state is MERGED.
-	MergeMode     MergeMode `protobuf:"varint,13,opt,name=merge_mode,json=mergeMode,proto3,enum=ermite.MergeMode" json:"merge_mode,omitempty"`
+	MergeMode MergeMode `protobuf:"varint,13,opt,name=merge_mode,json=mergeMode,proto3,enum=ermite.MergeMode" json:"merge_mode,omitempty"`
+	// Mergeability tells whether the head can be merged into the target. Set
+	// while the merge request is OPEN, with state CHECKING until the server has
+	// a result for the current tips; never set once merged or closed. It is a
+	// hint: MergeMergeRequest checks again. Set only by servers with the
+	// "merge_requests.mergeability" feature.
+	Mergeability  *Mergeability `protobuf:"bytes,14,opt,name=mergeability,proto3" json:"mergeability,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MergeRequest) Reset() {
 	*x = MergeRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[0]
+	mi := &file_ermite_merge_request_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -253,7 +440,7 @@ func (x *MergeRequest) String() string {
 func (*MergeRequest) ProtoMessage() {}
 
 func (x *MergeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[0]
+	mi := &file_ermite_merge_request_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -266,7 +453,7 @@ func (x *MergeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MergeRequest.ProtoReflect.Descriptor instead.
 func (*MergeRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{0}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *MergeRequest) GetRepo() string {
@@ -360,6 +547,13 @@ func (x *MergeRequest) GetMergeMode() MergeMode {
 	return MergeMode_MERGE_MODE_UNSPECIFIED
 }
 
+func (x *MergeRequest) GetMergeability() *Mergeability {
+	if x != nil {
+		return x.Mergeability
+	}
+	return nil
+}
+
 // Comment is a note on a merge request, either general or attached to a line
 // of its diff.
 type Comment struct {
@@ -412,7 +606,7 @@ type Comment struct {
 
 func (x *Comment) Reset() {
 	*x = Comment{}
-	mi := &file_ermite_merge_request_proto_msgTypes[1]
+	mi := &file_ermite_merge_request_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -424,7 +618,7 @@ func (x *Comment) String() string {
 func (*Comment) ProtoMessage() {}
 
 func (x *Comment) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[1]
+	mi := &file_ermite_merge_request_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -437,7 +631,7 @@ func (x *Comment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Comment.ProtoReflect.Descriptor instead.
 func (*Comment) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{1}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Comment) GetId() string {
@@ -561,7 +755,7 @@ type AuthorVerdict struct {
 
 func (x *AuthorVerdict) Reset() {
 	*x = AuthorVerdict{}
-	mi := &file_ermite_merge_request_proto_msgTypes[2]
+	mi := &file_ermite_merge_request_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -573,7 +767,7 @@ func (x *AuthorVerdict) String() string {
 func (*AuthorVerdict) ProtoMessage() {}
 
 func (x *AuthorVerdict) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[2]
+	mi := &file_ermite_merge_request_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -586,7 +780,7 @@ func (x *AuthorVerdict) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorVerdict.ProtoReflect.Descriptor instead.
 func (*AuthorVerdict) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{2}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AuthorVerdict) GetAuthor() string {
@@ -653,7 +847,7 @@ type CreateMergeRequestRequest struct {
 
 func (x *CreateMergeRequestRequest) Reset() {
 	*x = CreateMergeRequestRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[3]
+	mi := &file_ermite_merge_request_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -665,7 +859,7 @@ func (x *CreateMergeRequestRequest) String() string {
 func (*CreateMergeRequestRequest) ProtoMessage() {}
 
 func (x *CreateMergeRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[3]
+	mi := &file_ermite_merge_request_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -678,7 +872,7 @@ func (x *CreateMergeRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateMergeRequestRequest.ProtoReflect.Descriptor instead.
 func (*CreateMergeRequestRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{3}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CreateMergeRequestRequest) GetRepo() string {
@@ -727,7 +921,7 @@ type CreateMergeRequestResponse struct {
 
 func (x *CreateMergeRequestResponse) Reset() {
 	*x = CreateMergeRequestResponse{}
-	mi := &file_ermite_merge_request_proto_msgTypes[4]
+	mi := &file_ermite_merge_request_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -739,7 +933,7 @@ func (x *CreateMergeRequestResponse) String() string {
 func (*CreateMergeRequestResponse) ProtoMessage() {}
 
 func (x *CreateMergeRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[4]
+	mi := &file_ermite_merge_request_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -752,7 +946,7 @@ func (x *CreateMergeRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateMergeRequestResponse.ProtoReflect.Descriptor instead.
 func (*CreateMergeRequestResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{4}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CreateMergeRequestResponse) GetMergeRequest() *MergeRequest {
@@ -782,7 +976,7 @@ type ListMergeRequestsRequest struct {
 
 func (x *ListMergeRequestsRequest) Reset() {
 	*x = ListMergeRequestsRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[5]
+	mi := &file_ermite_merge_request_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -794,7 +988,7 @@ func (x *ListMergeRequestsRequest) String() string {
 func (*ListMergeRequestsRequest) ProtoMessage() {}
 
 func (x *ListMergeRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[5]
+	mi := &file_ermite_merge_request_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -807,7 +1001,7 @@ func (x *ListMergeRequestsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMergeRequestsRequest.ProtoReflect.Descriptor instead.
 func (*ListMergeRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{5}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListMergeRequestsRequest) GetRepo() string {
@@ -852,7 +1046,7 @@ type ListMergeRequestsResponse struct {
 
 func (x *ListMergeRequestsResponse) Reset() {
 	*x = ListMergeRequestsResponse{}
-	mi := &file_ermite_merge_request_proto_msgTypes[6]
+	mi := &file_ermite_merge_request_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -864,7 +1058,7 @@ func (x *ListMergeRequestsResponse) String() string {
 func (*ListMergeRequestsResponse) ProtoMessage() {}
 
 func (x *ListMergeRequestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[6]
+	mi := &file_ermite_merge_request_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -877,7 +1071,7 @@ func (x *ListMergeRequestsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMergeRequestsResponse.ProtoReflect.Descriptor instead.
 func (*ListMergeRequestsResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{6}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListMergeRequestsResponse) GetMergeRequests() []*MergeRequest {
@@ -914,7 +1108,7 @@ type GetMergeRequestRequest struct {
 
 func (x *GetMergeRequestRequest) Reset() {
 	*x = GetMergeRequestRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[7]
+	mi := &file_ermite_merge_request_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -926,7 +1120,7 @@ func (x *GetMergeRequestRequest) String() string {
 func (*GetMergeRequestRequest) ProtoMessage() {}
 
 func (x *GetMergeRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[7]
+	mi := &file_ermite_merge_request_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -939,7 +1133,7 @@ func (x *GetMergeRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMergeRequestRequest.ProtoReflect.Descriptor instead.
 func (*GetMergeRequestRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{7}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetMergeRequestRequest) GetRepo() string {
@@ -1005,7 +1199,7 @@ type GetMergeRequestResponse struct {
 
 func (x *GetMergeRequestResponse) Reset() {
 	*x = GetMergeRequestResponse{}
-	mi := &file_ermite_merge_request_proto_msgTypes[8]
+	mi := &file_ermite_merge_request_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1017,7 +1211,7 @@ func (x *GetMergeRequestResponse) String() string {
 func (*GetMergeRequestResponse) ProtoMessage() {}
 
 func (x *GetMergeRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[8]
+	mi := &file_ermite_merge_request_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1030,7 +1224,7 @@ func (x *GetMergeRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMergeRequestResponse.ProtoReflect.Descriptor instead.
 func (*GetMergeRequestResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{8}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetMergeRequestResponse) GetMergeRequest() *MergeRequest {
@@ -1139,7 +1333,7 @@ type AddCommentRequest struct {
 
 func (x *AddCommentRequest) Reset() {
 	*x = AddCommentRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[9]
+	mi := &file_ermite_merge_request_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1151,7 +1345,7 @@ func (x *AddCommentRequest) String() string {
 func (*AddCommentRequest) ProtoMessage() {}
 
 func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[9]
+	mi := &file_ermite_merge_request_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1164,7 +1358,7 @@ func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddCommentRequest.ProtoReflect.Descriptor instead.
 func (*AddCommentRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{9}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AddCommentRequest) GetRepo() string {
@@ -1241,7 +1435,7 @@ type AddCommentResponse struct {
 
 func (x *AddCommentResponse) Reset() {
 	*x = AddCommentResponse{}
-	mi := &file_ermite_merge_request_proto_msgTypes[10]
+	mi := &file_ermite_merge_request_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1253,7 +1447,7 @@ func (x *AddCommentResponse) String() string {
 func (*AddCommentResponse) ProtoMessage() {}
 
 func (x *AddCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[10]
+	mi := &file_ermite_merge_request_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1266,7 +1460,7 @@ func (x *AddCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddCommentResponse.ProtoReflect.Descriptor instead.
 func (*AddCommentResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{10}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AddCommentResponse) GetComment() *Comment {
@@ -1294,7 +1488,7 @@ type EditCommentRequest struct {
 
 func (x *EditCommentRequest) Reset() {
 	*x = EditCommentRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[11]
+	mi := &file_ermite_merge_request_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1306,7 +1500,7 @@ func (x *EditCommentRequest) String() string {
 func (*EditCommentRequest) ProtoMessage() {}
 
 func (x *EditCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[11]
+	mi := &file_ermite_merge_request_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1319,7 +1513,7 @@ func (x *EditCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EditCommentRequest.ProtoReflect.Descriptor instead.
 func (*EditCommentRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{11}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *EditCommentRequest) GetRepo() string {
@@ -1361,7 +1555,7 @@ type EditCommentResponse struct {
 
 func (x *EditCommentResponse) Reset() {
 	*x = EditCommentResponse{}
-	mi := &file_ermite_merge_request_proto_msgTypes[12]
+	mi := &file_ermite_merge_request_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1373,7 +1567,7 @@ func (x *EditCommentResponse) String() string {
 func (*EditCommentResponse) ProtoMessage() {}
 
 func (x *EditCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[12]
+	mi := &file_ermite_merge_request_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1386,7 +1580,7 @@ func (x *EditCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EditCommentResponse.ProtoReflect.Descriptor instead.
 func (*EditCommentResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{12}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *EditCommentResponse) GetComment() *Comment {
@@ -1411,7 +1605,7 @@ type DeleteCommentRequest struct {
 
 func (x *DeleteCommentRequest) Reset() {
 	*x = DeleteCommentRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[13]
+	mi := &file_ermite_merge_request_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1423,7 +1617,7 @@ func (x *DeleteCommentRequest) String() string {
 func (*DeleteCommentRequest) ProtoMessage() {}
 
 func (x *DeleteCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[13]
+	mi := &file_ermite_merge_request_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1436,7 +1630,7 @@ func (x *DeleteCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCommentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCommentRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{13}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteCommentRequest) GetRepo() string {
@@ -1471,7 +1665,7 @@ type DeleteCommentResponse struct {
 
 func (x *DeleteCommentResponse) Reset() {
 	*x = DeleteCommentResponse{}
-	mi := &file_ermite_merge_request_proto_msgTypes[14]
+	mi := &file_ermite_merge_request_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1483,7 +1677,7 @@ func (x *DeleteCommentResponse) String() string {
 func (*DeleteCommentResponse) ProtoMessage() {}
 
 func (x *DeleteCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[14]
+	mi := &file_ermite_merge_request_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1496,7 +1690,7 @@ func (x *DeleteCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCommentResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCommentResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{14}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DeleteCommentResponse) GetComment() *Comment {
@@ -1523,7 +1717,7 @@ type ResolveCommentRequest struct {
 
 func (x *ResolveCommentRequest) Reset() {
 	*x = ResolveCommentRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[15]
+	mi := &file_ermite_merge_request_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1535,7 +1729,7 @@ func (x *ResolveCommentRequest) String() string {
 func (*ResolveCommentRequest) ProtoMessage() {}
 
 func (x *ResolveCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[15]
+	mi := &file_ermite_merge_request_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1548,7 +1742,7 @@ func (x *ResolveCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveCommentRequest.ProtoReflect.Descriptor instead.
 func (*ResolveCommentRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{15}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ResolveCommentRequest) GetRepo() string {
@@ -1590,7 +1784,7 @@ type ResolveCommentResponse struct {
 
 func (x *ResolveCommentResponse) Reset() {
 	*x = ResolveCommentResponse{}
-	mi := &file_ermite_merge_request_proto_msgTypes[16]
+	mi := &file_ermite_merge_request_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1602,7 +1796,7 @@ func (x *ResolveCommentResponse) String() string {
 func (*ResolveCommentResponse) ProtoMessage() {}
 
 func (x *ResolveCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[16]
+	mi := &file_ermite_merge_request_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1615,7 +1809,7 @@ func (x *ResolveCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveCommentResponse.ProtoReflect.Descriptor instead.
 func (*ResolveCommentResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{16}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ResolveCommentResponse) GetComment() *Comment {
@@ -1638,7 +1832,7 @@ type CloseMergeRequestRequest struct {
 
 func (x *CloseMergeRequestRequest) Reset() {
 	*x = CloseMergeRequestRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[17]
+	mi := &file_ermite_merge_request_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1650,7 +1844,7 @@ func (x *CloseMergeRequestRequest) String() string {
 func (*CloseMergeRequestRequest) ProtoMessage() {}
 
 func (x *CloseMergeRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[17]
+	mi := &file_ermite_merge_request_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1663,7 +1857,7 @@ func (x *CloseMergeRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseMergeRequestRequest.ProtoReflect.Descriptor instead.
 func (*CloseMergeRequestRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{17}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CloseMergeRequestRequest) GetRepo() string {
@@ -1691,7 +1885,7 @@ type CloseMergeRequestResponse struct {
 
 func (x *CloseMergeRequestResponse) Reset() {
 	*x = CloseMergeRequestResponse{}
-	mi := &file_ermite_merge_request_proto_msgTypes[18]
+	mi := &file_ermite_merge_request_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1703,7 +1897,7 @@ func (x *CloseMergeRequestResponse) String() string {
 func (*CloseMergeRequestResponse) ProtoMessage() {}
 
 func (x *CloseMergeRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[18]
+	mi := &file_ermite_merge_request_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1716,7 +1910,7 @@ func (x *CloseMergeRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseMergeRequestResponse.ProtoReflect.Descriptor instead.
 func (*CloseMergeRequestResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{18}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CloseMergeRequestResponse) GetMergeRequest() *MergeRequest {
@@ -1752,7 +1946,7 @@ type MergeMergeRequestRequest struct {
 
 func (x *MergeMergeRequestRequest) Reset() {
 	*x = MergeMergeRequestRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[19]
+	mi := &file_ermite_merge_request_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1764,7 +1958,7 @@ func (x *MergeMergeRequestRequest) String() string {
 func (*MergeMergeRequestRequest) ProtoMessage() {}
 
 func (x *MergeMergeRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[19]
+	mi := &file_ermite_merge_request_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1777,7 +1971,7 @@ func (x *MergeMergeRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MergeMergeRequestRequest.ProtoReflect.Descriptor instead.
 func (*MergeMergeRequestRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{19}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *MergeMergeRequestRequest) GetRepo() string {
@@ -1832,7 +2026,7 @@ type MergeMergeRequestResponse struct {
 
 func (x *MergeMergeRequestResponse) Reset() {
 	*x = MergeMergeRequestResponse{}
-	mi := &file_ermite_merge_request_proto_msgTypes[20]
+	mi := &file_ermite_merge_request_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1844,7 +2038,7 @@ func (x *MergeMergeRequestResponse) String() string {
 func (*MergeMergeRequestResponse) ProtoMessage() {}
 
 func (x *MergeMergeRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[20]
+	mi := &file_ermite_merge_request_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1857,7 +2051,7 @@ func (x *MergeMergeRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MergeMergeRequestResponse.ProtoReflect.Descriptor instead.
 func (*MergeMergeRequestResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{20}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *MergeMergeRequestResponse) GetMergeRequest() *MergeRequest {
@@ -1891,7 +2085,7 @@ type MarkReadRequest struct {
 
 func (x *MarkReadRequest) Reset() {
 	*x = MarkReadRequest{}
-	mi := &file_ermite_merge_request_proto_msgTypes[21]
+	mi := &file_ermite_merge_request_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1903,7 +2097,7 @@ func (x *MarkReadRequest) String() string {
 func (*MarkReadRequest) ProtoMessage() {}
 
 func (x *MarkReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[21]
+	mi := &file_ermite_merge_request_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1916,7 +2110,7 @@ func (x *MarkReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkReadRequest.ProtoReflect.Descriptor instead.
 func (*MarkReadRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{21}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *MarkReadRequest) GetRepo() string {
@@ -1949,7 +2143,7 @@ type MarkReadResponse struct {
 
 func (x *MarkReadResponse) Reset() {
 	*x = MarkReadResponse{}
-	mi := &file_ermite_merge_request_proto_msgTypes[22]
+	mi := &file_ermite_merge_request_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1961,7 +2155,7 @@ func (x *MarkReadResponse) String() string {
 func (*MarkReadResponse) ProtoMessage() {}
 
 func (x *MarkReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_merge_request_proto_msgTypes[22]
+	mi := &file_ermite_merge_request_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1974,14 +2168,24 @@ func (x *MarkReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkReadResponse.ProtoReflect.Descriptor instead.
 func (*MarkReadResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_merge_request_proto_rawDescGZIP(), []int{22}
+	return file_ermite_merge_request_proto_rawDescGZIP(), []int{23}
 }
 
 var File_ermite_merge_request_proto protoreflect.FileDescriptor
 
 const file_ermite_merge_request_proto_rawDesc = "" +
 	"\n" +
-	"\x1aermite/merge_request.proto\x12\x06ermite\x1a\x10ermite/git.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf0\x03\n" +
+	"\x1aermite/merge_request.proto\x12\x06ermite\x1a\x10ermite/git.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xce\x02\n" +
+	"\fMergeability\x12/\n" +
+	"\x05state\x18\x01 \x01(\x0e2\x19.ermite.MergeabilityStateR\x05state\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\tR\btargetId\x12\x17\n" +
+	"\ahead_id\x18\x03 \x01(\tR\x06headId\x12\x16\n" +
+	"\x06behind\x18\x04 \x01(\x05R\x06behind\x12#\n" +
+	"\rbehind_capped\x18\x05 \x01(\bR\fbehindCapped\x12%\n" +
+	"\x0econflict_paths\x18\x06 \x03(\tR\rconflictPaths\x128\n" +
+	"\x18conflict_paths_truncated\x18\a \x01(\bR\x16conflictPathsTruncated\x129\n" +
+	"\n" +
+	"checked_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAt\"\xaa\x04\n" +
 	"\fMergeRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
 	"\x06number\x18\x02 \x01(\x03R\x06number\x12\x14\n" +
@@ -1999,7 +2203,8 @@ const file_ermite_merge_request_proto_rawDesc = "" +
 	"\ahead_id\x18\v \x01(\tR\x06headId\x12(\n" +
 	"\x10merged_commit_id\x18\f \x01(\tR\x0emergedCommitId\x120\n" +
 	"\n" +
-	"merge_mode\x18\r \x01(\x0e2\x11.ermite.MergeModeR\tmergeMode\"\xbf\x03\n" +
+	"merge_mode\x18\r \x01(\x0e2\x11.ermite.MergeModeR\tmergeMode\x128\n" +
+	"\fmergeability\x18\x0e \x01(\v2\x14.ermite.MergeabilityR\fmergeability\"\xbf\x03\n" +
 	"\aComment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06author\x18\x02 \x01(\tR\x06author\x12\x12\n" +
@@ -2129,7 +2334,13 @@ const file_ermite_merge_request_proto_rawDesc = "" +
 	"\aVerdict\x12\x17\n" +
 	"\x13VERDICT_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fVERDICT_APPROVE\x10\x01\x12\x1d\n" +
-	"\x19VERDICT_CHANGES_REQUESTED\x10\x022\xbf\x06\n" +
+	"\x19VERDICT_CHANGES_REQUESTED\x10\x02*\xbb\x01\n" +
+	"\x11MergeabilityState\x12\"\n" +
+	"\x1eMERGEABILITY_STATE_UNSPECIFIED\x10\x00\x12\x1f\n" +
+	"\x1bMERGEABILITY_STATE_CHECKING\x10\x01\x12!\n" +
+	"\x1dMERGEABILITY_STATE_UP_TO_DATE\x10\x02\x12\x1d\n" +
+	"\x19MERGEABILITY_STATE_BEHIND\x10\x03\x12\x1f\n" +
+	"\x1bMERGEABILITY_STATE_CONFLICT\x10\x042\xbf\x06\n" +
 	"\x13MergeRequestService\x12[\n" +
 	"\x12CreateMergeRequest\x12!.ermite.CreateMergeRequestRequest\x1a\".ermite.CreateMergeRequestResponse\x12X\n" +
 	"\x11ListMergeRequests\x12 .ermite.ListMergeRequestsRequest\x1a!.ermite.ListMergeRequestsResponse\x12R\n" +
@@ -2157,95 +2368,100 @@ func file_ermite_merge_request_proto_rawDescGZIP() []byte {
 	return file_ermite_merge_request_proto_rawDescData
 }
 
-var file_ermite_merge_request_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_ermite_merge_request_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_ermite_merge_request_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_ermite_merge_request_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_ermite_merge_request_proto_goTypes = []any{
 	(MergeRequestState)(0),             // 0: ermite.MergeRequestState
 	(DiffSide)(0),                      // 1: ermite.DiffSide
 	(Verdict)(0),                       // 2: ermite.Verdict
-	(*MergeRequest)(nil),               // 3: ermite.MergeRequest
-	(*Comment)(nil),                    // 4: ermite.Comment
-	(*AuthorVerdict)(nil),              // 5: ermite.AuthorVerdict
-	(*CreateMergeRequestRequest)(nil),  // 6: ermite.CreateMergeRequestRequest
-	(*CreateMergeRequestResponse)(nil), // 7: ermite.CreateMergeRequestResponse
-	(*ListMergeRequestsRequest)(nil),   // 8: ermite.ListMergeRequestsRequest
-	(*ListMergeRequestsResponse)(nil),  // 9: ermite.ListMergeRequestsResponse
-	(*GetMergeRequestRequest)(nil),     // 10: ermite.GetMergeRequestRequest
-	(*GetMergeRequestResponse)(nil),    // 11: ermite.GetMergeRequestResponse
-	(*AddCommentRequest)(nil),          // 12: ermite.AddCommentRequest
-	(*AddCommentResponse)(nil),         // 13: ermite.AddCommentResponse
-	(*EditCommentRequest)(nil),         // 14: ermite.EditCommentRequest
-	(*EditCommentResponse)(nil),        // 15: ermite.EditCommentResponse
-	(*DeleteCommentRequest)(nil),       // 16: ermite.DeleteCommentRequest
-	(*DeleteCommentResponse)(nil),      // 17: ermite.DeleteCommentResponse
-	(*ResolveCommentRequest)(nil),      // 18: ermite.ResolveCommentRequest
-	(*ResolveCommentResponse)(nil),     // 19: ermite.ResolveCommentResponse
-	(*CloseMergeRequestRequest)(nil),   // 20: ermite.CloseMergeRequestRequest
-	(*CloseMergeRequestResponse)(nil),  // 21: ermite.CloseMergeRequestResponse
-	(*MergeMergeRequestRequest)(nil),   // 22: ermite.MergeMergeRequestRequest
-	(*MergeMergeRequestResponse)(nil),  // 23: ermite.MergeMergeRequestResponse
-	(*MarkReadRequest)(nil),            // 24: ermite.MarkReadRequest
-	(*MarkReadResponse)(nil),           // 25: ermite.MarkReadResponse
-	(*timestamppb.Timestamp)(nil),      // 26: google.protobuf.Timestamp
-	(MergeMode)(0),                     // 27: ermite.MergeMode
-	(*Commit)(nil),                     // 28: ermite.Commit
-	(*DiffStats)(nil),                  // 29: ermite.DiffStats
-	(*Diff)(nil),                       // 30: ermite.Diff
+	(MergeabilityState)(0),             // 3: ermite.MergeabilityState
+	(*Mergeability)(nil),               // 4: ermite.Mergeability
+	(*MergeRequest)(nil),               // 5: ermite.MergeRequest
+	(*Comment)(nil),                    // 6: ermite.Comment
+	(*AuthorVerdict)(nil),              // 7: ermite.AuthorVerdict
+	(*CreateMergeRequestRequest)(nil),  // 8: ermite.CreateMergeRequestRequest
+	(*CreateMergeRequestResponse)(nil), // 9: ermite.CreateMergeRequestResponse
+	(*ListMergeRequestsRequest)(nil),   // 10: ermite.ListMergeRequestsRequest
+	(*ListMergeRequestsResponse)(nil),  // 11: ermite.ListMergeRequestsResponse
+	(*GetMergeRequestRequest)(nil),     // 12: ermite.GetMergeRequestRequest
+	(*GetMergeRequestResponse)(nil),    // 13: ermite.GetMergeRequestResponse
+	(*AddCommentRequest)(nil),          // 14: ermite.AddCommentRequest
+	(*AddCommentResponse)(nil),         // 15: ermite.AddCommentResponse
+	(*EditCommentRequest)(nil),         // 16: ermite.EditCommentRequest
+	(*EditCommentResponse)(nil),        // 17: ermite.EditCommentResponse
+	(*DeleteCommentRequest)(nil),       // 18: ermite.DeleteCommentRequest
+	(*DeleteCommentResponse)(nil),      // 19: ermite.DeleteCommentResponse
+	(*ResolveCommentRequest)(nil),      // 20: ermite.ResolveCommentRequest
+	(*ResolveCommentResponse)(nil),     // 21: ermite.ResolveCommentResponse
+	(*CloseMergeRequestRequest)(nil),   // 22: ermite.CloseMergeRequestRequest
+	(*CloseMergeRequestResponse)(nil),  // 23: ermite.CloseMergeRequestResponse
+	(*MergeMergeRequestRequest)(nil),   // 24: ermite.MergeMergeRequestRequest
+	(*MergeMergeRequestResponse)(nil),  // 25: ermite.MergeMergeRequestResponse
+	(*MarkReadRequest)(nil),            // 26: ermite.MarkReadRequest
+	(*MarkReadResponse)(nil),           // 27: ermite.MarkReadResponse
+	(*timestamppb.Timestamp)(nil),      // 28: google.protobuf.Timestamp
+	(MergeMode)(0),                     // 29: ermite.MergeMode
+	(*Commit)(nil),                     // 30: ermite.Commit
+	(*DiffStats)(nil),                  // 31: ermite.DiffStats
+	(*Diff)(nil),                       // 32: ermite.Diff
 }
 var file_ermite_merge_request_proto_depIdxs = []int32{
-	0,  // 0: ermite.MergeRequest.state:type_name -> ermite.MergeRequestState
-	26, // 1: ermite.MergeRequest.created_at:type_name -> google.protobuf.Timestamp
-	26, // 2: ermite.MergeRequest.updated_at:type_name -> google.protobuf.Timestamp
-	27, // 3: ermite.MergeRequest.merge_mode:type_name -> ermite.MergeMode
-	1,  // 4: ermite.Comment.side:type_name -> ermite.DiffSide
-	26, // 5: ermite.Comment.created_at:type_name -> google.protobuf.Timestamp
-	2,  // 6: ermite.Comment.verdict:type_name -> ermite.Verdict
-	26, // 7: ermite.Comment.edited_at:type_name -> google.protobuf.Timestamp
-	2,  // 8: ermite.AuthorVerdict.verdict:type_name -> ermite.Verdict
-	26, // 9: ermite.AuthorVerdict.created_at:type_name -> google.protobuf.Timestamp
-	3,  // 10: ermite.CreateMergeRequestResponse.merge_request:type_name -> ermite.MergeRequest
-	0,  // 11: ermite.ListMergeRequestsRequest.state:type_name -> ermite.MergeRequestState
-	3,  // 12: ermite.ListMergeRequestsResponse.merge_requests:type_name -> ermite.MergeRequest
-	3,  // 13: ermite.GetMergeRequestResponse.merge_request:type_name -> ermite.MergeRequest
-	28, // 14: ermite.GetMergeRequestResponse.commits:type_name -> ermite.Commit
-	29, // 15: ermite.GetMergeRequestResponse.stats:type_name -> ermite.DiffStats
-	30, // 16: ermite.GetMergeRequestResponse.diff:type_name -> ermite.Diff
-	4,  // 17: ermite.GetMergeRequestResponse.comments:type_name -> ermite.Comment
-	5,  // 18: ermite.GetMergeRequestResponse.verdicts:type_name -> ermite.AuthorVerdict
-	1,  // 19: ermite.AddCommentRequest.side:type_name -> ermite.DiffSide
-	2,  // 20: ermite.AddCommentRequest.verdict:type_name -> ermite.Verdict
-	4,  // 21: ermite.AddCommentResponse.comment:type_name -> ermite.Comment
-	4,  // 22: ermite.EditCommentResponse.comment:type_name -> ermite.Comment
-	4,  // 23: ermite.DeleteCommentResponse.comment:type_name -> ermite.Comment
-	4,  // 24: ermite.ResolveCommentResponse.comment:type_name -> ermite.Comment
-	3,  // 25: ermite.CloseMergeRequestResponse.merge_request:type_name -> ermite.MergeRequest
-	27, // 26: ermite.MergeMergeRequestRequest.mode:type_name -> ermite.MergeMode
-	3,  // 27: ermite.MergeMergeRequestResponse.merge_request:type_name -> ermite.MergeRequest
-	6,  // 28: ermite.MergeRequestService.CreateMergeRequest:input_type -> ermite.CreateMergeRequestRequest
-	8,  // 29: ermite.MergeRequestService.ListMergeRequests:input_type -> ermite.ListMergeRequestsRequest
-	10, // 30: ermite.MergeRequestService.GetMergeRequest:input_type -> ermite.GetMergeRequestRequest
-	12, // 31: ermite.MergeRequestService.AddComment:input_type -> ermite.AddCommentRequest
-	14, // 32: ermite.MergeRequestService.EditComment:input_type -> ermite.EditCommentRequest
-	16, // 33: ermite.MergeRequestService.DeleteComment:input_type -> ermite.DeleteCommentRequest
-	18, // 34: ermite.MergeRequestService.ResolveComment:input_type -> ermite.ResolveCommentRequest
-	20, // 35: ermite.MergeRequestService.CloseMergeRequest:input_type -> ermite.CloseMergeRequestRequest
-	22, // 36: ermite.MergeRequestService.MergeMergeRequest:input_type -> ermite.MergeMergeRequestRequest
-	24, // 37: ermite.MergeRequestService.MarkRead:input_type -> ermite.MarkReadRequest
-	7,  // 38: ermite.MergeRequestService.CreateMergeRequest:output_type -> ermite.CreateMergeRequestResponse
-	9,  // 39: ermite.MergeRequestService.ListMergeRequests:output_type -> ermite.ListMergeRequestsResponse
-	11, // 40: ermite.MergeRequestService.GetMergeRequest:output_type -> ermite.GetMergeRequestResponse
-	13, // 41: ermite.MergeRequestService.AddComment:output_type -> ermite.AddCommentResponse
-	15, // 42: ermite.MergeRequestService.EditComment:output_type -> ermite.EditCommentResponse
-	17, // 43: ermite.MergeRequestService.DeleteComment:output_type -> ermite.DeleteCommentResponse
-	19, // 44: ermite.MergeRequestService.ResolveComment:output_type -> ermite.ResolveCommentResponse
-	21, // 45: ermite.MergeRequestService.CloseMergeRequest:output_type -> ermite.CloseMergeRequestResponse
-	23, // 46: ermite.MergeRequestService.MergeMergeRequest:output_type -> ermite.MergeMergeRequestResponse
-	25, // 47: ermite.MergeRequestService.MarkRead:output_type -> ermite.MarkReadResponse
-	38, // [38:48] is the sub-list for method output_type
-	28, // [28:38] is the sub-list for method input_type
-	28, // [28:28] is the sub-list for extension type_name
-	28, // [28:28] is the sub-list for extension extendee
-	0,  // [0:28] is the sub-list for field type_name
+	3,  // 0: ermite.Mergeability.state:type_name -> ermite.MergeabilityState
+	28, // 1: ermite.Mergeability.checked_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: ermite.MergeRequest.state:type_name -> ermite.MergeRequestState
+	28, // 3: ermite.MergeRequest.created_at:type_name -> google.protobuf.Timestamp
+	28, // 4: ermite.MergeRequest.updated_at:type_name -> google.protobuf.Timestamp
+	29, // 5: ermite.MergeRequest.merge_mode:type_name -> ermite.MergeMode
+	4,  // 6: ermite.MergeRequest.mergeability:type_name -> ermite.Mergeability
+	1,  // 7: ermite.Comment.side:type_name -> ermite.DiffSide
+	28, // 8: ermite.Comment.created_at:type_name -> google.protobuf.Timestamp
+	2,  // 9: ermite.Comment.verdict:type_name -> ermite.Verdict
+	28, // 10: ermite.Comment.edited_at:type_name -> google.protobuf.Timestamp
+	2,  // 11: ermite.AuthorVerdict.verdict:type_name -> ermite.Verdict
+	28, // 12: ermite.AuthorVerdict.created_at:type_name -> google.protobuf.Timestamp
+	5,  // 13: ermite.CreateMergeRequestResponse.merge_request:type_name -> ermite.MergeRequest
+	0,  // 14: ermite.ListMergeRequestsRequest.state:type_name -> ermite.MergeRequestState
+	5,  // 15: ermite.ListMergeRequestsResponse.merge_requests:type_name -> ermite.MergeRequest
+	5,  // 16: ermite.GetMergeRequestResponse.merge_request:type_name -> ermite.MergeRequest
+	30, // 17: ermite.GetMergeRequestResponse.commits:type_name -> ermite.Commit
+	31, // 18: ermite.GetMergeRequestResponse.stats:type_name -> ermite.DiffStats
+	32, // 19: ermite.GetMergeRequestResponse.diff:type_name -> ermite.Diff
+	6,  // 20: ermite.GetMergeRequestResponse.comments:type_name -> ermite.Comment
+	7,  // 21: ermite.GetMergeRequestResponse.verdicts:type_name -> ermite.AuthorVerdict
+	1,  // 22: ermite.AddCommentRequest.side:type_name -> ermite.DiffSide
+	2,  // 23: ermite.AddCommentRequest.verdict:type_name -> ermite.Verdict
+	6,  // 24: ermite.AddCommentResponse.comment:type_name -> ermite.Comment
+	6,  // 25: ermite.EditCommentResponse.comment:type_name -> ermite.Comment
+	6,  // 26: ermite.DeleteCommentResponse.comment:type_name -> ermite.Comment
+	6,  // 27: ermite.ResolveCommentResponse.comment:type_name -> ermite.Comment
+	5,  // 28: ermite.CloseMergeRequestResponse.merge_request:type_name -> ermite.MergeRequest
+	29, // 29: ermite.MergeMergeRequestRequest.mode:type_name -> ermite.MergeMode
+	5,  // 30: ermite.MergeMergeRequestResponse.merge_request:type_name -> ermite.MergeRequest
+	8,  // 31: ermite.MergeRequestService.CreateMergeRequest:input_type -> ermite.CreateMergeRequestRequest
+	10, // 32: ermite.MergeRequestService.ListMergeRequests:input_type -> ermite.ListMergeRequestsRequest
+	12, // 33: ermite.MergeRequestService.GetMergeRequest:input_type -> ermite.GetMergeRequestRequest
+	14, // 34: ermite.MergeRequestService.AddComment:input_type -> ermite.AddCommentRequest
+	16, // 35: ermite.MergeRequestService.EditComment:input_type -> ermite.EditCommentRequest
+	18, // 36: ermite.MergeRequestService.DeleteComment:input_type -> ermite.DeleteCommentRequest
+	20, // 37: ermite.MergeRequestService.ResolveComment:input_type -> ermite.ResolveCommentRequest
+	22, // 38: ermite.MergeRequestService.CloseMergeRequest:input_type -> ermite.CloseMergeRequestRequest
+	24, // 39: ermite.MergeRequestService.MergeMergeRequest:input_type -> ermite.MergeMergeRequestRequest
+	26, // 40: ermite.MergeRequestService.MarkRead:input_type -> ermite.MarkReadRequest
+	9,  // 41: ermite.MergeRequestService.CreateMergeRequest:output_type -> ermite.CreateMergeRequestResponse
+	11, // 42: ermite.MergeRequestService.ListMergeRequests:output_type -> ermite.ListMergeRequestsResponse
+	13, // 43: ermite.MergeRequestService.GetMergeRequest:output_type -> ermite.GetMergeRequestResponse
+	15, // 44: ermite.MergeRequestService.AddComment:output_type -> ermite.AddCommentResponse
+	17, // 45: ermite.MergeRequestService.EditComment:output_type -> ermite.EditCommentResponse
+	19, // 46: ermite.MergeRequestService.DeleteComment:output_type -> ermite.DeleteCommentResponse
+	21, // 47: ermite.MergeRequestService.ResolveComment:output_type -> ermite.ResolveCommentResponse
+	23, // 48: ermite.MergeRequestService.CloseMergeRequest:output_type -> ermite.CloseMergeRequestResponse
+	25, // 49: ermite.MergeRequestService.MergeMergeRequest:output_type -> ermite.MergeMergeRequestResponse
+	27, // 50: ermite.MergeRequestService.MarkRead:output_type -> ermite.MarkReadResponse
+	41, // [41:51] is the sub-list for method output_type
+	31, // [31:41] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_ermite_merge_request_proto_init() }
@@ -2260,8 +2476,8 @@ func file_ermite_merge_request_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_merge_request_proto_rawDesc), len(file_ermite_merge_request_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   23,
+			NumEnums:      4,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -40,9 +40,11 @@ message Commit {
   CommitVerification verification = 7;
 }
 
-// MergeMode is how a merge request is merged. Both modes need the target to
-// be an ancestor of the head: a branch behind its target is rebased by its
-// author and pushed again, the server never rebases nor creates merge commits.
+// MergeMode is how a merge request is merged. Fast-forward needs the target
+// to be an ancestor of the head. Squash and merge commit need the head to
+// merge cleanly into the target, which holds when the branch is behind its
+// target without conflict. The server never rebases: a branch that conflicts
+// is rebased by its author and pushed again.
 enum MergeMode {
   // Not set. In MergeMergeRequestRequest.mode it means fast-forward. Rejected
   // in RepoSettings.allowed_merge_modes. Returned on a merge request that was
@@ -58,4 +60,11 @@ enum MergeMode {
   // title, " (!<number>)", a blank line and the list of the squashed commits'
   // summaries.
   MERGE_MODE_SQUASH = 2;
+  // One new commit is created with two parents, the target tip then the head,
+  // and the tree of the merge. It is signed by the server's key (see
+  // ServerService.GetSigningKey); its author and committer are the server
+  // identity. Its message is "Merge branch '<source>' into <target> (!<n>)",
+  // a blank line and the title. The signatures of the branch's commits are
+  // kept. Needs the "merge_requests.mergeability" feature.
+  MERGE_MODE_MERGE_COMMIT = 3;
 }

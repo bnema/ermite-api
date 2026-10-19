@@ -114,6 +114,12 @@ func TestEnumNumbers(t *testing.T) {
 	if got := ermite.MergeMode_MERGE_MODE_SQUASH; got != 2 {
 		t.Errorf("MERGE_MODE_SQUASH = %d, want 2", got)
 	}
+	if got := ermite.MergeMode_MERGE_MODE_MERGE_COMMIT; got != 3 {
+		t.Errorf("MERGE_MODE_MERGE_COMMIT = %d, want 3", got)
+	}
+	if got := ermite.MergeabilityState_MERGEABILITY_STATE_CONFLICT; got != 4 {
+		t.Errorf("MERGEABILITY_STATE_CONFLICT = %d, want 4", got)
+	}
 	if got := ermite.MergeRequestState_MERGE_REQUEST_STATE_CLOSED; got != 3 {
 		t.Errorf("MERGE_REQUEST_STATE_CLOSED = %d, want 3", got)
 	}

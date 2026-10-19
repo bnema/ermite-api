@@ -24,9 +24,11 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// MergeMode is how a merge request is merged. Both modes need the target to
-// be an ancestor of the head: a branch behind its target is rebased by its
-// author and pushed again, the server never rebases nor creates merge commits.
+// MergeMode is how a merge request is merged. Fast-forward needs the target
+// to be an ancestor of the head. Squash and merge commit need the head to
+// merge cleanly into the target, which holds when the branch is behind its
+// target without conflict. The server never rebases: a branch that conflicts
+// is rebased by its author and pushed again.
 type MergeMode int32
 
 const (
@@ -44,6 +46,13 @@ const (
 	// title, " (!<number>)", a blank line and the list of the squashed commits'
 	// summaries.
 	MergeMode_MERGE_MODE_SQUASH MergeMode = 2
+	// One new commit is created with two parents, the target tip then the head,
+	// and the tree of the merge. It is signed by the server's key (see
+	// ServerService.GetSigningKey); its author and committer are the server
+	// identity. Its message is "Merge branch '<source>' into <target> (!<n>)",
+	// a blank line and the title. The signatures of the branch's commits are
+	// kept. Needs the "merge_requests.mergeability" feature.
+	MergeMode_MERGE_MODE_MERGE_COMMIT MergeMode = 3
 )
 
 // Enum value maps for MergeMode.
@@ -52,11 +61,13 @@ var (
 		0: "MERGE_MODE_UNSPECIFIED",
 		1: "MERGE_MODE_FAST_FORWARD",
 		2: "MERGE_MODE_SQUASH",
+		3: "MERGE_MODE_MERGE_COMMIT",
 	}
 	MergeMode_value = map[string]int32{
 		"MERGE_MODE_UNSPECIFIED":  0,
 		"MERGE_MODE_FAST_FORWARD": 1,
 		"MERGE_MODE_SQUASH":       2,
+		"MERGE_MODE_MERGE_COMMIT": 3,
 	}
 )
 
@@ -273,11 +284,12 @@ const file_ermite_types_proto_rawDesc = "" +
 	"\tcommitter\x18\x04 \x01(\v2\x11.ermite.SignatureR\tcommitter\x12\x18\n" +
 	"\asummary\x18\x05 \x01(\tR\asummary\x12\x18\n" +
 	"\amessage\x18\x06 \x01(\tR\amessage\x12>\n" +
-	"\fverification\x18\a \x01(\v2\x1a.ermite.CommitVerificationR\fverification*[\n" +
+	"\fverification\x18\a \x01(\v2\x1a.ermite.CommitVerificationR\fverification*x\n" +
 	"\tMergeMode\x12\x1a\n" +
 	"\x16MERGE_MODE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17MERGE_MODE_FAST_FORWARD\x10\x01\x12\x15\n" +
-	"\x11MERGE_MODE_SQUASH\x10\x02Bq\n" +
+	"\x11MERGE_MODE_SQUASH\x10\x02\x12\x1b\n" +
+	"\x17MERGE_MODE_MERGE_COMMIT\x10\x03Bq\n" +
 	"\n" +
 	"com.ermiteB\n" +
 	"TypesProtoP\x01Z\x1fbnema.dev/ermite-api/gen/ermite\xa2\x02\x03EXX\xaa\x02\x06Ermite\xca\x02\x06Ermite\xe2\x02\x12Ermite\\GPBMetadata\xea\x02\x06Ermiteb\x06proto3"

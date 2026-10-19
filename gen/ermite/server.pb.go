@@ -85,7 +85,10 @@ type GetVersionResponse struct {
 	// secrets, vars, environment, permissions and trusted fields and Run.trusted),
 	// "ci.dispatch" (RunService.DispatchWorkflow), "ci.concurrency"
 	// (CI_STATUS_PENDING and RunJob.concurrency_group), "ci.cache" (Job.cache)
-	// and "ci.artifacts" (JobArtifactService and ArtifactService).
+	// and "ci.artifacts" (JobArtifactService and ArtifactService). The merge
+	// request identifier "merge_requests.mergeability" covers
+	// MergeRequest.mergeability, the MergeRequestMergeability event and
+	// MERGE_MODE_MERGE_COMMIT.
 	Features      []string `protobuf:"bytes,2,rep,name=features,proto3" json:"features,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

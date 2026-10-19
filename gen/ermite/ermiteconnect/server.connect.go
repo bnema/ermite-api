@@ -53,7 +53,7 @@ type ServerServiceClient interface {
 	// it first to check compatibility.
 	GetVersion(context.Context, *connect.Request[ermite.GetVersionRequest]) (*connect.Response[ermite.GetVersionResponse], error)
 	// GetSigningKey returns the public key with which the server signs the
-	// commits it creates (squash merges, see MergeMode). It needs no
+	// commits it creates (squash and merge commits, see MergeMode). It needs no
 	// authentication: the key is public, and anyone verifying a commit needs it.
 	// Servers that implement it list "signing_key" in
 	// GetVersionResponse.features.
@@ -132,7 +132,7 @@ type ServerServiceHandler interface {
 	// it first to check compatibility.
 	GetVersion(context.Context, *connect.Request[ermite.GetVersionRequest]) (*connect.Response[ermite.GetVersionResponse], error)
 	// GetSigningKey returns the public key with which the server signs the
-	// commits it creates (squash merges, see MergeMode). It needs no
+	// commits it creates (squash and merge commits, see MergeMode). It needs no
 	// authentication: the key is public, and anyone verifying a commit needs it.
 	// Servers that implement it list "signing_key" in
 	// GetVersionResponse.features.

@@ -13,7 +13,7 @@ service ServerService {
   // it first to check compatibility.
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
   // GetSigningKey returns the public key with which the server signs the
-  // commits it creates (squash merges, see MergeMode). It needs no
+  // commits it creates (squash and merge commits, see MergeMode). It needs no
   // authentication: the key is public, and anyone verifying a commit needs it.
   // Servers that implement it list "signing_key" in
   // GetVersionResponse.features.
@@ -57,7 +57,10 @@ message GetVersionResponse {
   // secrets, vars, environment, permissions and trusted fields and Run.trusted),
   // "ci.dispatch" (RunService.DispatchWorkflow), "ci.concurrency"
   // (CI_STATUS_PENDING and RunJob.concurrency_group), "ci.cache" (Job.cache)
-  // and "ci.artifacts" (JobArtifactService and ArtifactService).
+  // and "ci.artifacts" (JobArtifactService and ArtifactService). The merge
+  // request identifier "merge_requests.mergeability" covers
+  // MergeRequest.mergeability, the MergeRequestMergeability event and
+  // MERGE_MODE_MERGE_COMMIT.
   repeated string features = 2;
 }
 
