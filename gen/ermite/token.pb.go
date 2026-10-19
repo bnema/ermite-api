@@ -62,6 +62,9 @@ const (
 	// SCOPE_MR_REVIEW allows setting a verdict (approve, changes requested) on
 	// merge request notes. Wire name: mr:review.
 	Scope_SCOPE_MR_REVIEW Scope = 10
+	// SCOPE_ISSUE_WRITE allows creating, commenting on, closing and reopening
+	// issues. Wire name: issue:write.
+	Scope_SCOPE_ISSUE_WRITE Scope = 11
 )
 
 // Enum value maps for Scope.
@@ -78,6 +81,7 @@ var (
 		8:  "SCOPE_RUNNER_REGISTER",
 		9:  "SCOPE_TOKEN_ADMIN",
 		10: "SCOPE_MR_REVIEW",
+		11: "SCOPE_ISSUE_WRITE",
 	}
 	Scope_value = map[string]int32{
 		"SCOPE_UNSPECIFIED":     0,
@@ -91,6 +95,7 @@ var (
 		"SCOPE_RUNNER_REGISTER": 8,
 		"SCOPE_TOKEN_ADMIN":     9,
 		"SCOPE_MR_REVIEW":       10,
+		"SCOPE_ISSUE_WRITE":     11,
 	}
 )
 
@@ -615,7 +620,7 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"$\n" +
 	"\x12RevokeTokenRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x15\n" +
-	"\x13RevokeTokenResponse*\xfb\x01\n" +
+	"\x13RevokeTokenResponse*\x92\x02\n" +
 	"\x05Scope\x12\x15\n" +
 	"\x11SCOPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSCOPE_REPO_READ\x10\x01\x12\x14\n" +
@@ -628,7 +633,8 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\x15SCOPE_RUNNER_REGISTER\x10\b\x12\x15\n" +
 	"\x11SCOPE_TOKEN_ADMIN\x10\t\x12\x13\n" +
 	"\x0fSCOPE_MR_REVIEW\x10\n" +
-	"2\xe3\x01\n" +
+	"\x12\x15\n" +
+	"\x11SCOPE_ISSUE_WRITE\x10\v2\xe3\x01\n" +
 	"\fTokenService\x12F\n" +
 	"\vCreateToken\x12\x1a.ermite.CreateTokenRequest\x1a\x1b.ermite.CreateTokenResponse\x12C\n" +
 	"\n" +

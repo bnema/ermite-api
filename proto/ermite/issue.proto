@@ -1,0 +1,172 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/timestamp.proto";
+
+// IssueState is where an issue is in its life.
+enum IssueState {
+  // Not set. In ListIssuesRequest.state it means every state. Never returned
+  // by the server.
+  ISSUE_STATE_UNSPECIFIED = 0;
+  // The issue is open.
+  ISSUE_STATE_OPEN = 1;
+  // The issue is closed.
+  ISSUE_STATE_CLOSED = 2;
+  // Reserved for later use: awaiting moderation, owner-only.
+  ISSUE_STATE_PENDING = 3;
+}
+
+// Issue is a discussion in a repository.
+message Issue {
+  // Repo is the name of the repository.
+  string repo = 1;
+  // Number identifies the issue within its repository.
+  int64 number = 2;
+  // Title is the one-line title.
+  string title = 3;
+  // Body is the content of the issue. It may be empty.
+  string body = 4;
+  // State is where the issue is in its life.
+  IssueState state = 5;
+  // Author names who created the issue: the label of the token that was used,
+  // "root" for the root token, or "owner" for a web session. It is
+  // informational: labels are not unique and the token may be gone.
+  string author = 6;
+  // CreatedAt is when the issue was created.
+  google.protobuf.Timestamp created_at = 7;
+  // UpdatedAt is when the issue last changed.
+  google.protobuf.Timestamp updated_at = 8;
+  // CommentCount is the number of comments on the issue.
+  int32 comment_count = 9;
+}
+
+// IssueComment is a note on an issue.
+message IssueComment {
+  // Id identifies the comment within its issue. Opaque.
+  string id = 1;
+  // Author names who wrote the comment, like Issue.author.
+  string author = 2;
+  // Text is the content of the comment.
+  string text = 3;
+  // CreatedAt is when the comment was written.
+  google.protobuf.Timestamp created_at = 4;
+}
+
+// IssueService manages issues and their comments.
+service IssueService {
+  // CreateIssue opens an issue. Needs the issue:write scope.
+  rpc CreateIssue(CreateIssueRequest) returns (CreateIssueResponse);
+  // ListIssues lists issues, highest number first, optionally in one state.
+  rpc ListIssues(ListIssuesRequest) returns (ListIssuesResponse);
+  // GetIssue returns an issue with its comments.
+  rpc GetIssue(GetIssueRequest) returns (GetIssueResponse);
+  // AddIssueComment adds a comment. Needs the issue:write scope.
+  rpc AddIssueComment(AddIssueCommentRequest) returns (AddIssueCommentResponse);
+  // CloseIssue closes an issue. Needs the issue:write scope.
+  rpc CloseIssue(CloseIssueRequest) returns (CloseIssueResponse);
+  // ReopenIssue reopens an issue. Needs the issue:write scope.
+  rpc ReopenIssue(ReopenIssueRequest) returns (ReopenIssueResponse);
+}
+
+// CreateIssueRequest describes the issue to open.
+message CreateIssueRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Title is the one-line title. Required.
+  string title = 2;
+  // Body is the optional content.
+  string body = 3;
+}
+
+// CreateIssueResponse holds the new issue.
+message CreateIssueResponse {
+  // Issue is the created issue.
+  Issue issue = 1;
+}
+
+// ListIssuesRequest selects a page of issues.
+message ListIssuesRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // State restricts the result to one state. ISSUE_STATE_UNSPECIFIED means
+  // every state.
+  IssueState state = 2;
+  // PageSize is the maximum number of issues to return. 0 means the server
+  // default; values above the server maximum are lowered to it.
+  int32 page_size = 3;
+  // PageToken is the next_page_token of a previous response, to continue the
+  // same listing. Empty for the first page. Other fields must be unchanged.
+  string page_token = 4;
+}
+
+// ListIssuesResponse is one page of issues.
+message ListIssuesResponse {
+  // Issues are the issues of this page, highest number first.
+  repeated Issue issues = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// GetIssueRequest selects an issue.
+message GetIssueRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the issue number.
+  int64 number = 2;
+}
+
+// GetIssueResponse holds an issue with its comments.
+message GetIssueResponse {
+  // Issue is the issue.
+  Issue issue = 1;
+  // Comments are every comment of the issue, oldest first.
+  repeated IssueComment comments = 2;
+}
+
+// AddIssueCommentRequest describes the comment to add.
+message AddIssueCommentRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the issue number.
+  int64 number = 2;
+  // Text is the content. Required.
+  string text = 3;
+}
+
+// AddIssueCommentResponse holds the new comment.
+message AddIssueCommentResponse {
+  // Comment is the created comment.
+  IssueComment comment = 1;
+}
+
+// CloseIssueRequest names the issue to close.
+message CloseIssueRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the issue number.
+  int64 number = 2;
+}
+
+// CloseIssueResponse holds the issue after closing.
+message CloseIssueResponse {
+  // Issue is the closed issue.
+  Issue issue = 1;
+}
+
+// ReopenIssueRequest names the issue to reopen.
+message ReopenIssueRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the issue number.
+  int64 number = 2;
+}
+
+// ReopenIssueResponse holds the issue after reopening.
+message ReopenIssueResponse {
+  // Issue is the reopened issue.
+  Issue issue = 1;
+}

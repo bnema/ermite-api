@@ -20,8 +20,20 @@ enum Visibility {
   VISIBILITY_PRIVATE = 2;
 }
 
+// IssuesMode says who may write issues in a repository.
+enum IssuesMode {
+  // Not set.
+  ISSUES_MODE_UNSPECIFIED = 0;
+  // Issues are disabled.
+  ISSUES_MODE_OFF = 1;
+  // Only the owner may write issues.
+  ISSUES_MODE_OWNER = 2;
+  // Issues are open to public participation.
+  ISSUES_MODE_PUBLIC = 3;
+}
+
 // RepoSettings are the settings of a repository that govern its merge
-// requests.
+// requests and issues.
 message RepoSettings {
   // AllowedMergeModes are the modes with which a merge request of the
   // repository may be merged. It is never empty in a response and has no
@@ -33,6 +45,8 @@ message RepoSettings {
   // explicitly, so a later change of the server default never alters an
   // existing repository.
   bool failing_checks_block = 2;
+  // Issues is the issue participation mode of the repository.
+  IssuesMode issues = 3;
 }
 
 // Repo is the metadata of a repository. Git-owned state (refs, trees, history)
@@ -53,7 +67,7 @@ message Repo {
   google.protobuf.Timestamp created_at = 5;
   // PushedAt is the time of the last push. It is unset until the first push.
   google.protobuf.Timestamp pushed_at = 6;
-  // Settings are the merge settings of the repository. Always set in a
+  // Settings are the settings of the repository. Always set in a
   // response, with the defaults for a repository that never changed them.
   RepoSettings settings = 7;
   // Topics classify the repository, as on GitHub: at most 20, each 1-50
@@ -153,8 +167,9 @@ message UpdateRepoRequest {
   string default_branch = 4;
   // UpdateMask lists the fields to change: "description", "visibility",
   // "default_branch", "topics", "settings.allowed_merge_modes" and/or
-  // "settings.failing_checks_block". "settings" stands for both settings
-  // paths. It must not be empty. Other paths are invalid_argument.
+  // "settings.failing_checks_block". "settings" stands for both merge settings
+  // paths. The optional issues field changes the issue mode separately.
+  // It must not be empty. Other paths are invalid_argument.
   google.protobuf.FieldMask update_mask = 5;
   // Settings holds the new merge settings. Only the fields named in
   // update_mask are used. allowed_merge_modes must then not be empty nor
@@ -165,6 +180,8 @@ message UpdateRepoRequest {
   // Topics replace the topics of the repository (see Repo.topics). Used only
   // if update_mask contains "topics"; an empty list then clears them.
   repeated string topics = 7;
+  // Issues is the new issue participation mode. When absent it is unchanged.
+  optional IssuesMode issues = 8;
 }
 
 // UpdateRepoResponse holds the repository after the update.

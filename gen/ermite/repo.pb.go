@@ -80,8 +80,65 @@ func (Visibility) EnumDescriptor() ([]byte, []int) {
 	return file_ermite_repo_proto_rawDescGZIP(), []int{0}
 }
 
+// IssuesMode says who may write issues in a repository.
+type IssuesMode int32
+
+const (
+	// Not set.
+	IssuesMode_ISSUES_MODE_UNSPECIFIED IssuesMode = 0
+	// Issues are disabled.
+	IssuesMode_ISSUES_MODE_OFF IssuesMode = 1
+	// Only the owner may write issues.
+	IssuesMode_ISSUES_MODE_OWNER IssuesMode = 2
+	// Issues are open to public participation.
+	IssuesMode_ISSUES_MODE_PUBLIC IssuesMode = 3
+)
+
+// Enum value maps for IssuesMode.
+var (
+	IssuesMode_name = map[int32]string{
+		0: "ISSUES_MODE_UNSPECIFIED",
+		1: "ISSUES_MODE_OFF",
+		2: "ISSUES_MODE_OWNER",
+		3: "ISSUES_MODE_PUBLIC",
+	}
+	IssuesMode_value = map[string]int32{
+		"ISSUES_MODE_UNSPECIFIED": 0,
+		"ISSUES_MODE_OFF":         1,
+		"ISSUES_MODE_OWNER":       2,
+		"ISSUES_MODE_PUBLIC":      3,
+	}
+)
+
+func (x IssuesMode) Enum() *IssuesMode {
+	p := new(IssuesMode)
+	*p = x
+	return p
+}
+
+func (x IssuesMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (IssuesMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_ermite_repo_proto_enumTypes[1].Descriptor()
+}
+
+func (IssuesMode) Type() protoreflect.EnumType {
+	return &file_ermite_repo_proto_enumTypes[1]
+}
+
+func (x IssuesMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use IssuesMode.Descriptor instead.
+func (IssuesMode) EnumDescriptor() ([]byte, []int) {
+	return file_ermite_repo_proto_rawDescGZIP(), []int{1}
+}
+
 // RepoSettings are the settings of a repository that govern its merge
-// requests.
+// requests and issues.
 type RepoSettings struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// AllowedMergeModes are the modes with which a merge request of the
@@ -94,8 +151,10 @@ type RepoSettings struct {
 	// explicitly, so a later change of the server default never alters an
 	// existing repository.
 	FailingChecksBlock bool `protobuf:"varint,2,opt,name=failing_checks_block,json=failingChecksBlock,proto3" json:"failing_checks_block,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Issues is the issue participation mode of the repository.
+	Issues        IssuesMode `protobuf:"varint,3,opt,name=issues,proto3,enum=ermite.IssuesMode" json:"issues,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RepoSettings) Reset() {
@@ -142,6 +201,13 @@ func (x *RepoSettings) GetFailingChecksBlock() bool {
 	return false
 }
 
+func (x *RepoSettings) GetIssues() IssuesMode {
+	if x != nil {
+		return x.Issues
+	}
+	return IssuesMode_ISSUES_MODE_UNSPECIFIED
+}
+
 // Repo is the metadata of a repository. Git-owned state (refs, trees, history)
 // is read through GitService.
 type Repo struct {
@@ -161,7 +227,7 @@ type Repo struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// PushedAt is the time of the last push. It is unset until the first push.
 	PushedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=pushed_at,json=pushedAt,proto3" json:"pushed_at,omitempty"`
-	// Settings are the merge settings of the repository. Always set in a
+	// Settings are the settings of the repository. Always set in a
 	// response, with the defaults for a repository that never changed them.
 	Settings *RepoSettings `protobuf:"bytes,7,opt,name=settings,proto3" json:"settings,omitempty"`
 	// Topics classify the repository, as on GitHub: at most 20, each 1-50
@@ -602,8 +668,9 @@ type UpdateRepoRequest struct {
 	DefaultBranch string `protobuf:"bytes,4,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
 	// UpdateMask lists the fields to change: "description", "visibility",
 	// "default_branch", "topics", "settings.allowed_merge_modes" and/or
-	// "settings.failing_checks_block". "settings" stands for both settings
-	// paths. It must not be empty. Other paths are invalid_argument.
+	// "settings.failing_checks_block". "settings" stands for both merge settings
+	// paths. The optional issues field changes the issue mode separately.
+	// It must not be empty. Other paths are invalid_argument.
 	UpdateMask *fieldmaskpb.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// Settings holds the new merge settings. Only the fields named in
 	// update_mask are used. allowed_merge_modes must then not be empty nor
@@ -613,7 +680,9 @@ type UpdateRepoRequest struct {
 	Settings *RepoSettings `protobuf:"bytes,6,opt,name=settings,proto3" json:"settings,omitempty"`
 	// Topics replace the topics of the repository (see Repo.topics). Used only
 	// if update_mask contains "topics"; an empty list then clears them.
-	Topics        []string `protobuf:"bytes,7,rep,name=topics,proto3" json:"topics,omitempty"`
+	Topics []string `protobuf:"bytes,7,rep,name=topics,proto3" json:"topics,omitempty"`
+	// Issues is the new issue participation mode. When absent it is unchanged.
+	Issues        *IssuesMode `protobuf:"varint,8,opt,name=issues,proto3,enum=ermite.IssuesMode,oneof" json:"issues,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -695,6 +764,13 @@ func (x *UpdateRepoRequest) GetTopics() []string {
 		return x.Topics
 	}
 	return nil
+}
+
+func (x *UpdateRepoRequest) GetIssues() IssuesMode {
+	if x != nil && x.Issues != nil {
+		return *x.Issues
+	}
+	return IssuesMode_ISSUES_MODE_UNSPECIFIED
 }
 
 // UpdateRepoResponse holds the repository after the update.
@@ -830,10 +906,11 @@ var File_ermite_repo_proto protoreflect.FileDescriptor
 
 const file_ermite_repo_proto_rawDesc = "" +
 	"\n" +
-	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x83\x01\n" +
+	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\x01\n" +
 	"\fRepoSettings\x12A\n" +
 	"\x13allowed_merge_modes\x18\x01 \x03(\x0e2\x11.ermite.MergeModeR\x11allowedMergeModes\x120\n" +
-	"\x14failing_checks_block\x18\x02 \x01(\bR\x12failingChecksBlock\"\xd5\x02\n" +
+	"\x14failing_checks_block\x18\x02 \x01(\bR\x12failingChecksBlock\x12*\n" +
+	"\x06issues\x18\x03 \x01(\x0e2\x12.ermite.IssuesModeR\x06issues\"\xd5\x02\n" +
 	"\x04Repo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -865,7 +942,7 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"visibility\x12\x16\n" +
 	"\x06topics\x18\x04 \x03(\tR\x06topics\"6\n" +
 	"\x12CreateRepoResponse\x12 \n" +
-	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\xab\x02\n" +
+	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\xe7\x02\n" +
 	"\x11UpdateRepoRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -876,7 +953,9 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"\vupdate_mask\x18\x05 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
 	"updateMask\x120\n" +
 	"\bsettings\x18\x06 \x01(\v2\x14.ermite.RepoSettingsR\bsettings\x12\x16\n" +
-	"\x06topics\x18\a \x03(\tR\x06topics\"6\n" +
+	"\x06topics\x18\a \x03(\tR\x06topics\x12/\n" +
+	"\x06issues\x18\b \x01(\x0e2\x12.ermite.IssuesModeH\x00R\x06issues\x88\x01\x01B\t\n" +
+	"\a_issues\"6\n" +
 	"\x12UpdateRepoResponse\x12 \n" +
 	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"'\n" +
 	"\x11DeleteRepoRequest\x12\x12\n" +
@@ -886,7 +965,13 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"Visibility\x12\x1a\n" +
 	"\x16VISIBILITY_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11VISIBILITY_PUBLIC\x10\x01\x12\x16\n" +
-	"\x12VISIBILITY_PRIVATE\x10\x022\xda\x02\n" +
+	"\x12VISIBILITY_PRIVATE\x10\x02*m\n" +
+	"\n" +
+	"IssuesMode\x12\x1b\n" +
+	"\x17ISSUES_MODE_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fISSUES_MODE_OFF\x10\x01\x12\x15\n" +
+	"\x11ISSUES_MODE_OWNER\x10\x02\x12\x16\n" +
+	"\x12ISSUES_MODE_PUBLIC\x10\x032\xda\x02\n" +
 	"\vRepoService\x12@\n" +
 	"\tListRepos\x12\x18.ermite.ListReposRequest\x1a\x19.ermite.ListReposResponse\x12:\n" +
 	"\aGetRepo\x12\x16.ermite.GetRepoRequest\x1a\x17.ermite.GetRepoResponse\x12C\n" +
@@ -911,55 +996,58 @@ func file_ermite_repo_proto_rawDescGZIP() []byte {
 	return file_ermite_repo_proto_rawDescData
 }
 
-var file_ermite_repo_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ermite_repo_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ermite_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ermite_repo_proto_goTypes = []any{
 	(Visibility)(0),               // 0: ermite.Visibility
-	(*RepoSettings)(nil),          // 1: ermite.RepoSettings
-	(*Repo)(nil),                  // 2: ermite.Repo
-	(*ListReposRequest)(nil),      // 3: ermite.ListReposRequest
-	(*ListReposResponse)(nil),     // 4: ermite.ListReposResponse
-	(*GetRepoRequest)(nil),        // 5: ermite.GetRepoRequest
-	(*GetRepoResponse)(nil),       // 6: ermite.GetRepoResponse
-	(*CreateRepoRequest)(nil),     // 7: ermite.CreateRepoRequest
-	(*CreateRepoResponse)(nil),    // 8: ermite.CreateRepoResponse
-	(*UpdateRepoRequest)(nil),     // 9: ermite.UpdateRepoRequest
-	(*UpdateRepoResponse)(nil),    // 10: ermite.UpdateRepoResponse
-	(*DeleteRepoRequest)(nil),     // 11: ermite.DeleteRepoRequest
-	(*DeleteRepoResponse)(nil),    // 12: ermite.DeleteRepoResponse
-	(MergeMode)(0),                // 13: ermite.MergeMode
-	(*timestamppb.Timestamp)(nil), // 14: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil), // 15: google.protobuf.FieldMask
+	(IssuesMode)(0),               // 1: ermite.IssuesMode
+	(*RepoSettings)(nil),          // 2: ermite.RepoSettings
+	(*Repo)(nil),                  // 3: ermite.Repo
+	(*ListReposRequest)(nil),      // 4: ermite.ListReposRequest
+	(*ListReposResponse)(nil),     // 5: ermite.ListReposResponse
+	(*GetRepoRequest)(nil),        // 6: ermite.GetRepoRequest
+	(*GetRepoResponse)(nil),       // 7: ermite.GetRepoResponse
+	(*CreateRepoRequest)(nil),     // 8: ermite.CreateRepoRequest
+	(*CreateRepoResponse)(nil),    // 9: ermite.CreateRepoResponse
+	(*UpdateRepoRequest)(nil),     // 10: ermite.UpdateRepoRequest
+	(*UpdateRepoResponse)(nil),    // 11: ermite.UpdateRepoResponse
+	(*DeleteRepoRequest)(nil),     // 12: ermite.DeleteRepoRequest
+	(*DeleteRepoResponse)(nil),    // 13: ermite.DeleteRepoResponse
+	(MergeMode)(0),                // 14: ermite.MergeMode
+	(*timestamppb.Timestamp)(nil), // 15: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil), // 16: google.protobuf.FieldMask
 }
 var file_ermite_repo_proto_depIdxs = []int32{
-	13, // 0: ermite.RepoSettings.allowed_merge_modes:type_name -> ermite.MergeMode
-	0,  // 1: ermite.Repo.visibility:type_name -> ermite.Visibility
-	14, // 2: ermite.Repo.created_at:type_name -> google.protobuf.Timestamp
-	14, // 3: ermite.Repo.pushed_at:type_name -> google.protobuf.Timestamp
-	1,  // 4: ermite.Repo.settings:type_name -> ermite.RepoSettings
-	2,  // 5: ermite.ListReposResponse.repos:type_name -> ermite.Repo
-	2,  // 6: ermite.GetRepoResponse.repo:type_name -> ermite.Repo
-	0,  // 7: ermite.CreateRepoRequest.visibility:type_name -> ermite.Visibility
-	2,  // 8: ermite.CreateRepoResponse.repo:type_name -> ermite.Repo
-	0,  // 9: ermite.UpdateRepoRequest.visibility:type_name -> ermite.Visibility
-	15, // 10: ermite.UpdateRepoRequest.update_mask:type_name -> google.protobuf.FieldMask
-	1,  // 11: ermite.UpdateRepoRequest.settings:type_name -> ermite.RepoSettings
-	2,  // 12: ermite.UpdateRepoResponse.repo:type_name -> ermite.Repo
-	3,  // 13: ermite.RepoService.ListRepos:input_type -> ermite.ListReposRequest
-	5,  // 14: ermite.RepoService.GetRepo:input_type -> ermite.GetRepoRequest
-	7,  // 15: ermite.RepoService.CreateRepo:input_type -> ermite.CreateRepoRequest
-	9,  // 16: ermite.RepoService.UpdateRepo:input_type -> ermite.UpdateRepoRequest
-	11, // 17: ermite.RepoService.DeleteRepo:input_type -> ermite.DeleteRepoRequest
-	4,  // 18: ermite.RepoService.ListRepos:output_type -> ermite.ListReposResponse
-	6,  // 19: ermite.RepoService.GetRepo:output_type -> ermite.GetRepoResponse
-	8,  // 20: ermite.RepoService.CreateRepo:output_type -> ermite.CreateRepoResponse
-	10, // 21: ermite.RepoService.UpdateRepo:output_type -> ermite.UpdateRepoResponse
-	12, // 22: ermite.RepoService.DeleteRepo:output_type -> ermite.DeleteRepoResponse
-	18, // [18:23] is the sub-list for method output_type
-	13, // [13:18] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	14, // 0: ermite.RepoSettings.allowed_merge_modes:type_name -> ermite.MergeMode
+	1,  // 1: ermite.RepoSettings.issues:type_name -> ermite.IssuesMode
+	0,  // 2: ermite.Repo.visibility:type_name -> ermite.Visibility
+	15, // 3: ermite.Repo.created_at:type_name -> google.protobuf.Timestamp
+	15, // 4: ermite.Repo.pushed_at:type_name -> google.protobuf.Timestamp
+	2,  // 5: ermite.Repo.settings:type_name -> ermite.RepoSettings
+	3,  // 6: ermite.ListReposResponse.repos:type_name -> ermite.Repo
+	3,  // 7: ermite.GetRepoResponse.repo:type_name -> ermite.Repo
+	0,  // 8: ermite.CreateRepoRequest.visibility:type_name -> ermite.Visibility
+	3,  // 9: ermite.CreateRepoResponse.repo:type_name -> ermite.Repo
+	0,  // 10: ermite.UpdateRepoRequest.visibility:type_name -> ermite.Visibility
+	16, // 11: ermite.UpdateRepoRequest.update_mask:type_name -> google.protobuf.FieldMask
+	2,  // 12: ermite.UpdateRepoRequest.settings:type_name -> ermite.RepoSettings
+	1,  // 13: ermite.UpdateRepoRequest.issues:type_name -> ermite.IssuesMode
+	3,  // 14: ermite.UpdateRepoResponse.repo:type_name -> ermite.Repo
+	4,  // 15: ermite.RepoService.ListRepos:input_type -> ermite.ListReposRequest
+	6,  // 16: ermite.RepoService.GetRepo:input_type -> ermite.GetRepoRequest
+	8,  // 17: ermite.RepoService.CreateRepo:input_type -> ermite.CreateRepoRequest
+	10, // 18: ermite.RepoService.UpdateRepo:input_type -> ermite.UpdateRepoRequest
+	12, // 19: ermite.RepoService.DeleteRepo:input_type -> ermite.DeleteRepoRequest
+	5,  // 20: ermite.RepoService.ListRepos:output_type -> ermite.ListReposResponse
+	7,  // 21: ermite.RepoService.GetRepo:output_type -> ermite.GetRepoResponse
+	9,  // 22: ermite.RepoService.CreateRepo:output_type -> ermite.CreateRepoResponse
+	11, // 23: ermite.RepoService.UpdateRepo:output_type -> ermite.UpdateRepoResponse
+	13, // 24: ermite.RepoService.DeleteRepo:output_type -> ermite.DeleteRepoResponse
+	20, // [20:25] is the sub-list for method output_type
+	15, // [15:20] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_ermite_repo_proto_init() }
@@ -968,12 +1056,13 @@ func file_ermite_repo_proto_init() {
 		return
 	}
 	file_ermite_types_proto_init()
+	file_ermite_repo_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_repo_proto_rawDesc), len(file_ermite_repo_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,

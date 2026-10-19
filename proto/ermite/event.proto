@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package ermite;
 
+import "ermite/issue.proto";
 import "ermite/merge_request.proto";
 import "ermite/repo.proto";
 import "ermite/run.proto";
@@ -18,7 +19,8 @@ service EventService {
   // The events are repo_created, repo_updated, repo_deleted, pushed, gap and,
   // for merge requests, merge_request_opened, merge_request_merged,
   // merge_request_closed, comment_added, comment_edited, comment_deleted and
-  // comment_resolved (a thread resolved or reopened). Each one is delivered on the
+  // comment_resolved (a thread resolved or reopened); for issues, issue_opened,
+  // issue_closed, issue_reopened and issue_commented. Each one is delivered on the
   // "repo:<name>" topic of its repository and on "home", subject to the
   // visibility of the repository.
   //
@@ -109,6 +111,14 @@ message Event {
     CommentDeleted comment_deleted = 15;
     // CommentResolved: a merge request comment was resolved or unresolved.
     CommentResolved comment_resolved = 16;
+    // IssueOpened: an issue was opened.
+    IssueOpened issue_opened = 17;
+    // IssueClosed: an issue was closed.
+    IssueClosed issue_closed = 18;
+    // IssueReopened: an issue was reopened.
+    IssueReopened issue_reopened = 19;
+    // IssueCommented: a comment was added to an issue.
+    IssueCommented issue_commented = 20;
   }
 }
 
@@ -209,10 +219,39 @@ message CommentResolved {
   Comment comment = 3;
 }
 
+// IssueOpened reports a new issue.
+message IssueOpened {
+  // Issue is the new issue, including its repository and number.
+  Issue issue = 1;
+}
+
+// IssueClosed reports a closed issue.
+message IssueClosed {
+  // Issue is the issue after closing, including its repository and number.
+  Issue issue = 1;
+}
+
+// IssueReopened reports a reopened issue.
+message IssueReopened {
+  // Issue is the issue after reopening, including its repository and number.
+  Issue issue = 1;
+}
+
+// IssueCommented reports a new comment on an issue.
+message IssueCommented {
+  // Repo is the name of the repository.
+  string repo = 1;
+  // Number is the number of the issue.
+  int64 number = 2;
+  // Comment is the new comment.
+  IssueComment comment = 3;
+}
+
 // Gap tells the client that events were lost: the requested resume point is
 // older than the server's buffer. It has no fields. The client should reload
 // the state it displays (repositories, refs, merge requests and their
-// comments, CI runs and their jobs) and carry on with the next events.
+// comments, issues and their comments, CI runs and their jobs) and carry on
+// with the next events.
 message Gap {}
 
 // RunUpdated reports a CI run that was created or whose status, conclusion or

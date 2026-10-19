@@ -42,6 +42,9 @@ enum Scope {
   // SCOPE_MR_REVIEW allows setting a verdict (approve, changes requested) on
   // merge request notes. Wire name: mr:review.
   SCOPE_MR_REVIEW = 10;
+  // SCOPE_ISSUE_WRITE allows creating, commenting on, closing and reopening
+  // issues. Wire name: issue:write.
+  SCOPE_ISSUE_WRITE = 11;
 }
 
 // Token describes a stored token. It never contains the secret nor its hash.
