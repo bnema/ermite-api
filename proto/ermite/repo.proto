@@ -168,8 +168,9 @@ message UpdateRepoRequest {
   // UpdateMask lists the fields to change: "description", "visibility",
   // "default_branch", "topics", "settings.allowed_merge_modes" and/or
   // "settings.failing_checks_block". "settings" stands for both merge settings
-  // paths. The optional issues field changes the issue mode separately.
-  // It must not be empty. Other paths are invalid_argument.
+  // paths. It must not be empty unless issues is set. Other paths are
+  // invalid_argument, including "settings.issues" and "issues": the issues
+  // field is applied outside the mask.
   google.protobuf.FieldMask update_mask = 5;
   // Settings holds the new merge settings. Only the fields named in
   // update_mask are used. allowed_merge_modes must then not be empty nor
@@ -181,6 +182,10 @@ message UpdateRepoRequest {
   // if update_mask contains "topics"; an empty list then clears them.
   repeated string topics = 7;
   // Issues is the new issue participation mode. When absent it is unchanged.
+  // It is applied whatever update_mask contains, and may be the only change
+  // (an empty update_mask is then valid). When present it must not be
+  // ISSUES_MODE_UNSPECIFIED: that is invalid_argument. Changing it needs the
+  // repo:admin scope and a token with no branch limit, like any other field.
   optional IssuesMode issues = 8;
 }
 

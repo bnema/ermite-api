@@ -28,9 +28,17 @@ const (
 type WatchRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Topics are the subjects to follow: "home" for every repository visible to
-	// the caller, or "repo:<name>" for one repository. Empty means "home".
-	// Unknown topics are invalid_argument. A "repo:<name>" topic for a repository
-	// that does not exist or is not visible is not_found.
+	// the caller, "repo:<name>" for one repository, or "owner". Empty means
+	// "home". Unknown topics are invalid_argument. A "repo:<name>" topic for a
+	// repository that does not exist or is not visible is not_found.
+	//
+	// The "owner" topic needs owner rights: root, an owner session, or a token
+	// that holds every scope with no repository or branch limit. Anyone else
+	// gets the same invalid_argument as for an unknown topic, so the topic is
+	// not revealed. It carries the merge request and issue events of every
+	// repository (merge_request_opened, merge_request_merged,
+	// merge_request_closed, comment_added, and the issue events), repo_updated
+	// and repo_deleted, plus issue_submitted, which is delivered nowhere else.
 	Topics []string `protobuf:"bytes,1,rep,name=topics,proto3" json:"topics,omitempty"`
 	// ResumeAfter is the Event.id of the last event the client has seen. Empty
 	// to receive only new events.
@@ -484,8 +492,8 @@ type Event_IssueCommented struct {
 }
 
 type Event_IssueSubmitted struct {
-	// IssueSubmitted: an issue is awaiting moderation. Delivered to owner
-	// watchers only.
+	// IssueSubmitted: an issue is awaiting moderation. Delivered only on the
+	// "owner" topic, never on "home" or "repo:<name>", and carries no content.
 	IssueSubmitted *IssueSubmitted `protobuf:"bytes,21,opt,name=issue_submitted,json=issueSubmitted,proto3,oneof"`
 }
 
@@ -1383,8 +1391,8 @@ func (x *IssueCommented) GetComment() *IssueComment {
 	return nil
 }
 
-// IssueSubmitted reports an issue awaiting moderation. It is delivered to
-// owner watchers only. It carries no title or body: content never travels in
+// IssueSubmitted reports an issue awaiting moderation. It is delivered only
+// on the "owner" topic, never on "home" or "repo:<name>". It carries no title or body: content never travels in
 // events, read it with IssueService.ListPendingIssues.
 type IssueSubmitted struct {
 	state protoimpl.MessageState `protogen:"open.v1"`

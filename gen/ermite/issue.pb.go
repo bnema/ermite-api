@@ -95,9 +95,12 @@ type Issue struct {
 	Body string `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
 	// State is where the issue is in its life.
 	State IssueState `protobuf:"varint,5,opt,name=state,proto3,enum=ermite.IssueState" json:"state,omitempty"`
-	// Author names who created the issue: the label of the token that was used,
-	// "root" for the root token, or "owner" for a web session. It is
-	// informational: labels are not unique and the token may be gone.
+	// Author names who created the issue: the label of the token or session
+	// that was used ("root" for the root token, "owner" for a web session), or,
+	// for an issue approved from the public form, the unverified display name
+	// the visitor typed (or "anonymous"). It is informational and never proves
+	// identity: labels are not unique, the token may be gone, and a visitor can
+	// type "owner".
 	Author string `protobuf:"bytes,6,opt,name=author,proto3" json:"author,omitempty"`
 	// CreatedAt is when the issue was created.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -951,7 +954,8 @@ type PendingIssue struct {
 	// Body is the content. It may be empty.
 	Body string `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
 	// Author is the optional display name given by the anonymous submitter. It
-	// may be empty and is not verified.
+	// may be empty or "anonymous", and is not verified: it never proves
+	// identity (a visitor can type "owner"). It becomes Issue.author on approval.
 	Author string `protobuf:"bytes,5,opt,name=author,proto3" json:"author,omitempty"`
 	// CreatedAt is when the issue was submitted.
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`

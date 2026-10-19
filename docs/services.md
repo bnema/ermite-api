@@ -6,8 +6,9 @@
 | `GitService` | `ListRefs`, `GetTree`, `ListPaths`, `GetBlob` (streamed), `ListCommits`, `GetCommit` (structured diff), `ResolveRevision` |
 | `TokenService` | `CreateToken` (secret shown once), `ListTokens`, `RevokeToken` |
 | `MergeRequestService` | `CreateMergeRequest`, `ListMergeRequests`, `GetMergeRequest` (commits, diff, comments), `AddComment`, `EditComment`, `DeleteComment`, `ResolveComment`, `CloseMergeRequest`, `MergeMergeRequest`, `MarkRead` |
+| `IssueService` | `CreateIssue`, `ListIssues`, `GetIssue` (comments), `AddIssueComment`, `CloseIssue`, `ReopenIssue`; owner only: `ListPendingIssues`, `ApproveIssue`, `RejectIssue`. Feature `issues`. Issues share numbers with merge requests |
 | `SessionService` | `CreateLoginLink`, `SignOutEverywhere` (owner only) |
-| `EventService` | `Watch` (streamed, resumable) |
+| `EventService` | `Watch` (streamed, resumable). Topics `home`, `repo:<name>` and `owner` (owner rights only). Events 17–21: `issue_opened`, `issue_closed`, `issue_reopened`, `issue_commented`, and `issue_submitted` (only on `owner`, no content) |
 | `ServerService` | `GetVersion` (version and features), `GetSigningKey`, `RotateOIDCKey` (owner only) |
 | `TrustedKeyService` | `ListTrustedKeys`, `AddTrustedKey` and `RemoveTrustedKey` (owner only). `Commit.verification` carries the result of the check (feature `commit_signatures`) |
 | `RunService` | `ListRuns`, `GetRun`, `GetJob`, `GetJobLog` (streamed, follow), `ListAnnotations`, `GetStepSummaries`, `CancelRun`, `RerunRun`, `DispatchWorkflow`, `ListWorkflows`, `DisableWorkflow`, `EnableWorkflow`, `ListChecks`, `ListRunners`, `RemoveRunner` |

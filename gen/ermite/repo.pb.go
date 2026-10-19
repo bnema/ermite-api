@@ -669,8 +669,9 @@ type UpdateRepoRequest struct {
 	// UpdateMask lists the fields to change: "description", "visibility",
 	// "default_branch", "topics", "settings.allowed_merge_modes" and/or
 	// "settings.failing_checks_block". "settings" stands for both merge settings
-	// paths. The optional issues field changes the issue mode separately.
-	// It must not be empty. Other paths are invalid_argument.
+	// paths. It must not be empty unless issues is set. Other paths are
+	// invalid_argument, including "settings.issues" and "issues": the issues
+	// field is applied outside the mask.
 	UpdateMask *fieldmaskpb.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// Settings holds the new merge settings. Only the fields named in
 	// update_mask are used. allowed_merge_modes must then not be empty nor
@@ -682,6 +683,10 @@ type UpdateRepoRequest struct {
 	// if update_mask contains "topics"; an empty list then clears them.
 	Topics []string `protobuf:"bytes,7,rep,name=topics,proto3" json:"topics,omitempty"`
 	// Issues is the new issue participation mode. When absent it is unchanged.
+	// It is applied whatever update_mask contains, and may be the only change
+	// (an empty update_mask is then valid). When present it must not be
+	// ISSUES_MODE_UNSPECIFIED: that is invalid_argument. Changing it needs the
+	// repo:admin scope and a token with no branch limit, like any other field.
 	Issues        *IssuesMode `protobuf:"varint,8,opt,name=issues,proto3,enum=ermite.IssuesMode,oneof" json:"issues,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

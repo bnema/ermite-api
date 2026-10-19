@@ -33,6 +33,7 @@ Status: early development.
 | `GitService` | refs, trees, blobs, commits and diffs |
 | `TokenService` | API tokens |
 | `MergeRequestService` | merge requests, comments, merge |
+| `IssueService` | issues, comments, owner moderation of public submissions |
 | `SessionService` | web sign-in links (owner only) |
 | `EventService` | live event stream, resumable |
 | `ServerService` | version, features, signing key, OIDC key rotation |
