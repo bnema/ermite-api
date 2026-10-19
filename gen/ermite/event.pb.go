@@ -904,8 +904,9 @@ func (x *MergeRequestMerged) GetMergeRequest() *MergeRequest {
 }
 
 // MergeRequestMergeability reports the mergeability of an open merge request.
-// It is published when the state changes, or when a check settles a result
-// that readers had not seen yet (they saw CHECKING), not on every push.
+// It is published each time the server settles a result for new tips of the
+// source or target branch, so the state may be the same as the previous
+// event's. A push that moves neither branch publishes nothing.
 type MergeRequestMergeability struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Repo is the name of the repository.
