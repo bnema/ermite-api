@@ -143,8 +143,8 @@ type RepoSettings struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// AllowedMergeModes are the modes with which a merge request of the
 	// repository may be merged. It is never empty in a response and has no
-	// duplicate. Both MERGE_MODE_FAST_FORWARD and MERGE_MODE_SQUASH are allowed
-	// by default; MERGE_MODE_MERGE_COMMIT is allowed only when listed. MERGE_MODE_UNSPECIFIED is rejected.
+	// duplicate. Every mode is allowed by default. MERGE_MODE_UNSPECIFIED is
+	// rejected.
 	AllowedMergeModes []MergeMode `protobuf:"varint,1,rep,packed,name=allowed_merge_modes,json=allowedMergeModes,proto3,enum=ermite.MergeMode" json:"allowed_merge_modes,omitempty"`
 	// FailingChecksBlock says whether a merge request whose checks fail cannot be
 	// merged. It is true at creation of the repository and always stored
