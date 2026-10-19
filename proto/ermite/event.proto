@@ -20,7 +20,8 @@ service EventService {
   // for merge requests, merge_request_opened, merge_request_merged,
   // merge_request_closed, comment_added, comment_edited, comment_deleted and
   // comment_resolved (a thread resolved or reopened); for issues, issue_opened,
-  // issue_closed, issue_reopened and issue_commented. Each one is delivered on the
+  // issue_closed, issue_reopened and issue_commented (and issue_submitted, to
+  // owner watchers only). Each one is delivered on the
   // "repo:<name>" topic of its repository and on "home", subject to the
   // visibility of the repository.
   //
@@ -119,6 +120,9 @@ message Event {
     IssueReopened issue_reopened = 19;
     // IssueCommented: a comment was added to an issue.
     IssueCommented issue_commented = 20;
+    // IssueSubmitted: an issue is awaiting moderation. Delivered to owner
+    // watchers only.
+    IssueSubmitted issue_submitted = 21;
   }
 }
 
@@ -245,6 +249,16 @@ message IssueCommented {
   int64 number = 2;
   // Comment is the new comment.
   IssueComment comment = 3;
+}
+
+// IssueSubmitted reports an issue awaiting moderation. It is delivered to
+// owner watchers only. It carries no title or body: content never travels in
+// events, read it with IssueService.ListPendingIssues.
+message IssueSubmitted {
+  // Repo is the name of the repository.
+  string repo = 1;
+  // Id is the PendingIssue.id.
+  string id = 2;
 }
 
 // Gap tells the client that events were lost: the requested resume point is

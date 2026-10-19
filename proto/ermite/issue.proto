@@ -69,6 +69,15 @@ service IssueService {
   rpc CloseIssue(CloseIssueRequest) returns (CloseIssueResponse);
   // ReopenIssue reopens an issue. Needs the issue:write scope.
   rpc ReopenIssue(ReopenIssueRequest) returns (ReopenIssueResponse);
+  // ListPendingIssues lists issues awaiting moderation, oldest first. Owner
+  // rights only; anyone else gets NOT_FOUND.
+  rpc ListPendingIssues(ListPendingIssuesRequest) returns (ListPendingIssuesResponse);
+  // ApproveIssue turns a pending issue into an open issue with a new number.
+  // Owner rights only; anyone else gets NOT_FOUND.
+  rpc ApproveIssue(ApproveIssueRequest) returns (ApproveIssueResponse);
+  // RejectIssue discards a pending issue, optionally banning its submitter.
+  // Owner rights only; anyone else gets NOT_FOUND.
+  rpc RejectIssue(RejectIssueRequest) returns (RejectIssueResponse);
 }
 
 // CreateIssueRequest describes the issue to open.
@@ -170,3 +179,69 @@ message ReopenIssueResponse {
   // Issue is the reopened issue.
   Issue issue = 1;
 }
+
+// PendingIssue is an issue awaiting moderation. It has no number yet.
+message PendingIssue {
+  // Id identifies the pending issue. Opaque internal id, not a number.
+  string id = 1;
+  // Repo is the name of the repository.
+  string repo = 2;
+  // Title is the one-line title.
+  string title = 3;
+  // Body is the content. It may be empty.
+  string body = 4;
+  // Author is the optional display name given by the anonymous submitter. It
+  // may be empty and is not verified.
+  string author = 5;
+  // CreatedAt is when the issue was submitted.
+  google.protobuf.Timestamp created_at = 6;
+}
+
+// ListPendingIssuesRequest selects a page of pending issues.
+message ListPendingIssuesRequest {
+  // Repo is the repository name. Empty means every repository.
+  string repo = 1;
+  // PageSize is the maximum number of issues to return. 0 means the server
+  // default; values above the server maximum are lowered to it.
+  int32 page_size = 2;
+  // PageToken is the next_page_token of a previous response, to continue the
+  // same listing. Empty for the first page. Other fields must be unchanged.
+  string page_token = 3;
+}
+
+// ListPendingIssuesResponse is one page of pending issues.
+message ListPendingIssuesResponse {
+  // Issues are the pending issues of this page, oldest first.
+  repeated PendingIssue issues = 1;
+  // NextPageToken is passed as page_token to get the next page. Empty when
+  // there is no next page.
+  string next_page_token = 2;
+}
+
+// ApproveIssueRequest names the pending issue to approve.
+message ApproveIssueRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Id is the PendingIssue.id.
+  string id = 2;
+}
+
+// ApproveIssueResponse holds the approved issue.
+message ApproveIssueResponse {
+  // Issue is the approved issue, with its new number and state
+  // ISSUE_STATE_OPEN.
+  Issue issue = 1;
+}
+
+// RejectIssueRequest names the pending issue to reject.
+message RejectIssueRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Id is the PendingIssue.id.
+  string id = 2;
+  // Ban also bans the submitter for a while.
+  bool ban = 3;
+}
+
+// RejectIssueResponse is empty: the pending issue is gone.
+message RejectIssueResponse {}

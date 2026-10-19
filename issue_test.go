@@ -13,12 +13,15 @@ import (
 
 func TestIssueProcedures(t *testing.T) {
 	tests := map[string]string{
-		ermiteconnect.IssueServiceCreateIssueProcedure:     "CreateIssue",
-		ermiteconnect.IssueServiceListIssuesProcedure:      "ListIssues",
-		ermiteconnect.IssueServiceGetIssueProcedure:        "GetIssue",
-		ermiteconnect.IssueServiceAddIssueCommentProcedure: "AddIssueComment",
-		ermiteconnect.IssueServiceCloseIssueProcedure:      "CloseIssue",
-		ermiteconnect.IssueServiceReopenIssueProcedure:     "ReopenIssue",
+		ermiteconnect.IssueServiceCreateIssueProcedure:       "CreateIssue",
+		ermiteconnect.IssueServiceListIssuesProcedure:        "ListIssues",
+		ermiteconnect.IssueServiceGetIssueProcedure:          "GetIssue",
+		ermiteconnect.IssueServiceAddIssueCommentProcedure:   "AddIssueComment",
+		ermiteconnect.IssueServiceCloseIssueProcedure:        "CloseIssue",
+		ermiteconnect.IssueServiceReopenIssueProcedure:       "ReopenIssue",
+		ermiteconnect.IssueServiceListPendingIssuesProcedure: "ListPendingIssues",
+		ermiteconnect.IssueServiceApproveIssueProcedure:      "ApproveIssue",
+		ermiteconnect.IssueServiceRejectIssueProcedure:       "RejectIssue",
 	}
 	for got, name := range tests {
 		if want := "/ermite.IssueService/" + name; got != want {
@@ -36,7 +39,14 @@ func TestIssueContract(t *testing.T) {
 		{&ermite.IssueComment{}, map[string]int{"id": 1, "author": 2, "text": 3, "created_at": 4}},
 		{&ermite.RepoSettings{}, map[string]int{"issues": 3}},
 		{&ermite.UpdateRepoRequest{}, map[string]int{"issues": 8}},
-		{&ermite.Event{}, map[string]int{"issue_opened": 17, "issue_closed": 18, "issue_reopened": 19, "issue_commented": 20}},
+		{&ermite.Event{}, map[string]int{"issue_opened": 17, "issue_closed": 18, "issue_reopened": 19, "issue_commented": 20, "issue_submitted": 21}},
+		{&ermite.IssueSubmitted{}, map[string]int{"repo": 1, "id": 2}},
+		{&ermite.PendingIssue{}, map[string]int{"id": 1, "repo": 2, "title": 3, "body": 4, "author": 5, "created_at": 6}},
+		{&ermite.ListPendingIssuesRequest{}, map[string]int{"repo": 1, "page_size": 2, "page_token": 3}},
+		{&ermite.ListPendingIssuesResponse{}, map[string]int{"issues": 1, "next_page_token": 2}},
+		{&ermite.ApproveIssueRequest{}, map[string]int{"repo": 1, "id": 2}},
+		{&ermite.ApproveIssueResponse{}, map[string]int{"issue": 1}},
+		{&ermite.RejectIssueRequest{}, map[string]int{"repo": 1, "id": 2, "ban": 3}},
 	} {
 		md := tt.msg.ProtoReflect().Descriptor()
 		for name, num := range tt.fields {
@@ -64,6 +74,9 @@ func TestIssueContract(t *testing.T) {
 		&ermite.Event{Kind: &ermite.Event_IssueOpened{IssueOpened: &ermite.IssueOpened{Issue: &ermite.Issue{Repo: "r", Number: 1}}}},
 		&ermite.Event{Kind: &ermite.Event_IssueClosed{IssueClosed: &ermite.IssueClosed{Issue: &ermite.Issue{Repo: "r", Number: 1}}}},
 		&ermite.Event{Kind: &ermite.Event_IssueReopened{IssueReopened: &ermite.IssueReopened{Issue: &ermite.Issue{Repo: "r", Number: 1}}}},
+		&ermite.Event{Kind: &ermite.Event_IssueSubmitted{IssueSubmitted: &ermite.IssueSubmitted{Repo: "r", Id: "p1"}}},
+		&ermite.PendingIssue{Id: "p1", Repo: "r", Title: "t", Author: "anon"},
+		&ermite.RejectIssueRequest{Repo: "r", Id: "p1", Ban: true},
 		&ermite.Event{Kind: &ermite.Event_IssueCommented{IssueCommented: &ermite.IssueCommented{Repo: "r", Number: 1, Comment: &ermite.IssueComment{Id: "c", Text: "hi"}}}},
 	} {
 		b, err := proto.Marshal(in)
