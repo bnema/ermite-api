@@ -2016,9 +2016,11 @@ type MergeMergeRequestResponse struct {
 	// merged_commit_id set to the new tip of the target branch and merge_mode
 	// set to the mode used.
 	MergeRequest *MergeRequest `protobuf:"bytes,1,opt,name=merge_request,json=mergeRequest,proto3" json:"merge_request,omitempty"`
-	// SourceBranchDeleted is true when delete_source_branch was set and the
-	// branch is gone. It is false when the deletion failed after the merge (the
-	// branch moved in between, say): the merge stands and the branch is kept.
+	// SourceBranchDeleted is true when delete_source_branch was set: the server
+	// deletes the branch after answering. The deletion is skipped, and the
+	// branch kept, if the branch moved or another open merge request uses it
+	// by then; the merge stands either way. Watch reports the deletion with a
+	// Pushed event for the source branch.
 	SourceBranchDeleted bool `protobuf:"varint,2,opt,name=source_branch_deleted,json=sourceBranchDeleted,proto3" json:"source_branch_deleted,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
