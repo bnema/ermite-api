@@ -102,6 +102,12 @@ message Event {
     RunUpdated run_updated = 12;
     // JobUpdated: a CI job was created or changed.
     JobUpdated job_updated = 13;
+    // CommentEdited: the text of a merge request comment was changed.
+    CommentEdited comment_edited = 14;
+    // CommentDeleted: a merge request comment was deleted.
+    CommentDeleted comment_deleted = 15;
+    // CommentResolved: a merge request comment was resolved or unresolved.
+    CommentResolved comment_resolved = 16;
   }
 }
 
@@ -167,6 +173,38 @@ message CommentAdded {
   // Number is the number of the merge request.
   int64 number = 2;
   // Comment is the new comment.
+  Comment comment = 3;
+}
+
+// CommentEdited reports a comment of a merge request whose text was changed.
+message CommentEdited {
+  // Repo is the name of the repository.
+  string repo = 1;
+  // Number is the number of the merge request.
+  int64 number = 2;
+  // Comment is the comment after the edit.
+  Comment comment = 3;
+}
+
+// CommentDeleted reports a comment of a merge request that was deleted. The
+// comment stays in the thread with deleted set and an empty text.
+message CommentDeleted {
+  // Repo is the name of the repository.
+  string repo = 1;
+  // Number is the number of the merge request.
+  int64 number = 2;
+  // Comment is the comment after the deletion.
+  Comment comment = 3;
+}
+
+// CommentResolved reports a comment of a merge request whose resolved state
+// changed.
+message CommentResolved {
+  // Repo is the name of the repository.
+  string repo = 1;
+  // Number is the number of the merge request.
+  int64 number = 2;
+  // Comment is the comment after the change.
   Comment comment = 3;
 }
 

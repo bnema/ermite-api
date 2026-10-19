@@ -47,6 +47,12 @@ const (
 	// MergeRequestServiceAddCommentProcedure is the fully-qualified name of the MergeRequestService's
 	// AddComment RPC.
 	MergeRequestServiceAddCommentProcedure = "/ermite.MergeRequestService/AddComment"
+	// MergeRequestServiceEditCommentProcedure is the fully-qualified name of the MergeRequestService's
+	// EditComment RPC.
+	MergeRequestServiceEditCommentProcedure = "/ermite.MergeRequestService/EditComment"
+	// MergeRequestServiceDeleteCommentProcedure is the fully-qualified name of the
+	// MergeRequestService's DeleteComment RPC.
+	MergeRequestServiceDeleteCommentProcedure = "/ermite.MergeRequestService/DeleteComment"
 	// MergeRequestServiceResolveCommentProcedure is the fully-qualified name of the
 	// MergeRequestService's ResolveComment RPC.
 	MergeRequestServiceResolveCommentProcedure = "/ermite.MergeRequestService/ResolveComment"
@@ -79,14 +85,35 @@ type MergeRequestServiceClient interface {
 	// caller last marked read with the current head. Fails with not_found if
 	// the repository or the number is unknown.
 	GetMergeRequest(context.Context, *connect.Request[ermite.GetMergeRequestRequest]) (*connect.Response[ermite.GetMergeRequestResponse], error)
-	// AddComment adds a general comment or a comment on a line of the diff.
-	// Needs the mr:write scope. Fails with invalid_argument if the text breaks
-	// a rule or if path, line and side do not designate a line of the current
-	// diff of the merge request, and with failed_precondition if the merge
-	// request is not open.
+	// AddComment adds a general comment, a comment on a line or a range of
+	// lines of the diff, or a reply to a root comment. Needs the mr:write
+	// scope; setting a verdict also needs the mr:review scope (permission_denied
+	// without it). Fails with invalid_argument if the text breaks a rule (it may
+	// be empty only with a verdict), if path, line, start_line and side do not
+	// designate lines of the current diff of the merge request, if reply_to is
+	// not the id of a root comment that is not deleted, if a reply sets path,
+	// line, start_line, side or verdict, or if a verdict is set on a reply; and
+	// with failed_precondition if the merge request is not open. A comment with
+	// VERDICT_APPROVE is created resolved.
 	AddComment(context.Context, *connect.Request[ermite.AddCommentRequest]) (*connect.Response[ermite.AddCommentResponse], error)
-	// ResolveComment marks a comment resolved or unresolved. Needs the mr:write
-	// scope. Fails with not_found if the comment is unknown and with
+	// EditComment replaces the text of a comment. Needs the mr:write scope, and
+	// only the author of the comment can edit it (permission_denied
+	// otherwise). Fails with invalid_argument if the text breaks a rule (it may
+	// be empty only for a comment with a verdict), with not_found if the comment
+	// is unknown, and with failed_precondition if the merge request is not open
+	// or the comment was deleted. Sending the current text succeeds and changes
+	// nothing.
+	EditComment(context.Context, *connect.Request[ermite.EditCommentRequest]) (*connect.Response[ermite.EditCommentResponse], error)
+	// DeleteComment deletes a comment: its text is emptied and deleted is set,
+	// while its id, anchor, replies and verdict remain. Needs the mr:write
+	// scope, and only the author of the comment can delete it
+	// (permission_denied otherwise). Fails with not_found if the comment is
+	// unknown and with failed_precondition if the merge request is not open.
+	// Deleting a comment already deleted succeeds and changes nothing.
+	DeleteComment(context.Context, *connect.Request[ermite.DeleteCommentRequest]) (*connect.Response[ermite.DeleteCommentResponse], error)
+	// ResolveComment marks a thread resolved or unresolved. Needs the mr:write
+	// scope. Resolution belongs to the root comment: on a reply it fails with
+	// invalid_argument. Fails with not_found if the comment is unknown and with
 	// failed_precondition if the merge request is not open. Setting the state
 	// the comment already has succeeds and changes nothing.
 	ResolveComment(context.Context, *connect.Request[ermite.ResolveCommentRequest]) (*connect.Response[ermite.ResolveCommentResponse], error)
@@ -149,6 +176,18 @@ func NewMergeRequestServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(mergeRequestServiceMethods.ByName("AddComment")),
 			connect.WithClientOptions(opts...),
 		),
+		editComment: connect.NewClient[ermite.EditCommentRequest, ermite.EditCommentResponse](
+			httpClient,
+			baseURL+MergeRequestServiceEditCommentProcedure,
+			connect.WithSchema(mergeRequestServiceMethods.ByName("EditComment")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteComment: connect.NewClient[ermite.DeleteCommentRequest, ermite.DeleteCommentResponse](
+			httpClient,
+			baseURL+MergeRequestServiceDeleteCommentProcedure,
+			connect.WithSchema(mergeRequestServiceMethods.ByName("DeleteComment")),
+			connect.WithClientOptions(opts...),
+		),
 		resolveComment: connect.NewClient[ermite.ResolveCommentRequest, ermite.ResolveCommentResponse](
 			httpClient,
 			baseURL+MergeRequestServiceResolveCommentProcedure,
@@ -182,6 +221,8 @@ type mergeRequestServiceClient struct {
 	listMergeRequests  *connect.Client[ermite.ListMergeRequestsRequest, ermite.ListMergeRequestsResponse]
 	getMergeRequest    *connect.Client[ermite.GetMergeRequestRequest, ermite.GetMergeRequestResponse]
 	addComment         *connect.Client[ermite.AddCommentRequest, ermite.AddCommentResponse]
+	editComment        *connect.Client[ermite.EditCommentRequest, ermite.EditCommentResponse]
+	deleteComment      *connect.Client[ermite.DeleteCommentRequest, ermite.DeleteCommentResponse]
 	resolveComment     *connect.Client[ermite.ResolveCommentRequest, ermite.ResolveCommentResponse]
 	closeMergeRequest  *connect.Client[ermite.CloseMergeRequestRequest, ermite.CloseMergeRequestResponse]
 	mergeMergeRequest  *connect.Client[ermite.MergeMergeRequestRequest, ermite.MergeMergeRequestResponse]
@@ -206,6 +247,16 @@ func (c *mergeRequestServiceClient) GetMergeRequest(ctx context.Context, req *co
 // AddComment calls ermite.MergeRequestService.AddComment.
 func (c *mergeRequestServiceClient) AddComment(ctx context.Context, req *connect.Request[ermite.AddCommentRequest]) (*connect.Response[ermite.AddCommentResponse], error) {
 	return c.addComment.CallUnary(ctx, req)
+}
+
+// EditComment calls ermite.MergeRequestService.EditComment.
+func (c *mergeRequestServiceClient) EditComment(ctx context.Context, req *connect.Request[ermite.EditCommentRequest]) (*connect.Response[ermite.EditCommentResponse], error) {
+	return c.editComment.CallUnary(ctx, req)
+}
+
+// DeleteComment calls ermite.MergeRequestService.DeleteComment.
+func (c *mergeRequestServiceClient) DeleteComment(ctx context.Context, req *connect.Request[ermite.DeleteCommentRequest]) (*connect.Response[ermite.DeleteCommentResponse], error) {
+	return c.deleteComment.CallUnary(ctx, req)
 }
 
 // ResolveComment calls ermite.MergeRequestService.ResolveComment.
@@ -246,14 +297,35 @@ type MergeRequestServiceHandler interface {
 	// caller last marked read with the current head. Fails with not_found if
 	// the repository or the number is unknown.
 	GetMergeRequest(context.Context, *connect.Request[ermite.GetMergeRequestRequest]) (*connect.Response[ermite.GetMergeRequestResponse], error)
-	// AddComment adds a general comment or a comment on a line of the diff.
-	// Needs the mr:write scope. Fails with invalid_argument if the text breaks
-	// a rule or if path, line and side do not designate a line of the current
-	// diff of the merge request, and with failed_precondition if the merge
-	// request is not open.
+	// AddComment adds a general comment, a comment on a line or a range of
+	// lines of the diff, or a reply to a root comment. Needs the mr:write
+	// scope; setting a verdict also needs the mr:review scope (permission_denied
+	// without it). Fails with invalid_argument if the text breaks a rule (it may
+	// be empty only with a verdict), if path, line, start_line and side do not
+	// designate lines of the current diff of the merge request, if reply_to is
+	// not the id of a root comment that is not deleted, if a reply sets path,
+	// line, start_line, side or verdict, or if a verdict is set on a reply; and
+	// with failed_precondition if the merge request is not open. A comment with
+	// VERDICT_APPROVE is created resolved.
 	AddComment(context.Context, *connect.Request[ermite.AddCommentRequest]) (*connect.Response[ermite.AddCommentResponse], error)
-	// ResolveComment marks a comment resolved or unresolved. Needs the mr:write
-	// scope. Fails with not_found if the comment is unknown and with
+	// EditComment replaces the text of a comment. Needs the mr:write scope, and
+	// only the author of the comment can edit it (permission_denied
+	// otherwise). Fails with invalid_argument if the text breaks a rule (it may
+	// be empty only for a comment with a verdict), with not_found if the comment
+	// is unknown, and with failed_precondition if the merge request is not open
+	// or the comment was deleted. Sending the current text succeeds and changes
+	// nothing.
+	EditComment(context.Context, *connect.Request[ermite.EditCommentRequest]) (*connect.Response[ermite.EditCommentResponse], error)
+	// DeleteComment deletes a comment: its text is emptied and deleted is set,
+	// while its id, anchor, replies and verdict remain. Needs the mr:write
+	// scope, and only the author of the comment can delete it
+	// (permission_denied otherwise). Fails with not_found if the comment is
+	// unknown and with failed_precondition if the merge request is not open.
+	// Deleting a comment already deleted succeeds and changes nothing.
+	DeleteComment(context.Context, *connect.Request[ermite.DeleteCommentRequest]) (*connect.Response[ermite.DeleteCommentResponse], error)
+	// ResolveComment marks a thread resolved or unresolved. Needs the mr:write
+	// scope. Resolution belongs to the root comment: on a reply it fails with
+	// invalid_argument. Fails with not_found if the comment is unknown and with
 	// failed_precondition if the merge request is not open. Setting the state
 	// the comment already has succeeds and changes nothing.
 	ResolveComment(context.Context, *connect.Request[ermite.ResolveCommentRequest]) (*connect.Response[ermite.ResolveCommentResponse], error)
@@ -312,6 +384,18 @@ func NewMergeRequestServiceHandler(svc MergeRequestServiceHandler, opts ...conne
 		connect.WithSchema(mergeRequestServiceMethods.ByName("AddComment")),
 		connect.WithHandlerOptions(opts...),
 	)
+	mergeRequestServiceEditCommentHandler := connect.NewUnaryHandler(
+		MergeRequestServiceEditCommentProcedure,
+		svc.EditComment,
+		connect.WithSchema(mergeRequestServiceMethods.ByName("EditComment")),
+		connect.WithHandlerOptions(opts...),
+	)
+	mergeRequestServiceDeleteCommentHandler := connect.NewUnaryHandler(
+		MergeRequestServiceDeleteCommentProcedure,
+		svc.DeleteComment,
+		connect.WithSchema(mergeRequestServiceMethods.ByName("DeleteComment")),
+		connect.WithHandlerOptions(opts...),
+	)
 	mergeRequestServiceResolveCommentHandler := connect.NewUnaryHandler(
 		MergeRequestServiceResolveCommentProcedure,
 		svc.ResolveComment,
@@ -346,6 +430,10 @@ func NewMergeRequestServiceHandler(svc MergeRequestServiceHandler, opts ...conne
 			mergeRequestServiceGetMergeRequestHandler.ServeHTTP(w, r)
 		case MergeRequestServiceAddCommentProcedure:
 			mergeRequestServiceAddCommentHandler.ServeHTTP(w, r)
+		case MergeRequestServiceEditCommentProcedure:
+			mergeRequestServiceEditCommentHandler.ServeHTTP(w, r)
+		case MergeRequestServiceDeleteCommentProcedure:
+			mergeRequestServiceDeleteCommentHandler.ServeHTTP(w, r)
 		case MergeRequestServiceResolveCommentProcedure:
 			mergeRequestServiceResolveCommentHandler.ServeHTTP(w, r)
 		case MergeRequestServiceCloseMergeRequestProcedure:
@@ -377,6 +465,14 @@ func (UnimplementedMergeRequestServiceHandler) GetMergeRequest(context.Context, 
 
 func (UnimplementedMergeRequestServiceHandler) AddComment(context.Context, *connect.Request[ermite.AddCommentRequest]) (*connect.Response[ermite.AddCommentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.AddComment is not implemented"))
+}
+
+func (UnimplementedMergeRequestServiceHandler) EditComment(context.Context, *connect.Request[ermite.EditCommentRequest]) (*connect.Response[ermite.EditCommentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.EditComment is not implemented"))
+}
+
+func (UnimplementedMergeRequestServiceHandler) DeleteComment(context.Context, *connect.Request[ermite.DeleteCommentRequest]) (*connect.Response[ermite.DeleteCommentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.DeleteComment is not implemented"))
 }
 
 func (UnimplementedMergeRequestServiceHandler) ResolveComment(context.Context, *connect.Request[ermite.ResolveCommentRequest]) (*connect.Response[ermite.ResolveCommentResponse], error) {

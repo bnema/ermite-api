@@ -39,6 +39,9 @@ enum Scope {
   // SCOPE_TOKEN_ADMIN allows creating, listing and revoking tokens. Wire name:
   // token:admin.
   SCOPE_TOKEN_ADMIN = 9;
+  // SCOPE_MR_REVIEW allows setting a verdict (approve, changes requested) on
+  // merge request notes. Wire name: mr:review.
+  SCOPE_MR_REVIEW = 10;
 }
 
 // Token describes a stored token. It never contains the secret nor its hash.

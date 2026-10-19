@@ -59,21 +59,25 @@ const (
 	// SCOPE_TOKEN_ADMIN allows creating, listing and revoking tokens. Wire name:
 	// token:admin.
 	Scope_SCOPE_TOKEN_ADMIN Scope = 9
+	// SCOPE_MR_REVIEW allows setting a verdict (approve, changes requested) on
+	// merge request notes. Wire name: mr:review.
+	Scope_SCOPE_MR_REVIEW Scope = 10
 )
 
 // Enum value maps for Scope.
 var (
 	Scope_name = map[int32]string{
-		0: "SCOPE_UNSPECIFIED",
-		1: "SCOPE_REPO_READ",
-		2: "SCOPE_REPO_WRITE",
-		3: "SCOPE_REPO_ADMIN",
-		4: "SCOPE_MR_WRITE",
-		5: "SCOPE_MR_MERGE",
-		6: "SCOPE_CI_WRITE",
-		7: "SCOPE_SECRETS_WRITE",
-		8: "SCOPE_RUNNER_REGISTER",
-		9: "SCOPE_TOKEN_ADMIN",
+		0:  "SCOPE_UNSPECIFIED",
+		1:  "SCOPE_REPO_READ",
+		2:  "SCOPE_REPO_WRITE",
+		3:  "SCOPE_REPO_ADMIN",
+		4:  "SCOPE_MR_WRITE",
+		5:  "SCOPE_MR_MERGE",
+		6:  "SCOPE_CI_WRITE",
+		7:  "SCOPE_SECRETS_WRITE",
+		8:  "SCOPE_RUNNER_REGISTER",
+		9:  "SCOPE_TOKEN_ADMIN",
+		10: "SCOPE_MR_REVIEW",
 	}
 	Scope_value = map[string]int32{
 		"SCOPE_UNSPECIFIED":     0,
@@ -86,6 +90,7 @@ var (
 		"SCOPE_SECRETS_WRITE":   7,
 		"SCOPE_RUNNER_REGISTER": 8,
 		"SCOPE_TOKEN_ADMIN":     9,
+		"SCOPE_MR_REVIEW":       10,
 	}
 )
 
@@ -610,7 +615,7 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"$\n" +
 	"\x12RevokeTokenRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x15\n" +
-	"\x13RevokeTokenResponse*\xe6\x01\n" +
+	"\x13RevokeTokenResponse*\xfb\x01\n" +
 	"\x05Scope\x12\x15\n" +
 	"\x11SCOPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSCOPE_REPO_READ\x10\x01\x12\x14\n" +
@@ -621,7 +626,9 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\x0eSCOPE_CI_WRITE\x10\x06\x12\x17\n" +
 	"\x13SCOPE_SECRETS_WRITE\x10\a\x12\x19\n" +
 	"\x15SCOPE_RUNNER_REGISTER\x10\b\x12\x15\n" +
-	"\x11SCOPE_TOKEN_ADMIN\x10\t2\xe3\x01\n" +
+	"\x11SCOPE_TOKEN_ADMIN\x10\t\x12\x13\n" +
+	"\x0fSCOPE_MR_REVIEW\x10\n" +
+	"2\xe3\x01\n" +
 	"\fTokenService\x12F\n" +
 	"\vCreateToken\x12\x1a.ermite.CreateTokenRequest\x1a\x1b.ermite.CreateTokenResponse\x12C\n" +
 	"\n" +

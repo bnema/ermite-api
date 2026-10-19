@@ -33,6 +33,17 @@ enum DiffSide {
   DIFF_SIDE_NEW = 2;
 }
 
+// Verdict is the judgement a reviewer gives with a comment.
+enum Verdict {
+  // Not set. The comment carries no verdict. In AddCommentRequest it means a
+  // plain comment.
+  VERDICT_UNSPECIFIED = 0;
+  // The reviewer approves the merge request. The comment is created resolved.
+  VERDICT_APPROVE = 1;
+  // The reviewer asks for changes. The comment starts unresolved.
+  VERDICT_CHANGES_REQUESTED = 2;
+}
+
 // MergeRequest asks to merge one branch of a repository into another branch
 // of the same repository. It is about a branch, not about who wrote it.
 message MergeRequest {
@@ -97,13 +108,50 @@ message Comment {
   // When it differs from the current head the line may have moved; clients
   // may show the comment as outdated.
   string commit_id = 6;
-  // Text is the plain-text content, at most 8,000 characters. Clients show it
-  // escaped, with line breaks kept.
+  // Text is the Markdown source, at most 8,000 characters. Clients render it
+  // as Markdown without raw HTML; "^<id>" refers to a note of the same merge
+  // request. Empty when deleted is true, and possibly empty for a comment
+  // that carries a verdict.
   string text = 7;
   // Resolved is true once the comment was marked resolved.
   bool resolved = 8;
   // CreatedAt is when the comment was written.
   google.protobuf.Timestamp created_at = 9;
+  // ReplyTo is the id of the root comment this comment replies to. Empty for
+  // a root comment. A reply has the path, line, start_line and side of its
+  // root, and its commit_id is the head when the reply was written. Threads
+  // have one level: a reply never has replies.
+  string reply_to = 10;
+  // StartLine is the 1-based first line of a range that ends at line, on the
+  // same side. 0 for a comment on a single line or a general comment.
+  int32 start_line = 11;
+  // Verdict is the judgement given with the comment. Only a root comment has
+  // one; it never changes after creation.
+  Verdict verdict = 12;
+  // EditedAt is when the text was last changed or the comment was deleted.
+  // Unset if it never was.
+  google.protobuf.Timestamp edited_at = 13;
+  // Deleted is true once the author deleted the comment. Its text is then
+  // empty; its id, anchor, replies and verdict remain.
+  bool deleted = 14;
+}
+
+// AuthorVerdict is the current verdict of one author on a merge request: the
+// one given with the author's latest comment that carries a verdict.
+message AuthorVerdict {
+  // Author names who gave the verdict, like Comment.author.
+  string author = 1;
+  // Verdict is the current verdict. Never VERDICT_UNSPECIFIED.
+  Verdict verdict = 2;
+  // CommentId is the id of the comment that carries the verdict.
+  string comment_id = 3;
+  // CommitId is the head of the merge request when the verdict was given.
+  string commit_id = 4;
+  // CreatedAt is when the verdict was given.
+  google.protobuf.Timestamp created_at = 5;
+  // Stale is true for an approval given on a commit that is not the current
+  // head. A request for changes is never stale.
+  bool stale = 6;
 }
 
 // MergeRequestService reviews and merges branches.
@@ -143,14 +191,35 @@ service MergeRequestService {
   // caller last marked read with the current head. Fails with not_found if
   // the repository or the number is unknown.
   rpc GetMergeRequest(GetMergeRequestRequest) returns (GetMergeRequestResponse);
-  // AddComment adds a general comment or a comment on a line of the diff.
-  // Needs the mr:write scope. Fails with invalid_argument if the text breaks
-  // a rule or if path, line and side do not designate a line of the current
-  // diff of the merge request, and with failed_precondition if the merge
-  // request is not open.
+  // AddComment adds a general comment, a comment on a line or a range of
+  // lines of the diff, or a reply to a root comment. Needs the mr:write
+  // scope; setting a verdict also needs the mr:review scope (permission_denied
+  // without it). Fails with invalid_argument if the text breaks a rule (it may
+  // be empty only with a verdict), if path, line, start_line and side do not
+  // designate lines of the current diff of the merge request, if reply_to is
+  // not the id of a root comment that is not deleted, if a reply sets path,
+  // line, start_line, side or verdict, or if a verdict is set on a reply; and
+  // with failed_precondition if the merge request is not open. A comment with
+  // VERDICT_APPROVE is created resolved.
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
-  // ResolveComment marks a comment resolved or unresolved. Needs the mr:write
-  // scope. Fails with not_found if the comment is unknown and with
+  // EditComment replaces the text of a comment. Needs the mr:write scope, and
+  // only the author of the comment can edit it (permission_denied
+  // otherwise). Fails with invalid_argument if the text breaks a rule (it may
+  // be empty only for a comment with a verdict), with not_found if the comment
+  // is unknown, and with failed_precondition if the merge request is not open
+  // or the comment was deleted. Sending the current text succeeds and changes
+  // nothing.
+  rpc EditComment(EditCommentRequest) returns (EditCommentResponse);
+  // DeleteComment deletes a comment: its text is emptied and deleted is set,
+  // while its id, anchor, replies and verdict remain. Needs the mr:write
+  // scope, and only the author of the comment can delete it
+  // (permission_denied otherwise). Fails with not_found if the comment is
+  // unknown and with failed_precondition if the merge request is not open.
+  // Deleting a comment already deleted succeeds and changes nothing.
+  rpc DeleteComment(DeleteCommentRequest) returns (DeleteCommentResponse);
+  // ResolveComment marks a thread resolved or unresolved. Needs the mr:write
+  // scope. Resolution belongs to the root comment: on a reply it fails with
+  // invalid_argument. Fails with not_found if the comment is unknown and with
   // failed_precondition if the merge request is not open. Setting the state
   // the comment already has succeeds and changes nothing.
   rpc ResolveComment(ResolveCommentRequest) returns (ResolveCommentResponse);
@@ -272,6 +341,9 @@ message GetMergeRequestResponse {
   // diff against the target. A client should tell the reader to review the
   // whole change again.
   bool last_read_lost = 9;
+  // Verdicts are the current verdicts, one per author who gave one, ordered
+  // by the comment that carries them, oldest first.
+  repeated AuthorVerdict verdicts = 10;
 }
 
 // AddCommentRequest describes the comment to add.
@@ -290,13 +362,59 @@ message AddCommentRequest {
   int32 line = 4;
   // Side is the side line counts on. Required when path is set.
   DiffSide side = 5;
-  // Text is the plain-text content. Required.
+  // Text is the Markdown source. Required, except when verdict is set.
   string text = 6;
+  // ReplyTo is the id of the root comment to reply to. Empty for a new root
+  // comment. A reply takes the anchor of its root: path, line, start_line,
+  // side and verdict must then be unset.
+  string reply_to = 7;
+  // StartLine is the 1-based first line of a range ending at line. 0 for a
+  // single line. Needs path; it must be lower than line, and both ends must
+  // be lines of the diff on side.
+  int32 start_line = 8;
+  // Verdict is the judgement to give. Needs the mr:review scope and a root
+  // comment. VERDICT_UNSPECIFIED for a plain comment.
+  Verdict verdict = 9;
 }
 
 // AddCommentResponse holds the new comment.
 message AddCommentResponse {
   // Comment is the created comment.
+  Comment comment = 1;
+}
+
+// EditCommentRequest describes the new text of a comment.
+message EditCommentRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+  // CommentId is the Comment.id to edit.
+  string comment_id = 3;
+  // Text is the new Markdown source. Required, except for a comment that
+  // carries a verdict.
+  string text = 4;
+}
+
+// EditCommentResponse holds the comment after the edit.
+message EditCommentResponse {
+  // Comment is the updated comment.
+  Comment comment = 1;
+}
+
+// DeleteCommentRequest names the comment to delete.
+message DeleteCommentRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+  // CommentId is the Comment.id to delete.
+  string comment_id = 3;
+}
+
+// DeleteCommentResponse holds the comment after the deletion.
+message DeleteCommentResponse {
+  // Comment is the deleted comment.
   Comment comment = 1;
 }
 
