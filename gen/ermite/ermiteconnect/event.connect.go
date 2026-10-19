@@ -47,7 +47,8 @@ type EventServiceClient interface {
 	//
 	// The events are repo_created, repo_updated, repo_deleted, pushed, gap and,
 	// for merge requests, merge_request_opened, merge_request_merged,
-	// merge_request_closed and comment_added. Each one is delivered on the
+	// merge_request_closed, comment_added, comment_edited, comment_deleted and
+	// comment_resolved (a thread resolved or reopened). Each one is delivered on the
 	// "repo:<name>" topic of its repository and on "home", subject to the
 	// visibility of the repository.
 	//
@@ -60,8 +61,8 @@ type EventServiceClient interface {
 	// is not guaranteed, between jobs and runs or between two updates of the same
 	// one: a client keeps the copy with the higher Run.version or
 	// RunJob.version and drops the other. There is no event for a change of title or
-	// description, nor for a resolved comment: after a gap, or to see such
-	// changes, clients read the merge request again. A merge publishes
+	// description: after a gap, or to see such changes, clients read the merge
+	// request again. A merge publishes
 	// merge_request_merged, then pushed for the target branch.
 	//
 	// The server keeps a bounded buffer of recent events. With resume_after set,
@@ -119,7 +120,8 @@ type EventServiceHandler interface {
 	//
 	// The events are repo_created, repo_updated, repo_deleted, pushed, gap and,
 	// for merge requests, merge_request_opened, merge_request_merged,
-	// merge_request_closed and comment_added. Each one is delivered on the
+	// merge_request_closed, comment_added, comment_edited, comment_deleted and
+	// comment_resolved (a thread resolved or reopened). Each one is delivered on the
 	// "repo:<name>" topic of its repository and on "home", subject to the
 	// visibility of the repository.
 	//
@@ -132,8 +134,8 @@ type EventServiceHandler interface {
 	// is not guaranteed, between jobs and runs or between two updates of the same
 	// one: a client keeps the copy with the higher Run.version or
 	// RunJob.version and drops the other. There is no event for a change of title or
-	// description, nor for a resolved comment: after a gap, or to see such
-	// changes, clients read the merge request again. A merge publishes
+	// description: after a gap, or to see such changes, clients read the merge
+	// request again. A merge publishes
 	// merge_request_merged, then pushed for the target branch.
 	//
 	// The server keeps a bounded buffer of recent events. With resume_after set,
