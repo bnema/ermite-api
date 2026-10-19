@@ -39,8 +39,9 @@ const (
 	// The target branch moves to the head. No commit is created and the
 	// signatures of the branch's commits are kept.
 	MergeMode_MERGE_MODE_FAST_FORWARD MergeMode = 1
-	// One new commit is created with the tree of the head and the target as
-	// only parent, signed by the server's key (see ServerService.GetSigningKey).
+	// One new commit is created with the tree of the merge of the head into the
+	// target (the tree of the head when the target is its ancestor) and the
+	// target tip as only parent, signed by the server's key (see ServerService.GetSigningKey).
 	// Its author is the author of the first commit of the branch, the other
 	// authors are added as "Co-authored-by:" trailers, and its message is the
 	// title, " (!<number>)", a blank line and the list of the squashed commits'
