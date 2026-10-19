@@ -86,9 +86,9 @@ message IssueComment {
 // from the public form wait as PendingIssue records, reachable only through
 // the three moderation RPCs (ListPendingIssues, ApproveIssue, RejectIssue).
 // These need owner rights (root, an owner session, or a token holding every
-// scope with no repository or branch limit); anyone else gets not_found, and
-// so does a malformed pending issue id. A malformed repository name is
-// invalid_argument whoever asks.
+// scope with no repository or branch limit); anyone else gets not_found,
+// whatever the request holds. For the owner, a malformed pending issue id is
+// not_found and a malformed repository name is invalid_argument.
 service IssueService {
   // CreateIssue opens an issue. Needs the issue:write scope.
   rpc CreateIssue(CreateIssueRequest) returns (CreateIssueResponse);
