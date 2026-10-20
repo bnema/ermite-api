@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package ermite;
 
+import "ermite/merge_request.proto";
 import "google/protobuf/timestamp.proto";
 
 // IssueState is where an issue is in its life.
@@ -44,6 +45,24 @@ message Issue {
   google.protobuf.Timestamp updated_at = 8;
   // CommentCount is the number of comments on the issue.
   int32 comment_count = 9;
+  // ClosedByMergeRequest is the number of the merge request whose merge closed
+  // the issue (a closing reference such as "Fixes #N"); 0 when the issue was
+  // closed by hand or is open. Reset when the issue is reopened.
+  int64 closed_by_merge_request = 10;
+}
+
+// IssueReference is a merge request of the same repository that names the
+// issue ("#N") in its title, description, notes or commit messages.
+message IssueReference {
+  // Number is the number of the merge request.
+  int64 number = 1;
+  // Title is the title of the merge request.
+  string title = 2;
+  // State is where the merge request is in its life.
+  MergeRequestState state = 3;
+  // Closes says that a closing reference ("Fixes #N") names the issue:
+  // merging the request closes it.
+  bool closes = 4;
 }
 
 // IssueComment is a note on an issue.
@@ -72,6 +91,13 @@ message IssueComment {
 // prefixes do not restrict it. A caller without credentials gets
 // unauthenticated, one with an insufficient scope gets permission_denied, and
 // one that cannot read the repository gets not_found.
+//
+// A closing reference ("Fixes #N", "Closes #N", "Resolves #N") in the title,
+// description or commit messages of a merge request closes the issue when the
+// request is merged, and only then; the issue.closed event and Issue carry
+// closed_by_merge_request. Servers that report these links (GetIssueResponse.
+// references, Issue.closed_by_merge_request) list "issues.links" in
+// GetVersionResponse.features; older servers leave them empty.
 //
 // Text fields are normalized to NFC and stripped of control and Unicode
 // bidirectional characters (line breaks and tabs stay in bodies and comments).
@@ -167,6 +193,9 @@ message GetIssueResponse {
   Issue issue = 1;
   // Comments are every comment of the issue, oldest first.
   repeated IssueComment comments = 2;
+  // References are the merge requests naming the issue, ascending by number,
+  // at most 100.
+  repeated IssueReference references = 3;
 }
 
 // AddIssueCommentRequest describes the comment to add.
