@@ -322,11 +322,13 @@ service MergeRequestService {
   // RepoSettings.failing_checks_block says. Needs the mr:merge scope and, for a
   // token limited to branches, write access to the target branch
   // (permission_denied otherwise). The server records the caller, the mode and
-  // the current head; it merges as the caller, after resolving the caller
+  // the head the caller saw; it merges as the caller, after resolving the caller
   // again, and cancels the auto-merge if the caller can no longer merge, if the
   // mode is no longer allowed, if the source branch moves or if the setting is
-  // turned off. Fails with invalid_argument if the mode is not a merge mode,
-  // and with failed_precondition if the merge request is not open, is a draft,
+  // turned off. Fails with invalid_argument if the mode is not a merge mode or
+  // if head_id is empty or not a commit id, and with failed_precondition if the
+  // merge request is not open, if the source branch no longer points to head_id
+  // ("branch moved, read again"), is a draft,
   // RepoSettings.allow_auto_merge is off, the mode is not allowed by
   // RepoSettings, or the server has no CI. Enabling again replaces the mode.
   // Publishes MergeRequestAutoMergeEnabled. Needs the
@@ -591,6 +593,11 @@ message EnableAutoMergeRequest {
   // Mode is how to merge. MERGE_MODE_UNSPECIFIED means fast-forward. The mode
   // must be in RepoSettings.allowed_merge_modes of the repository.
   MergeMode mode = 3;
+  // HeadId is the full id of the commit the caller reviewed, that is the
+  // MergeRequest.head_id it was shown. Required. The auto-merge is enabled
+  // only if the source branch still points to it; failed_precondition (branch
+  // moved) otherwise.
+  string head_id = 4;
 }
 
 // EnableAutoMergeResponse holds the merge request with auto-merge enabled.

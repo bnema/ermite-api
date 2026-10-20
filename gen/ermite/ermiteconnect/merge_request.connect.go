@@ -149,11 +149,13 @@ type MergeRequestServiceClient interface {
 	// RepoSettings.failing_checks_block says. Needs the mr:merge scope and, for a
 	// token limited to branches, write access to the target branch
 	// (permission_denied otherwise). The server records the caller, the mode and
-	// the current head; it merges as the caller, after resolving the caller
+	// the head the caller saw; it merges as the caller, after resolving the caller
 	// again, and cancels the auto-merge if the caller can no longer merge, if the
 	// mode is no longer allowed, if the source branch moves or if the setting is
-	// turned off. Fails with invalid_argument if the mode is not a merge mode,
-	// and with failed_precondition if the merge request is not open, is a draft,
+	// turned off. Fails with invalid_argument if the mode is not a merge mode or
+	// if head_id is empty or not a commit id, and with failed_precondition if the
+	// merge request is not open, if the source branch no longer points to head_id
+	// ("branch moved, read again"), is a draft,
 	// RepoSettings.allow_auto_merge is off, the mode is not allowed by
 	// RepoSettings, or the server has no CI. Enabling again replaces the mode.
 	// Publishes MergeRequestAutoMergeEnabled. Needs the
@@ -409,11 +411,13 @@ type MergeRequestServiceHandler interface {
 	// RepoSettings.failing_checks_block says. Needs the mr:merge scope and, for a
 	// token limited to branches, write access to the target branch
 	// (permission_denied otherwise). The server records the caller, the mode and
-	// the current head; it merges as the caller, after resolving the caller
+	// the head the caller saw; it merges as the caller, after resolving the caller
 	// again, and cancels the auto-merge if the caller can no longer merge, if the
 	// mode is no longer allowed, if the source branch moves or if the setting is
-	// turned off. Fails with invalid_argument if the mode is not a merge mode,
-	// and with failed_precondition if the merge request is not open, is a draft,
+	// turned off. Fails with invalid_argument if the mode is not a merge mode or
+	// if head_id is empty or not a commit id, and with failed_precondition if the
+	// merge request is not open, if the source branch no longer points to head_id
+	// ("branch moved, read again"), is a draft,
 	// RepoSettings.allow_auto_merge is off, the mode is not allowed by
 	// RepoSettings, or the server has no CI. Enabling again replaces the mode.
 	// Publishes MergeRequestAutoMergeEnabled. Needs the

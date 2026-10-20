@@ -2176,7 +2176,12 @@ type EnableAutoMergeRequest struct {
 	Number int64 `protobuf:"varint,2,opt,name=number,proto3" json:"number,omitempty"`
 	// Mode is how to merge. MERGE_MODE_UNSPECIFIED means fast-forward. The mode
 	// must be in RepoSettings.allowed_merge_modes of the repository.
-	Mode          MergeMode `protobuf:"varint,3,opt,name=mode,proto3,enum=ermite.MergeMode" json:"mode,omitempty"`
+	Mode MergeMode `protobuf:"varint,3,opt,name=mode,proto3,enum=ermite.MergeMode" json:"mode,omitempty"`
+	// HeadId is the full id of the commit the caller reviewed, that is the
+	// MergeRequest.head_id it was shown. Required. The auto-merge is enabled
+	// only if the source branch still points to it; failed_precondition (branch
+	// moved) otherwise.
+	HeadId        string `protobuf:"bytes,4,opt,name=head_id,json=headId,proto3" json:"head_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2230,6 +2235,13 @@ func (x *EnableAutoMergeRequest) GetMode() MergeMode {
 		return x.Mode
 	}
 	return MergeMode_MERGE_MODE_UNSPECIFIED
+}
+
+func (x *EnableAutoMergeRequest) GetHeadId() string {
+	if x != nil {
+		return x.HeadId
+	}
+	return ""
 }
 
 // EnableAutoMergeResponse holds the merge request with auto-merge enabled.
@@ -2638,11 +2650,12 @@ const file_ermite_merge_request_proto_rawDesc = "" +
 	"\x14delete_source_branch\x18\x05 \x01(\bR\x12deleteSourceBranch\"\x8a\x01\n" +
 	"\x19MergeMergeRequestResponse\x129\n" +
 	"\rmerge_request\x18\x01 \x01(\v2\x14.ermite.MergeRequestR\fmergeRequest\x122\n" +
-	"\x15source_branch_deleted\x18\x02 \x01(\bR\x13sourceBranchDeleted\"k\n" +
+	"\x15source_branch_deleted\x18\x02 \x01(\bR\x13sourceBranchDeleted\"\x84\x01\n" +
 	"\x16EnableAutoMergeRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
 	"\x06number\x18\x02 \x01(\x03R\x06number\x12%\n" +
-	"\x04mode\x18\x03 \x01(\x0e2\x11.ermite.MergeModeR\x04mode\"T\n" +
+	"\x04mode\x18\x03 \x01(\x0e2\x11.ermite.MergeModeR\x04mode\x12\x17\n" +
+	"\ahead_id\x18\x04 \x01(\tR\x06headId\"T\n" +
 	"\x17EnableAutoMergeResponse\x129\n" +
 	"\rmerge_request\x18\x01 \x01(\v2\x14.ermite.MergeRequestR\fmergeRequest\"D\n" +
 	"\x16CancelAutoMergeRequest\x12\x12\n" +
