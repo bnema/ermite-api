@@ -1702,8 +1702,9 @@ func (x *JobUpdated) GetJob() *RunJob {
 	return nil
 }
 
-// MirrorFailed reports a transition into failing or paused, including failing
-// to paused, not every failed attempt. Servers with feature "mirror" deliver it
+// MirrorFailed reports the start of a failure incident: a transition from ok
+// or disabled into failing or paused. It is sent once per incident, not for
+// each failed attempt nor for failing to paused. Servers with feature "mirror" deliver it
 // on "repo:<name>" and "home", subject to repository visibility. It carries no
 // URL or error detail.
 type MirrorFailed struct {

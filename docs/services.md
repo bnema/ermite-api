@@ -45,7 +45,7 @@ and sync with `force` to recover from authentication failures. Configuration can
 be saved without `ERMITE_SECRETS_KEY`, but pushes cannot run without it.
 
 `EventService.Watch` adds `mirror_failed` (field 23, `MirrorFailed`) when a mirror
-enters failing or paused, including failing to paused, and `mirror_recovered`
+starts failing (ok or disabled to failing or paused, once per incident), and `mirror_recovered`
 (field 24, `MirrorRecovered`) when a failing or paused mirror succeeds again.
 These are transition events, not events for every attempt. They are delivered on
 `repo:<name>` and `home`, subject to repository visibility. Neither event carries
