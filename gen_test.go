@@ -598,7 +598,7 @@ func TestMirrorWire(t *testing.T) {
 	for _, in := range []proto.Message{
 		&ermite.SetMirrorConfigRequest{Enabled: proto.Bool(false), UrlTemplate: proto.String(""), Cron: proto.String(""), AllBranches: proto.Bool(false)},
 		&ermite.SetRepoMirrorRequest{Repo: "repo", AllBranches: proto.Bool(false)},
-		&ermite.Event{Kind: &ermite.Event_MirrorFailed{MirrorFailed: &ermite.MirrorFailed{Repo: "repo", State: ermite.MirrorState_MIRROR_STATE_PAUSED, FailureClass: "diverged", Reason: "remote diverged"}}},
+		&ermite.Event{Kind: &ermite.Event_MirrorFailed{MirrorFailed: &ermite.MirrorFailed{Repo: "repo", State: ermite.MirrorState_MIRROR_STATE_PAUSED, FailureClass: "diverged"}}},
 		&ermite.Event{Kind: &ermite.Event_MirrorRecovered{MirrorRecovered: &ermite.MirrorRecovered{Repo: "repo"}}},
 	} {
 		b, err := proto.Marshal(in)

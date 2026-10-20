@@ -1704,9 +1704,9 @@ func (x *JobUpdated) GetJob() *RunJob {
 
 // MirrorFailed reports the start of a failure incident: a transition from ok
 // or disabled into failing or paused. It is sent once per incident, not for
-// each failed attempt nor for failing to paused. Servers with feature "mirror" deliver it
-// on "repo:<name>" and "home", subject to repository visibility. It carries no
-// URL or error detail.
+// each failed attempt nor for failing to paused. Servers with feature "mirror"
+// deliver it on "repo:<name>" and "home", subject to repository visibility. It
+// carries no URL, reason or error detail; read the status for those.
 type MirrorFailed struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Repo is the repository name.
@@ -1714,9 +1714,7 @@ type MirrorFailed struct {
 	// State is the new mirror state.
 	State MirrorState `protobuf:"varint,2,opt,name=state,proto3,enum=ermite.MirrorState" json:"state,omitempty"`
 	// FailureClass is the failure category.
-	FailureClass string `protobuf:"bytes,3,opt,name=failure_class,json=failureClass,proto3" json:"failure_class,omitempty"`
-	// Reason explains the failure without a URL or error detail.
-	Reason        string `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	FailureClass  string `protobuf:"bytes,3,opt,name=failure_class,json=failureClass,proto3" json:"failure_class,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1768,13 +1766,6 @@ func (x *MirrorFailed) GetState() MirrorState {
 func (x *MirrorFailed) GetFailureClass() string {
 	if x != nil {
 		return x.FailureClass
-	}
-	return ""
-}
-
-func (x *MirrorFailed) GetReason() string {
-	if x != nil {
-		return x.Reason
 	}
 	return ""
 }
@@ -1924,12 +1915,11 @@ const file_ermite_event_proto_rawDesc = "" +
 	"\x03run\x18\x01 \x01(\v2\v.ermite.RunR\x03run\".\n" +
 	"\n" +
 	"JobUpdated\x12 \n" +
-	"\x03job\x18\x01 \x01(\v2\x0e.ermite.RunJobR\x03job\"\x8a\x01\n" +
+	"\x03job\x18\x01 \x01(\v2\x0e.ermite.RunJobR\x03job\"\x80\x01\n" +
 	"\fMirrorFailed\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12)\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x13.ermite.MirrorStateR\x05state\x12#\n" +
-	"\rfailure_class\x18\x03 \x01(\tR\ffailureClass\x12\x16\n" +
-	"\x06reason\x18\x04 \x01(\tR\x06reason\"%\n" +
+	"\rfailure_class\x18\x03 \x01(\tR\ffailureClassJ\x04\b\x04\x10\x05R\x06reason\"%\n" +
 	"\x0fMirrorRecovered\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo2F\n" +
 	"\fEventService\x126\n" +

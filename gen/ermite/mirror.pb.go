@@ -28,16 +28,14 @@ const (
 type MirrorSource int32
 
 const (
-	// Unspecified.
+	// MIRROR_SOURCE_DISABLED: nothing applies; MIRROR_SOURCE_GLOBAL: the global
+	// template; MIRROR_SOURCE_OVERRIDE: a per-repository URL;
+	// MIRROR_SOURCE_EXCLUDED: opted out of the global template.
 	MirrorSource_MIRROR_SOURCE_UNSPECIFIED MirrorSource = 0
-	// Disabled.
-	MirrorSource_MIRROR_SOURCE_DISABLED MirrorSource = 1
-	// Global.
-	MirrorSource_MIRROR_SOURCE_GLOBAL MirrorSource = 2
-	// Override.
-	MirrorSource_MIRROR_SOURCE_OVERRIDE MirrorSource = 3
-	// Excluded.
-	MirrorSource_MIRROR_SOURCE_EXCLUDED MirrorSource = 4
+	MirrorSource_MIRROR_SOURCE_DISABLED    MirrorSource = 1
+	MirrorSource_MIRROR_SOURCE_GLOBAL      MirrorSource = 2
+	MirrorSource_MIRROR_SOURCE_OVERRIDE    MirrorSource = 3
+	MirrorSource_MIRROR_SOURCE_EXCLUDED    MirrorSource = 4
 )
 
 // Enum value maps for MirrorSource.
@@ -89,16 +87,13 @@ func (MirrorSource) EnumDescriptor() ([]byte, []int) {
 type MirrorState int32
 
 const (
-	// Unspecified.
+	// MIRROR_STATE_OK: last sync succeeded; MIRROR_STATE_FAILING: retrying with
+	// backoff; MIRROR_STATE_PAUSED: stopped until a forced sync or a config change.
 	MirrorState_MIRROR_STATE_UNSPECIFIED MirrorState = 0
-	// Disabled.
-	MirrorState_MIRROR_STATE_DISABLED MirrorState = 1
-	// Ok.
-	MirrorState_MIRROR_STATE_OK MirrorState = 2
-	// Failing.
-	MirrorState_MIRROR_STATE_FAILING MirrorState = 3
-	// Paused.
-	MirrorState_MIRROR_STATE_PAUSED MirrorState = 4
+	MirrorState_MIRROR_STATE_DISABLED    MirrorState = 1
+	MirrorState_MIRROR_STATE_OK          MirrorState = 2
+	MirrorState_MIRROR_STATE_FAILING     MirrorState = 3
+	MirrorState_MIRROR_STATE_PAUSED      MirrorState = 4
 )
 
 // Enum value maps for MirrorState.
@@ -1465,7 +1460,10 @@ type SyncMirrorResult struct {
 	// NoOp says the refs already matched the last successful snapshot.
 	NoOp bool `protobuf:"varint,3,opt,name=no_op,json=noOp,proto3" json:"no_op,omitempty"`
 	// Status is the current mirror status.
-	Status        *MirrorStatus `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	Status *MirrorStatus `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	// Error is a human-readable failure of this repository's sync, empty on
+	// success. It never contains the mirror URL.
+	Error         string `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1526,6 +1524,13 @@ func (x *SyncMirrorResult) GetStatus() *MirrorStatus {
 		return x.Status
 	}
 	return nil
+}
+
+func (x *SyncMirrorResult) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
 }
 
 // SyncMirrorResponse holds the result of SyncMirror.
@@ -1659,12 +1664,13 @@ const file_ermite_mirror_proto_rawDesc = "" +
 	"\x11SyncMirrorRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x10\n" +
 	"\x03all\x18\x02 \x01(\bR\x03all\x12\x14\n" +
-	"\x05force\x18\x03 \x01(\bR\x05force\"\x81\x01\n" +
+	"\x05force\x18\x03 \x01(\bR\x05force\"\x97\x01\n" +
 	"\x10SyncMirrorResult\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
 	"\x06queued\x18\x02 \x01(\bR\x06queued\x12\x13\n" +
 	"\x05no_op\x18\x03 \x01(\bR\x04noOp\x12,\n" +
-	"\x06status\x18\x04 \x01(\v2\x14.ermite.MirrorStatusR\x06status\"H\n" +
+	"\x06status\x18\x04 \x01(\v2\x14.ermite.MirrorStatusR\x06status\x12\x14\n" +
+	"\x05error\x18\x05 \x01(\tR\x05error\"H\n" +
 	"\x12SyncMirrorResponse\x122\n" +
 	"\aresults\x18\x01 \x03(\v2\x18.ermite.SyncMirrorResultR\aresults*\x9b\x01\n" +
 	"\fMirrorSource\x12\x1d\n" +

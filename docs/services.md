@@ -34,7 +34,7 @@ No new token scope is introduced.
 | `SetRepoMirrorExcluded` | `repo:admin` on the repository. Opts out of or into the global template; a URL override wins over exclusion |
 | `GetMirrorStatus` | Read access to the repository. Error `detail` is returned only with `repo:admin` |
 | `ListMirrorStatus` | Owner rights |
-| `SyncMirror` | `repo:admin` for `repo`, or owner rights for `all=true` (with empty `repo`). Returns per-repository results, including queued and no-op indicators |
+| `SyncMirror` | `repo:admin` for `repo`, or owner rights for `all=true` (with empty `repo`). Returns per-repository results, including queued and no-op indicators and a per-repository `error`; `all=true` continues past failing repositories and skips disabled ones |
 
 Cron expressions have five fields, run in UTC and must be at least five minutes
 apart. Mirrors push the default branch (or every branch with `all_branches`) and
@@ -49,4 +49,4 @@ starts failing (ok or disabled to failing or paused, once per incident), and `mi
 (field 24, `MirrorRecovered`) when a failing or paused mirror succeeds again.
 These are transition events, not events for every attempt. They are delivered on
 `repo:<name>` and `home`, subject to repository visibility. Neither event carries
-a URL or error detail.
+a URL, reason or error detail (`MirrorFailed` field 4, `reason`, was removed).

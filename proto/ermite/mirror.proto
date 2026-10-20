@@ -6,18 +6,13 @@ package ermite;
 
 import "google/protobuf/timestamp.proto";
 
-// MirrorService configures the push mirrors of the server. Global settings
-// and key
-// rotation need the admin token or a token with every scope and no repository
-// or
-// branch limits; per-repository settings and SyncMirror need repo:admin on
-// the
-// repository; status needs read access. GetMirrorKey needs a non-anonymous
-// caller.
-// ListMirrorStatus and SyncMirror with All need owner rights. No new token
-// scope
-// is required. Servers implementing this service list "mirror" in
-// GetVersionResponse.features.
+// MirrorService configures the push mirrors of the server. Global settings and
+// key rotation need the admin token or a token with every scope and no
+// repository or branch limits; per-repository settings and SyncMirror need
+// repo:admin on the repository; status needs read access. GetMirrorKey needs a
+// non-anonymous caller. ListMirrorStatus and SyncMirror with All need owner
+// rights. No new token scope is required. Servers implementing this service
+// list "mirror" in GetVersionResponse.features.
 service MirrorService {
   // GetMirrorKey returns the public mirror key, generating it on first use.
   // Needs a non-anonymous caller. Fails with failed_precondition without
@@ -127,15 +122,13 @@ message SetMirrorConfigResponse {
 
 // MirrorSource says which configuration applies to a repository.
 enum MirrorSource {
-  // Unspecified.
+  // MIRROR_SOURCE_DISABLED: nothing applies; MIRROR_SOURCE_GLOBAL: the global
+  // template; MIRROR_SOURCE_OVERRIDE: a per-repository URL;
+  // MIRROR_SOURCE_EXCLUDED: opted out of the global template.
   MIRROR_SOURCE_UNSPECIFIED = 0;
-  // Disabled.
   MIRROR_SOURCE_DISABLED = 1;
-  // Global.
   MIRROR_SOURCE_GLOBAL = 2;
-  // Override.
   MIRROR_SOURCE_OVERRIDE = 3;
-  // Excluded.
   MIRROR_SOURCE_EXCLUDED = 4;
 }
 
@@ -203,15 +196,12 @@ message SetRepoMirrorExcludedResponse {
 
 // MirrorState is the current state of a push mirror.
 enum MirrorState {
-  // Unspecified.
+  // MIRROR_STATE_OK: last sync succeeded; MIRROR_STATE_FAILING: retrying with
+  // backoff; MIRROR_STATE_PAUSED: stopped until a forced sync or a config change.
   MIRROR_STATE_UNSPECIFIED = 0;
-  // Disabled.
   MIRROR_STATE_DISABLED = 1;
-  // Ok.
   MIRROR_STATE_OK = 2;
-  // Failing.
   MIRROR_STATE_FAILING = 3;
-  // Paused.
   MIRROR_STATE_PAUSED = 4;
 }
 
@@ -287,6 +277,9 @@ message SyncMirrorResult {
   bool no_op = 3;
   // Status is the current mirror status.
   MirrorStatus status = 4;
+  // Error is a human-readable failure of this repository's sync, empty on
+  // success. It never contains the mirror URL.
+  string error = 5;
 }
 
 // SyncMirrorResponse holds the result of SyncMirror.
