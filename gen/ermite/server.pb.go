@@ -88,7 +88,11 @@ type GetVersionResponse struct {
 	// and "ci.artifacts" (JobArtifactService and ArtifactService). The merge
 	// request identifier "merge_requests.mergeability" covers
 	// MergeRequest.mergeability, the MergeRequestMergeability event and
-	// MERGE_MODE_MERGE_COMMIT.
+	// MERGE_MODE_MERGE_COMMIT. "merge_requests.auto_merge" covers
+	// RepoSettings.allow_auto_merge, MergeRequest.auto_merge and auto_merged,
+	// the EnableAutoMerge and CancelAutoMerge RPCs, the
+	// MergeRequestAutoMergeEnabled and MergeRequestAutoMergeCancelled events
+	// and MergeRequestMerged.auto.
 	Features      []string `protobuf:"bytes,2,rep,name=features,proto3" json:"features,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

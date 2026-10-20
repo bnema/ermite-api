@@ -152,9 +152,13 @@ type RepoSettings struct {
 	// existing repository.
 	FailingChecksBlock bool `protobuf:"varint,2,opt,name=failing_checks_block,json=failingChecksBlock,proto3" json:"failing_checks_block,omitempty"`
 	// Issues is the issue participation mode of the repository.
-	Issues        IssuesMode `protobuf:"varint,3,opt,name=issues,proto3,enum=ermite.IssuesMode" json:"issues,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Issues IssuesMode `protobuf:"varint,3,opt,name=issues,proto3,enum=ermite.IssuesMode" json:"issues,omitempty"`
+	// AllowAutoMerge says whether auto-merge can be enabled on the merge requests
+	// of the repository (see MergeRequestService.EnableAutoMerge). It is false by
+	// default. Set only by servers with the "merge_requests.auto_merge" feature.
+	AllowAutoMerge bool `protobuf:"varint,4,opt,name=allow_auto_merge,json=allowAutoMerge,proto3" json:"allow_auto_merge,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *RepoSettings) Reset() {
@@ -206,6 +210,13 @@ func (x *RepoSettings) GetIssues() IssuesMode {
 		return x.Issues
 	}
 	return IssuesMode_ISSUES_MODE_UNSPECIFIED
+}
+
+func (x *RepoSettings) GetAllowAutoMerge() bool {
+	if x != nil {
+		return x.AllowAutoMerge
+	}
+	return false
 }
 
 // Repo is the metadata of a repository. Git-owned state (refs, trees, history)
@@ -667,9 +678,9 @@ type UpdateRepoRequest struct {
 	// the call fails with failed_precondition.
 	DefaultBranch string `protobuf:"bytes,4,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
 	// UpdateMask lists the fields to change: "description", "visibility",
-	// "default_branch", "topics", "settings.allowed_merge_modes" and/or
-	// "settings.failing_checks_block". "settings" stands for both merge settings
-	// paths. It must not be empty unless issues is set. Other paths are
+	// "default_branch", "topics", "settings.allowed_merge_modes",
+	// "settings.failing_checks_block" and/or "settings.allow_auto_merge".
+	// "settings" stands for the three merge settings paths. It must not be empty unless issues is set. Other paths are
 	// invalid_argument, including "settings.issues" and "issues": the issues
 	// field is applied outside the mask.
 	UpdateMask *fieldmaskpb.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
@@ -911,11 +922,12 @@ var File_ermite_repo_proto protoreflect.FileDescriptor
 
 const file_ermite_repo_proto_rawDesc = "" +
 	"\n" +
-	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\x01\n" +
+	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd9\x01\n" +
 	"\fRepoSettings\x12A\n" +
 	"\x13allowed_merge_modes\x18\x01 \x03(\x0e2\x11.ermite.MergeModeR\x11allowedMergeModes\x120\n" +
 	"\x14failing_checks_block\x18\x02 \x01(\bR\x12failingChecksBlock\x12*\n" +
-	"\x06issues\x18\x03 \x01(\x0e2\x12.ermite.IssuesModeR\x06issues\"\xd5\x02\n" +
+	"\x06issues\x18\x03 \x01(\x0e2\x12.ermite.IssuesModeR\x06issues\x12(\n" +
+	"\x10allow_auto_merge\x18\x04 \x01(\bR\x0eallowAutoMerge\"\xd5\x02\n" +
 	"\x04Repo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +

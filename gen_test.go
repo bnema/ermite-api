@@ -54,6 +54,8 @@ func TestProcedures(t *testing.T) {
 		{ermiteconnect.MergeRequestServiceCloseMergeRequestProcedure, "/ermite.MergeRequestService/CloseMergeRequest"},
 		{ermiteconnect.MergeRequestServiceMergeMergeRequestProcedure, "/ermite.MergeRequestService/MergeMergeRequest"},
 		{ermiteconnect.MergeRequestServiceMarkReadProcedure, "/ermite.MergeRequestService/MarkRead"},
+		{ermiteconnect.MergeRequestServiceEnableAutoMergeProcedure, "/ermite.MergeRequestService/EnableAutoMerge"},
+		{ermiteconnect.MergeRequestServiceCancelAutoMergeProcedure, "/ermite.MergeRequestService/CancelAutoMerge"},
 		{ermiteconnect.SessionServiceCreateLoginLinkProcedure, "/ermite.SessionService/CreateLoginLink"},
 		{ermiteconnect.SessionServiceSignOutEverywhereProcedure, "/ermite.SessionService/SignOutEverywhere"},
 		{ermiteconnect.ServerServiceGetVersionProcedure, "/ermite.ServerService/GetVersion"},

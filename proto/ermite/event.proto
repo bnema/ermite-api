@@ -140,6 +140,11 @@ message Event {
     MirrorFailed mirror_failed = 23;
     // MirrorRecovered: a failing or paused mirror succeeded again.
     MirrorRecovered mirror_recovered = 24;
+    // MergeRequestAutoMergeEnabled: auto-merge was enabled on a merge request.
+    MergeRequestAutoMergeEnabled merge_request_auto_merge_enabled = 25;
+    // MergeRequestAutoMergeCancelled: the auto-merge of a merge request was
+    // cancelled.
+    MergeRequestAutoMergeCancelled merge_request_auto_merge_cancelled = 26;
   }
 }
 
@@ -190,6 +195,24 @@ message MergeRequestOpened {
 message MergeRequestMerged {
   // MergeRequest is the merge request after the merge.
   MergeRequest merge_request = 1;
+  // Auto is true when the server merged it by auto-merge.
+  bool auto = 2;
+}
+
+// MergeRequestAutoMergeEnabled reports auto-merge enabled on an open merge
+// request. It is published again when auto-merge is enabled again.
+message MergeRequestAutoMergeEnabled {
+  // MergeRequest is the merge request, with auto_merge set.
+  MergeRequest merge_request = 1;
+}
+
+// MergeRequestAutoMergeCancelled reports the auto-merge of a merge request
+// cancelled, by a caller or by the server.
+message MergeRequestAutoMergeCancelled {
+  // MergeRequest is the merge request, with auto_merge unset.
+  MergeRequest merge_request = 1;
+  // Reason says in one line why it was cancelled. For display only.
+  string reason = 2;
 }
 
 // MergeRequestMergeability reports the mergeability of an open merge request.

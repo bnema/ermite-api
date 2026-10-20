@@ -88,6 +88,21 @@ message Mergeability {
   google.protobuf.Timestamp checked_at = 8;
 }
 
+// AutoMerge is the pending auto-merge of an open merge request: the server
+// merges it by itself once its checks pass. Set only by servers with the
+// "merge_requests.auto_merge" feature.
+message AutoMerge {
+  // Mode is the merge mode used. Never MERGE_MODE_UNSPECIFIED.
+  MergeMode mode = 1;
+  // HeadId is the head the auto-merge was enabled for. A new head cancels the
+  // auto-merge.
+  string head_id = 2;
+  // EnabledBy names who enabled the auto-merge, like MergeRequest.author.
+  string enabled_by = 3;
+  // EnabledAt is when the auto-merge was enabled.
+  google.protobuf.Timestamp enabled_at = 4;
+}
+
 // MergeRequest asks to merge one branch of a repository into another branch
 // of the same repository. It is about a branch, not about who wrote it.
 message MergeRequest {
@@ -138,6 +153,13 @@ message MergeRequest {
   // hint: MergeMergeRequest checks again. Set only by servers with the
   // "merge_requests.mergeability" feature.
   Mergeability mergeability = 14;
+  // AutoMerge is the pending auto-merge. Set only while the merge request is
+  // OPEN and auto-merge is enabled; unset once merged or closed. Set only by
+  // servers with the "merge_requests.auto_merge" feature.
+  AutoMerge auto_merge = 15;
+  // AutoMerged is true when the server merged the merge request by auto-merge.
+  // Always false unless state is MERGED.
+  bool auto_merged = 16;
 }
 
 // Comment is a note on a merge request, either general or attached to a line
@@ -294,6 +316,27 @@ service MergeRequestService {
   // failed_precondition (not open). On success the server publishes
   // MergeRequestMerged then Pushed for the target branch.
   rpc MergeMergeRequest(MergeMergeRequestRequest) returns (MergeMergeRequestResponse);
+  // EnableAutoMerge asks the server to merge an open merge request by itself
+  // once at least one check passed on its head, every run created on that head
+  // is complete, and the merge would be accepted whatever
+  // RepoSettings.failing_checks_block says. Needs the mr:merge scope and, for a
+  // token limited to branches, write access to the target branch
+  // (permission_denied otherwise). The server records the caller, the mode and
+  // the current head; it merges as the caller, after resolving the caller
+  // again, and cancels the auto-merge if the caller can no longer merge, if the
+  // mode is no longer allowed, if the source branch moves or if the setting is
+  // turned off. Fails with invalid_argument if the mode is not a merge mode,
+  // and with failed_precondition if the merge request is not open, is a draft,
+  // RepoSettings.allow_auto_merge is off, the mode is not allowed by
+  // RepoSettings, or the server has no CI. Enabling again replaces the mode.
+  // Publishes MergeRequestAutoMergeEnabled. Needs the
+  // "merge_requests.auto_merge" feature.
+  rpc EnableAutoMerge(EnableAutoMergeRequest) returns (EnableAutoMergeResponse);
+  // CancelAutoMerge cancels the pending auto-merge of an open merge request.
+  // Needs the mr:merge scope and, for a token limited to branches, write access
+  // to the target branch. Fails with failed_precondition if auto-merge is not
+  // enabled. Publishes MergeRequestAutoMergeCancelled.
+  rpc CancelAutoMerge(CancelAutoMergeRequest) returns (CancelAutoMergeResponse);
   // MarkRead records the head the caller has reviewed, for the since_last_read
   // option of GetMergeRequest. There is one read position per merge request,
   // the reviewer's. Needs the mr:write scope. Marking a commit that does not
@@ -537,6 +580,37 @@ message MergeMergeRequestResponse {
   // by then; the merge stands either way. Watch reports the deletion with a
   // Pushed event for the source branch.
   bool source_branch_deleted = 2;
+}
+
+// EnableAutoMergeRequest describes the auto-merge to enable.
+message EnableAutoMergeRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+  // Mode is how to merge. MERGE_MODE_UNSPECIFIED means fast-forward. The mode
+  // must be in RepoSettings.allowed_merge_modes of the repository.
+  MergeMode mode = 3;
+}
+
+// EnableAutoMergeResponse holds the merge request with auto-merge enabled.
+message EnableAutoMergeResponse {
+  // MergeRequest is the merge request, with auto_merge set.
+  MergeRequest merge_request = 1;
+}
+
+// CancelAutoMergeRequest names the merge request whose auto-merge to cancel.
+message CancelAutoMergeRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+}
+
+// CancelAutoMergeResponse holds the merge request after the cancellation.
+message CancelAutoMergeResponse {
+  // MergeRequest is the merge request, with auto_merge unset.
+  MergeRequest merge_request = 1;
 }
 
 // MarkReadRequest records a read position.

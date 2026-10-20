@@ -47,6 +47,10 @@ message RepoSettings {
   bool failing_checks_block = 2;
   // Issues is the issue participation mode of the repository.
   IssuesMode issues = 3;
+  // AllowAutoMerge says whether auto-merge can be enabled on the merge requests
+  // of the repository (see MergeRequestService.EnableAutoMerge). It is false by
+  // default. Set only by servers with the "merge_requests.auto_merge" feature.
+  bool allow_auto_merge = 4;
 }
 
 // Repo is the metadata of a repository. Git-owned state (refs, trees, history)
@@ -166,9 +170,9 @@ message UpdateRepoRequest {
   // the call fails with failed_precondition.
   string default_branch = 4;
   // UpdateMask lists the fields to change: "description", "visibility",
-  // "default_branch", "topics", "settings.allowed_merge_modes" and/or
-  // "settings.failing_checks_block". "settings" stands for both merge settings
-  // paths. It must not be empty unless issues is set. Other paths are
+  // "default_branch", "topics", "settings.allowed_merge_modes",
+  // "settings.failing_checks_block" and/or "settings.allow_auto_merge".
+  // "settings" stands for the three merge settings paths. It must not be empty unless issues is set. Other paths are
   // invalid_argument, including "settings.issues" and "issues": the issues
   // field is applied outside the mask.
   google.protobuf.FieldMask update_mask = 5;

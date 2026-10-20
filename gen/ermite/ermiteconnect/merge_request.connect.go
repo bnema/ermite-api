@@ -62,6 +62,12 @@ const (
 	// MergeRequestServiceMergeMergeRequestProcedure is the fully-qualified name of the
 	// MergeRequestService's MergeMergeRequest RPC.
 	MergeRequestServiceMergeMergeRequestProcedure = "/ermite.MergeRequestService/MergeMergeRequest"
+	// MergeRequestServiceEnableAutoMergeProcedure is the fully-qualified name of the
+	// MergeRequestService's EnableAutoMerge RPC.
+	MergeRequestServiceEnableAutoMergeProcedure = "/ermite.MergeRequestService/EnableAutoMerge"
+	// MergeRequestServiceCancelAutoMergeProcedure is the fully-qualified name of the
+	// MergeRequestService's CancelAutoMerge RPC.
+	MergeRequestServiceCancelAutoMergeProcedure = "/ermite.MergeRequestService/CancelAutoMerge"
 	// MergeRequestServiceMarkReadProcedure is the fully-qualified name of the MergeRequestService's
 	// MarkRead RPC.
 	MergeRequestServiceMarkReadProcedure = "/ermite.MergeRequestService/MarkRead"
@@ -137,6 +143,27 @@ type MergeRequestServiceClient interface {
 	// failed_precondition (not open). On success the server publishes
 	// MergeRequestMerged then Pushed for the target branch.
 	MergeMergeRequest(context.Context, *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error)
+	// EnableAutoMerge asks the server to merge an open merge request by itself
+	// once at least one check passed on its head, every run created on that head
+	// is complete, and the merge would be accepted whatever
+	// RepoSettings.failing_checks_block says. Needs the mr:merge scope and, for a
+	// token limited to branches, write access to the target branch
+	// (permission_denied otherwise). The server records the caller, the mode and
+	// the current head; it merges as the caller, after resolving the caller
+	// again, and cancels the auto-merge if the caller can no longer merge, if the
+	// mode is no longer allowed, if the source branch moves or if the setting is
+	// turned off. Fails with invalid_argument if the mode is not a merge mode,
+	// and with failed_precondition if the merge request is not open, is a draft,
+	// RepoSettings.allow_auto_merge is off, the mode is not allowed by
+	// RepoSettings, or the server has no CI. Enabling again replaces the mode.
+	// Publishes MergeRequestAutoMergeEnabled. Needs the
+	// "merge_requests.auto_merge" feature.
+	EnableAutoMerge(context.Context, *connect.Request[ermite.EnableAutoMergeRequest]) (*connect.Response[ermite.EnableAutoMergeResponse], error)
+	// CancelAutoMerge cancels the pending auto-merge of an open merge request.
+	// Needs the mr:merge scope and, for a token limited to branches, write access
+	// to the target branch. Fails with failed_precondition if auto-merge is not
+	// enabled. Publishes MergeRequestAutoMergeCancelled.
+	CancelAutoMerge(context.Context, *connect.Request[ermite.CancelAutoMergeRequest]) (*connect.Response[ermite.CancelAutoMergeResponse], error)
 	// MarkRead records the head the caller has reviewed, for the since_last_read
 	// option of GetMergeRequest. There is one read position per merge request,
 	// the reviewer's. Needs the mr:write scope. Marking a commit that does not
@@ -209,6 +236,18 @@ func NewMergeRequestServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(mergeRequestServiceMethods.ByName("MergeMergeRequest")),
 			connect.WithClientOptions(opts...),
 		),
+		enableAutoMerge: connect.NewClient[ermite.EnableAutoMergeRequest, ermite.EnableAutoMergeResponse](
+			httpClient,
+			baseURL+MergeRequestServiceEnableAutoMergeProcedure,
+			connect.WithSchema(mergeRequestServiceMethods.ByName("EnableAutoMerge")),
+			connect.WithClientOptions(opts...),
+		),
+		cancelAutoMerge: connect.NewClient[ermite.CancelAutoMergeRequest, ermite.CancelAutoMergeResponse](
+			httpClient,
+			baseURL+MergeRequestServiceCancelAutoMergeProcedure,
+			connect.WithSchema(mergeRequestServiceMethods.ByName("CancelAutoMerge")),
+			connect.WithClientOptions(opts...),
+		),
 		markRead: connect.NewClient[ermite.MarkReadRequest, ermite.MarkReadResponse](
 			httpClient,
 			baseURL+MergeRequestServiceMarkReadProcedure,
@@ -229,6 +268,8 @@ type mergeRequestServiceClient struct {
 	resolveComment     *connect.Client[ermite.ResolveCommentRequest, ermite.ResolveCommentResponse]
 	closeMergeRequest  *connect.Client[ermite.CloseMergeRequestRequest, ermite.CloseMergeRequestResponse]
 	mergeMergeRequest  *connect.Client[ermite.MergeMergeRequestRequest, ermite.MergeMergeRequestResponse]
+	enableAutoMerge    *connect.Client[ermite.EnableAutoMergeRequest, ermite.EnableAutoMergeResponse]
+	cancelAutoMerge    *connect.Client[ermite.CancelAutoMergeRequest, ermite.CancelAutoMergeResponse]
 	markRead           *connect.Client[ermite.MarkReadRequest, ermite.MarkReadResponse]
 }
 
@@ -275,6 +316,16 @@ func (c *mergeRequestServiceClient) CloseMergeRequest(ctx context.Context, req *
 // MergeMergeRequest calls ermite.MergeRequestService.MergeMergeRequest.
 func (c *mergeRequestServiceClient) MergeMergeRequest(ctx context.Context, req *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error) {
 	return c.mergeMergeRequest.CallUnary(ctx, req)
+}
+
+// EnableAutoMerge calls ermite.MergeRequestService.EnableAutoMerge.
+func (c *mergeRequestServiceClient) EnableAutoMerge(ctx context.Context, req *connect.Request[ermite.EnableAutoMergeRequest]) (*connect.Response[ermite.EnableAutoMergeResponse], error) {
+	return c.enableAutoMerge.CallUnary(ctx, req)
+}
+
+// CancelAutoMerge calls ermite.MergeRequestService.CancelAutoMerge.
+func (c *mergeRequestServiceClient) CancelAutoMerge(ctx context.Context, req *connect.Request[ermite.CancelAutoMergeRequest]) (*connect.Response[ermite.CancelAutoMergeResponse], error) {
+	return c.cancelAutoMerge.CallUnary(ctx, req)
 }
 
 // MarkRead calls ermite.MergeRequestService.MarkRead.
@@ -352,6 +403,27 @@ type MergeRequestServiceHandler interface {
 	// failed_precondition (not open). On success the server publishes
 	// MergeRequestMerged then Pushed for the target branch.
 	MergeMergeRequest(context.Context, *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error)
+	// EnableAutoMerge asks the server to merge an open merge request by itself
+	// once at least one check passed on its head, every run created on that head
+	// is complete, and the merge would be accepted whatever
+	// RepoSettings.failing_checks_block says. Needs the mr:merge scope and, for a
+	// token limited to branches, write access to the target branch
+	// (permission_denied otherwise). The server records the caller, the mode and
+	// the current head; it merges as the caller, after resolving the caller
+	// again, and cancels the auto-merge if the caller can no longer merge, if the
+	// mode is no longer allowed, if the source branch moves or if the setting is
+	// turned off. Fails with invalid_argument if the mode is not a merge mode,
+	// and with failed_precondition if the merge request is not open, is a draft,
+	// RepoSettings.allow_auto_merge is off, the mode is not allowed by
+	// RepoSettings, or the server has no CI. Enabling again replaces the mode.
+	// Publishes MergeRequestAutoMergeEnabled. Needs the
+	// "merge_requests.auto_merge" feature.
+	EnableAutoMerge(context.Context, *connect.Request[ermite.EnableAutoMergeRequest]) (*connect.Response[ermite.EnableAutoMergeResponse], error)
+	// CancelAutoMerge cancels the pending auto-merge of an open merge request.
+	// Needs the mr:merge scope and, for a token limited to branches, write access
+	// to the target branch. Fails with failed_precondition if auto-merge is not
+	// enabled. Publishes MergeRequestAutoMergeCancelled.
+	CancelAutoMerge(context.Context, *connect.Request[ermite.CancelAutoMergeRequest]) (*connect.Response[ermite.CancelAutoMergeResponse], error)
 	// MarkRead records the head the caller has reviewed, for the since_last_read
 	// option of GetMergeRequest. There is one read position per merge request,
 	// the reviewer's. Needs the mr:write scope. Marking a commit that does not
@@ -420,6 +492,18 @@ func NewMergeRequestServiceHandler(svc MergeRequestServiceHandler, opts ...conne
 		connect.WithSchema(mergeRequestServiceMethods.ByName("MergeMergeRequest")),
 		connect.WithHandlerOptions(opts...),
 	)
+	mergeRequestServiceEnableAutoMergeHandler := connect.NewUnaryHandler(
+		MergeRequestServiceEnableAutoMergeProcedure,
+		svc.EnableAutoMerge,
+		connect.WithSchema(mergeRequestServiceMethods.ByName("EnableAutoMerge")),
+		connect.WithHandlerOptions(opts...),
+	)
+	mergeRequestServiceCancelAutoMergeHandler := connect.NewUnaryHandler(
+		MergeRequestServiceCancelAutoMergeProcedure,
+		svc.CancelAutoMerge,
+		connect.WithSchema(mergeRequestServiceMethods.ByName("CancelAutoMerge")),
+		connect.WithHandlerOptions(opts...),
+	)
 	mergeRequestServiceMarkReadHandler := connect.NewUnaryHandler(
 		MergeRequestServiceMarkReadProcedure,
 		svc.MarkRead,
@@ -446,6 +530,10 @@ func NewMergeRequestServiceHandler(svc MergeRequestServiceHandler, opts ...conne
 			mergeRequestServiceCloseMergeRequestHandler.ServeHTTP(w, r)
 		case MergeRequestServiceMergeMergeRequestProcedure:
 			mergeRequestServiceMergeMergeRequestHandler.ServeHTTP(w, r)
+		case MergeRequestServiceEnableAutoMergeProcedure:
+			mergeRequestServiceEnableAutoMergeHandler.ServeHTTP(w, r)
+		case MergeRequestServiceCancelAutoMergeProcedure:
+			mergeRequestServiceCancelAutoMergeHandler.ServeHTTP(w, r)
 		case MergeRequestServiceMarkReadProcedure:
 			mergeRequestServiceMarkReadHandler.ServeHTTP(w, r)
 		default:
@@ -491,6 +579,14 @@ func (UnimplementedMergeRequestServiceHandler) CloseMergeRequest(context.Context
 
 func (UnimplementedMergeRequestServiceHandler) MergeMergeRequest(context.Context, *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.MergeMergeRequest is not implemented"))
+}
+
+func (UnimplementedMergeRequestServiceHandler) EnableAutoMerge(context.Context, *connect.Request[ermite.EnableAutoMergeRequest]) (*connect.Response[ermite.EnableAutoMergeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.EnableAutoMerge is not implemented"))
+}
+
+func (UnimplementedMergeRequestServiceHandler) CancelAutoMerge(context.Context, *connect.Request[ermite.CancelAutoMergeRequest]) (*connect.Response[ermite.CancelAutoMergeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.CancelAutoMerge is not implemented"))
 }
 
 func (UnimplementedMergeRequestServiceHandler) MarkRead(context.Context, *connect.Request[ermite.MarkReadRequest]) (*connect.Response[ermite.MarkReadResponse], error) {
