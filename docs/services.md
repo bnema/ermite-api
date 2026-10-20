@@ -18,3 +18,35 @@
 | `EnvironmentService` | `CreateEnvironment`, `ListEnvironments`, `DeleteEnvironment` |
 | `ArtifactService` | `ListArtifacts`, `DownloadArtifact` (streamed, resumable), `DeleteArtifact` |
 | `JobArtifactService` | `CreateJobArtifact`, `UploadJobArtifactBlock` (client stream), `CommitJobArtifact`, `FinalizeJobArtifact`, `ListJobArtifacts`, `DownloadJobArtifact` (streamed, resumable), `DeleteJobArtifact`. Scoped to the run of the job token |
+
+## MirrorService
+
+Servers implementing push mirrors advertise `mirror` in `GetVersionResponse.features`.
+No new token scope is introduced.
+
+| RPC | Access and behavior |
+|---|---|
+| `GetMirrorKey` | Non-anonymous caller; generates the public SSH key on first call. Without `ERMITE_SECRETS_KEY`, returns `failed_precondition` |
+| `RotateMirrorKey` | Owner rights: admin token or a token with every scope and no repository or branch limits. Replaces the key immediately and returns the previous fingerprint |
+| `GetMirrorConfig`, `SetMirrorConfig` | Owner rights. Set patches only present fields; invalid fields return `invalid_argument` with field violations |
+| `SetRepoMirror` | `repo:admin` on the repository. Sets an override, even if global mirroring is disabled; empty cron and absent all-branches inherit the global values |
+| `RemoveRepoMirror` | `repo:admin` on the repository. Removes the override |
+| `SetRepoMirrorExcluded` | `repo:admin` on the repository. Opts out of or into the global template; a URL override wins over exclusion |
+| `GetMirrorStatus` | Read access to the repository. Error `detail` is returned only with `repo:admin` |
+| `ListMirrorStatus` | Owner rights |
+| `SyncMirror` | `repo:admin` for `repo`, or owner rights for `all=true` (with empty `repo`). Returns per-repository results, including queued and no-op indicators |
+
+Cron expressions have five fields, run in UTC and must be at least five minutes
+apart. Mirrors push the default branch (or every branch with `all_branches`) and
+tags. `force` lifts a pause, skips the no-op check and the 60-second manual sync
+throttle; it **never** performs a Git force push. Pushes are atomic: one rejected
+ref fails the whole push. After key rotation, add the new public key to remotes
+and sync with `force` to recover from authentication failures. Configuration can
+be saved without `ERMITE_SECRETS_KEY`, but pushes cannot run without it.
+
+`EventService.Watch` adds `mirror_failed` (field 23, `MirrorFailed`) when a mirror
+enters failing or paused, including failing to paused, and `mirror_recovered`
+(field 24, `MirrorRecovered`) when a failing or paused mirror succeeds again.
+These are transition events, not events for every attempt. They are delivered on
+`repo:<name>` and `home`, subject to repository visibility. Neither event carries
+a URL or error detail.

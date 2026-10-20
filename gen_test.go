@@ -19,6 +19,17 @@ import (
 // TestProcedures pins the procedure paths: they are the wire contract.
 func TestProcedures(t *testing.T) {
 	tests := []struct{ got, want string }{
+		{ermiteconnect.MirrorServiceGetMirrorKeyProcedure, "/ermite.MirrorService/GetMirrorKey"},
+		{ermiteconnect.MirrorServiceRotateMirrorKeyProcedure, "/ermite.MirrorService/RotateMirrorKey"},
+		{ermiteconnect.MirrorServiceGetMirrorConfigProcedure, "/ermite.MirrorService/GetMirrorConfig"},
+		{ermiteconnect.MirrorServiceSetMirrorConfigProcedure, "/ermite.MirrorService/SetMirrorConfig"},
+		{ermiteconnect.MirrorServiceSetRepoMirrorProcedure, "/ermite.MirrorService/SetRepoMirror"},
+		{ermiteconnect.MirrorServiceRemoveRepoMirrorProcedure, "/ermite.MirrorService/RemoveRepoMirror"},
+		{ermiteconnect.MirrorServiceSetRepoMirrorExcludedProcedure, "/ermite.MirrorService/SetRepoMirrorExcluded"},
+		{ermiteconnect.MirrorServiceGetMirrorStatusProcedure, "/ermite.MirrorService/GetMirrorStatus"},
+		{ermiteconnect.MirrorServiceListMirrorStatusProcedure, "/ermite.MirrorService/ListMirrorStatus"},
+		{ermiteconnect.MirrorServiceSyncMirrorProcedure, "/ermite.MirrorService/SyncMirror"},
+
 		{ermiteconnect.RepoServiceListReposProcedure, "/ermite.RepoService/ListRepos"},
 		{ermiteconnect.RepoServiceGetRepoProcedure, "/ermite.RepoService/GetRepo"},
 		{ermiteconnect.RepoServiceCreateRepoProcedure, "/ermite.RepoService/CreateRepo"},
@@ -556,6 +567,40 @@ func TestCI3RoundTrip(t *testing.T) {
 		&ermite.ListEnvironmentsResponse{Environments: []*ermite.Environment{{Repo: "ermite", Name: "prod"}}},
 	}
 	for _, in := range msgs {
+		b, err := proto.Marshal(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := in.ProtoReflect().New().Interface()
+		if err := proto.Unmarshal(b, out); err != nil {
+			t.Fatal(err)
+		}
+		if !proto.Equal(in, out) {
+			t.Errorf("%T: round trip mismatch: %v != %v", in, out, in)
+		}
+	}
+}
+
+// TestMirrorWire pins event numbers and verifies presence of explicit zero patches.
+func TestMirrorWire(t *testing.T) {
+	fields := (&ermite.Event{}).ProtoReflect().Descriptor().Fields()
+	for name, number := range map[protoreflect.Name]protoreflect.FieldNumber{"mirror_failed": 23, "mirror_recovered": 24} {
+		if fd := fields.ByName(name); fd == nil || fd.Number() != number || fd.ContainingOneof().Name() != "kind" {
+			t.Fatalf("Event.%s: %v, want kind field %d", name, fd, number)
+		}
+	}
+	for _, msg := range []proto.Message{&ermite.MirrorFailed{}, &ermite.MirrorRecovered{}} {
+		fields := msg.ProtoReflect().Descriptor().Fields()
+		if fields.ByName("url") != nil || fields.ByName("detail") != nil {
+			t.Fatalf("%T leaks URL or detail", msg)
+		}
+	}
+	for _, in := range []proto.Message{
+		&ermite.SetMirrorConfigRequest{Enabled: proto.Bool(false), UrlTemplate: proto.String(""), Cron: proto.String(""), AllBranches: proto.Bool(false)},
+		&ermite.SetRepoMirrorRequest{Repo: "repo", AllBranches: proto.Bool(false)},
+		&ermite.Event{Kind: &ermite.Event_MirrorFailed{MirrorFailed: &ermite.MirrorFailed{Repo: "repo", State: ermite.MirrorState_MIRROR_STATE_PAUSED, FailureClass: "diverged", Reason: "remote diverged"}}},
+		&ermite.Event{Kind: &ermite.Event_MirrorRecovered{MirrorRecovered: &ermite.MirrorRecovered{Repo: "repo"}}},
+	} {
 		b, err := proto.Marshal(in)
 		if err != nil {
 			t.Fatal(err)

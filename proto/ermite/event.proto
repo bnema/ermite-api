@@ -6,6 +6,7 @@ package ermite;
 
 import "ermite/issue.proto";
 import "ermite/merge_request.proto";
+import "ermite/mirror.proto";
 import "ermite/repo.proto";
 import "ermite/run.proto";
 import "google/protobuf/timestamp.proto";
@@ -135,6 +136,10 @@ message Event {
     // MergeRequestMergeability: the mergeability of an open merge request
     // changed.
     MergeRequestMergeability merge_request_mergeability = 22;
+    // MirrorFailed: a mirror entered failing or paused.
+    MirrorFailed mirror_failed = 23;
+    // MirrorRecovered: a failing or paused mirror succeeded again.
+    MirrorRecovered mirror_recovered = 24;
   }
 }
 
@@ -305,4 +310,26 @@ message RunUpdated {
 message JobUpdated {
   // Job is the job after the change, with its steps.
   RunJob job = 1;
+}
+
+// MirrorFailed reports a transition into failing or paused, including failing
+// to paused, not every failed attempt. Servers with feature "mirror" deliver it
+// on "repo:<name>" and "home", subject to repository visibility. It carries no
+// URL or error detail.
+message MirrorFailed {
+  // Repo is the repository name.
+  string repo = 1;
+  // State is the new mirror state.
+  MirrorState state = 2;
+  // FailureClass is the failure category.
+  string failure_class = 3;
+  // Reason explains the failure without a URL or error detail.
+  string reason = 4;
+}
+
+// MirrorRecovered reports a successful sync after failing or paused. Delivery
+// follows MirrorFailed. It carries no URL or error detail.
+message MirrorRecovered {
+  // Repo is the repository name.
+  string repo = 1;
 }

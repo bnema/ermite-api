@@ -1,0 +1,296 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/timestamp.proto";
+
+// MirrorService configures the push mirrors of the server. Global settings
+// and key
+// rotation need the admin token or a token with every scope and no repository
+// or
+// branch limits; per-repository settings and SyncMirror need repo:admin on
+// the
+// repository; status needs read access. GetMirrorKey needs a non-anonymous
+// caller.
+// ListMirrorStatus and SyncMirror with All need owner rights. No new token
+// scope
+// is required. Servers implementing this service list "mirror" in
+// GetVersionResponse.features.
+service MirrorService {
+  // GetMirrorKey returns the public mirror key, generating it on first use.
+  // Needs a non-anonymous caller. Fails with failed_precondition without
+  // ERMITE_SECRETS_KEY.
+  rpc GetMirrorKey(GetMirrorKeyRequest) returns (GetMirrorKeyResponse);
+  // RotateMirrorKey replaces the key immediately. Add the new key to remotes
+  // and sync with force to recover from authentication failures.
+  rpc RotateMirrorKey(RotateMirrorKeyRequest) returns (RotateMirrorKeyResponse);
+  // GetMirrorConfig returns the global mirror policy.
+  rpc GetMirrorConfig(GetMirrorConfigRequest) returns (GetMirrorConfigResponse);
+  // SetMirrorConfig patches the global policy. Unset fields are unchanged.
+  // Invalid fields give invalid_argument with field violations.
+  rpc SetMirrorConfig(SetMirrorConfigRequest) returns (SetMirrorConfigResponse);
+  // SetRepoMirror sets an override, even when global mirroring is disabled.
+  rpc SetRepoMirror(SetRepoMirrorRequest) returns (SetRepoMirrorResponse);
+  // RemoveRepoMirror removes the override so the global policy applies again.
+  rpc RemoveRepoMirror(RemoveRepoMirrorRequest) returns (RemoveRepoMirrorResponse);
+  // SetRepoMirrorExcluded excludes or includes a repository in the global
+  // policy. An explicit URL override takes precedence.
+  rpc SetRepoMirrorExcluded(SetRepoMirrorExcludedRequest) returns (SetRepoMirrorExcludedResponse);
+  // GetMirrorStatus returns the resolved target and status of one repository.
+  rpc GetMirrorStatus(GetMirrorStatusRequest) returns (GetMirrorStatusResponse);
+  // ListMirrorStatus lists mirror statuses and needs owner rights.
+  rpc ListMirrorStatus(ListMirrorStatusRequest) returns (ListMirrorStatusResponse);
+  // SyncMirror syncs Repo or, with All, every repository. Paused mirrors need
+  // Force. Manual requests without Force are at least 60 seconds apart.
+  rpc SyncMirror(SyncMirrorRequest) returns (SyncMirrorResponse);
+}
+
+// MirrorKey is the public SSH key used for push mirrors. Private key material
+// is never returned.
+message MirrorKey {
+  // AuthorizedKey is the SSH authorized_keys line.
+  string authorized_key = 1;
+  // Fingerprint is the SHA256 fingerprint of the public key.
+  string fingerprint = 2;
+  // CreatedAt is when the key was created.
+  google.protobuf.Timestamp created_at = 3;
+}
+
+// GetMirrorKeyRequest selects the input of GetMirrorKey.
+message GetMirrorKeyRequest {}
+
+// GetMirrorKeyResponse holds the result of GetMirrorKey.
+message GetMirrorKeyResponse {
+  // Key is the public mirror key.
+  MirrorKey key = 1;
+}
+
+// RotateMirrorKeyRequest selects the input of RotateMirrorKey.
+message RotateMirrorKeyRequest {}
+
+// RotateMirrorKeyResponse holds the result of RotateMirrorKey.
+message RotateMirrorKeyResponse {
+  // Key is the public mirror key.
+  MirrorKey key = 1;
+  // PreviousFingerprint is the fingerprint of the replaced key.
+  string previous_fingerprint = 2;
+}
+
+// MirrorConfig is the server-wide push mirror policy.
+message MirrorConfig {
+  // Enabled says whether mirroring is enabled.
+  bool enabled = 1;
+  // URLTemplate is an SSH URL containing "{repo}", replaced with the
+  // repository name.
+  string url_template = 2;
+  // Cron is a five-field cron expression in UTC, no more frequent than every
+  // five minutes.
+  string cron = 3;
+  // AllBranches includes every branch rather than only the default branch.
+  // Tags are always included.
+  bool all_branches = 4;
+  // UpdatedAt is when the configuration was last changed.
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+// GetMirrorConfigRequest selects the input of GetMirrorConfig.
+message GetMirrorConfigRequest {}
+
+// GetMirrorConfigResponse holds the result of GetMirrorConfig.
+message GetMirrorConfigResponse {
+  // Config is the global mirror policy.
+  MirrorConfig config = 1;
+}
+
+// SetMirrorConfigRequest selects the input of SetMirrorConfig.
+message SetMirrorConfigRequest {
+  // Enabled says whether mirroring is enabled. Unset means unchanged.
+  optional bool enabled = 1;
+  // URLTemplate is an SSH URL containing "{repo}", replaced with the
+  // repository name. Unset means unchanged.
+  optional string url_template = 2;
+  // Cron is a five-field cron expression in UTC, no more frequent than every
+  // five minutes. Unset means unchanged.
+  optional string cron = 3;
+  // AllBranches includes every branch rather than only the default branch.
+  // Tags are always included. Unset means unchanged.
+  optional bool all_branches = 4;
+}
+
+// SetMirrorConfigResponse holds the result of SetMirrorConfig.
+message SetMirrorConfigResponse {
+  // Config is the global mirror policy.
+  MirrorConfig config = 1;
+}
+
+// MirrorSource says which configuration applies to a repository.
+enum MirrorSource {
+  // Unspecified.
+  MIRROR_SOURCE_UNSPECIFIED = 0;
+  // Disabled.
+  MIRROR_SOURCE_DISABLED = 1;
+  // Global.
+  MIRROR_SOURCE_GLOBAL = 2;
+  // Override.
+  MIRROR_SOURCE_OVERRIDE = 3;
+  // Excluded.
+  MIRROR_SOURCE_EXCLUDED = 4;
+}
+
+// MirrorTarget is the resolved push mirror target of a repository.
+message MirrorTarget {
+  // Repo is the repository name.
+  string repo = 1;
+  // Enabled says whether mirroring is enabled.
+  bool enabled = 2;
+  // URL is the SSH destination of the mirror.
+  string url = 3;
+  // Cron is a five-field cron expression in UTC, no more frequent than every
+  // five minutes.
+  string cron = 4;
+  // AllBranches includes every branch rather than only the default branch.
+  // Tags are always included.
+  bool all_branches = 5;
+  // Source is the configuration used to resolve the target.
+  MirrorSource source = 6;
+}
+
+// SetRepoMirrorRequest selects the input of SetRepoMirror.
+message SetRepoMirrorRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // URL is the SSH destination of the mirror.
+  string url = 2;
+  // Cron is a five-field cron expression in UTC, no more frequent than every
+  // five minutes.
+  // Empty means inherit the global cron.
+  string cron = 3;
+  // AllBranches includes every branch rather than only the default branch.
+  // Tags are always included. Unset means inherit the global setting.
+  optional bool all_branches = 4;
+}
+
+// SetRepoMirrorResponse holds the result of SetRepoMirror.
+message SetRepoMirrorResponse {
+  // Target is the resolved mirror target.
+  MirrorTarget target = 1;
+}
+
+// RemoveRepoMirrorRequest selects the input of RemoveRepoMirror.
+message RemoveRepoMirrorRequest {
+  // Repo is the repository name.
+  string repo = 1;
+}
+
+// RemoveRepoMirrorResponse holds the result of RemoveRepoMirror.
+message RemoveRepoMirrorResponse {}
+
+// SetRepoMirrorExcludedRequest selects the input of SetRepoMirrorExcluded.
+message SetRepoMirrorExcludedRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Excluded opts out of the global template, unless a URL override exists.
+  bool excluded = 2;
+}
+
+// SetRepoMirrorExcludedResponse holds the result of SetRepoMirrorExcluded.
+message SetRepoMirrorExcludedResponse {
+  // Target is the resolved mirror target.
+  MirrorTarget target = 1;
+}
+
+// MirrorState is the current state of a push mirror.
+enum MirrorState {
+  // Unspecified.
+  MIRROR_STATE_UNSPECIFIED = 0;
+  // Disabled.
+  MIRROR_STATE_DISABLED = 1;
+  // Ok.
+  MIRROR_STATE_OK = 2;
+  // Failing.
+  MIRROR_STATE_FAILING = 3;
+  // Paused.
+  MIRROR_STATE_PAUSED = 4;
+}
+
+// MirrorStatus describes a repository mirror and its last attempts.
+message MirrorStatus {
+  // Target is the resolved mirror target.
+  MirrorTarget target = 1;
+  // State is the current mirror state.
+  MirrorState state = 2;
+  // FailureClass is the failure category, empty when there is no failure.
+  string failure_class = 3;
+  // Reason explains the current state.
+  string reason = 4;
+  // Detail is the last error detail, returned only to callers with repo:admin
+  // on the repository.
+  string detail = 5;
+  // ConsecutiveFailures counts failed attempts since the last success or
+  // reset.
+  int32 consecutive_failures = 6;
+  // LastAttemptAt is when the last sync was attempted.
+  google.protobuf.Timestamp last_attempt_at = 7;
+  // LastSuccessAt is when the last sync succeeded, including a no-op.
+  google.protobuf.Timestamp last_success_at = 8;
+  // NextRetryAt is the next retry time while failing; otherwise unset.
+  google.protobuf.Timestamp next_retry_at = 9;
+  // NextRunAt is the next scheduled sync time, or the retry time while
+  // failing.
+  google.protobuf.Timestamp next_run_at = 10;
+  // PausedAt is when the mirror was paused; otherwise unset.
+  google.protobuf.Timestamp paused_at = 11;
+}
+
+// GetMirrorStatusRequest selects the input of GetMirrorStatus.
+message GetMirrorStatusRequest {
+  // Repo is the repository name.
+  string repo = 1;
+}
+
+// GetMirrorStatusResponse holds the result of GetMirrorStatus.
+message GetMirrorStatusResponse {
+  // Status is the current mirror status.
+  MirrorStatus status = 1;
+}
+
+// ListMirrorStatusRequest selects the input of ListMirrorStatus.
+message ListMirrorStatusRequest {}
+
+// ListMirrorStatusResponse holds the result of ListMirrorStatus.
+message ListMirrorStatusResponse {
+  // Statuses are the mirror statuses.
+  repeated MirrorStatus statuses = 1;
+}
+
+// SyncMirrorRequest selects the input of SyncMirror.
+message SyncMirrorRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // All selects every repository and needs owner rights. Repo must be empty
+  // when true.
+  bool all = 2;
+  // Force lifts a pause and skips the no-op check and the 60-second manual
+  // throttle. It never forces a Git push.
+  bool force = 3;
+}
+
+// SyncMirrorResult is the result of a sync request for one repository.
+message SyncMirrorResult {
+  // Repo is the repository name.
+  string repo = 1;
+  // Queued says another sync is running and this request was queued.
+  bool queued = 2;
+  // NoOp says the refs already matched the last successful snapshot.
+  bool no_op = 3;
+  // Status is the current mirror status.
+  MirrorStatus status = 4;
+}
+
+// SyncMirrorResponse holds the result of SyncMirror.
+message SyncMirrorResponse {
+  // Results are the per-repository sync results.
+  repeated SyncMirrorResult results = 1;
+}
