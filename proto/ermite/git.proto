@@ -53,6 +53,24 @@ enum FileStatus {
   FILE_STATUS_TYPE_CHANGED = 6;
 }
 
+// FileOmission tells why a changed file has no hunks although it changed.
+enum FileOmission {
+  // The file is not omitted: its hunks are present, or it has none to show
+  // (binary, pure rename, mode change), or it is outside the requested window.
+  FILE_OMISSION_UNSPECIFIED = 0;
+  // The file is generated or vendored, by its path: its hunks were not read.
+  // It can be read on its own.
+  FILE_OMISSION_GENERATED = 1;
+  // The file changes more lines than the per-file limit. It can be read on its own.
+  FILE_OMISSION_LARGE = 2;
+  // The file did not fit in what remained of the total limits of the diff.
+  // It can be read on its own.
+  FILE_OMISSION_BUDGET = 3;
+  // The file's text exceeds the memory limit of a diff: it cannot be shown,
+  // even on its own. Clone the repository to read it.
+  FILE_OMISSION_UNAVAILABLE = 4;
+}
+
 // LineKind tells how a line of a hunk relates to the two sides of a diff.
 enum LineKind {
   // Not set. Never returned.
@@ -335,8 +353,8 @@ message Diff {
   // Files are the changed files, ordered by path. Files past the file limit are
   // omitted.
   repeated FileDiff files = 1;
-  // Truncated is true when the diff is incomplete: files were omitted, or at
-  // least one listed file has truncated set. DiffStats still count everything.
+  // Truncated is true when the diff is incomplete: files were omitted past the
+  // file limit, or at least one listed file has omitted set. DiffStats still count everything.
   bool truncated = 2;
 }
 
@@ -367,11 +385,15 @@ message FileDiff {
   // copied file, and 0 otherwise.
   int32 similarity = 11;
   // Truncated is true when the file exceeded a diff limit: hunks is then empty
-  // although the file changed. Additions and deletions remain accurate.
+  // although the file changed. Additions and deletions remain accurate. It is
+  // kept for compatibility and equals omitted != FILE_OMISSION_UNSPECIFIED.
   bool truncated = 12;
   // Hunks are the changed regions, in file order. Empty for a binary file, a
   // truncated file, a pure rename and a mode-only change.
   repeated Hunk hunks = 13;
+  // Omitted tells why hunks is empty although the file changed. truncated is
+  // true exactly when omitted is not FILE_OMISSION_UNSPECIFIED.
+  FileOmission omitted = 14;
 }
 
 // Hunk is a contiguous changed region with its context.

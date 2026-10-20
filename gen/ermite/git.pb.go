@@ -215,6 +215,71 @@ func (FileStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ermite_git_proto_rawDescGZIP(), []int{2}
 }
 
+// FileOmission tells why a changed file has no hunks although it changed.
+type FileOmission int32
+
+const (
+	// The file is not omitted: its hunks are present, or it has none to show
+	// (binary, pure rename, mode change), or it is outside the requested window.
+	FileOmission_FILE_OMISSION_UNSPECIFIED FileOmission = 0
+	// The file is generated or vendored, by its path: its hunks were not read.
+	// It can be read on its own.
+	FileOmission_FILE_OMISSION_GENERATED FileOmission = 1
+	// The file changes more lines than the per-file limit. It can be read on its own.
+	FileOmission_FILE_OMISSION_LARGE FileOmission = 2
+	// The file did not fit in what remained of the total limits of the diff.
+	// It can be read on its own.
+	FileOmission_FILE_OMISSION_BUDGET FileOmission = 3
+	// The file's text exceeds the memory limit of a diff: it cannot be shown,
+	// even on its own. Clone the repository to read it.
+	FileOmission_FILE_OMISSION_UNAVAILABLE FileOmission = 4
+)
+
+// Enum value maps for FileOmission.
+var (
+	FileOmission_name = map[int32]string{
+		0: "FILE_OMISSION_UNSPECIFIED",
+		1: "FILE_OMISSION_GENERATED",
+		2: "FILE_OMISSION_LARGE",
+		3: "FILE_OMISSION_BUDGET",
+		4: "FILE_OMISSION_UNAVAILABLE",
+	}
+	FileOmission_value = map[string]int32{
+		"FILE_OMISSION_UNSPECIFIED": 0,
+		"FILE_OMISSION_GENERATED":   1,
+		"FILE_OMISSION_LARGE":       2,
+		"FILE_OMISSION_BUDGET":      3,
+		"FILE_OMISSION_UNAVAILABLE": 4,
+	}
+)
+
+func (x FileOmission) Enum() *FileOmission {
+	p := new(FileOmission)
+	*p = x
+	return p
+}
+
+func (x FileOmission) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileOmission) Descriptor() protoreflect.EnumDescriptor {
+	return file_ermite_git_proto_enumTypes[3].Descriptor()
+}
+
+func (FileOmission) Type() protoreflect.EnumType {
+	return &file_ermite_git_proto_enumTypes[3]
+}
+
+func (x FileOmission) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileOmission.Descriptor instead.
+func (FileOmission) EnumDescriptor() ([]byte, []int) {
+	return file_ermite_git_proto_rawDescGZIP(), []int{3}
+}
+
 // LineKind tells how a line of a hunk relates to the two sides of a diff.
 type LineKind int32
 
@@ -256,11 +321,11 @@ func (x LineKind) String() string {
 }
 
 func (LineKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_ermite_git_proto_enumTypes[3].Descriptor()
+	return file_ermite_git_proto_enumTypes[4].Descriptor()
 }
 
 func (LineKind) Type() protoreflect.EnumType {
-	return &file_ermite_git_proto_enumTypes[3]
+	return &file_ermite_git_proto_enumTypes[4]
 }
 
 func (x LineKind) Number() protoreflect.EnumNumber {
@@ -269,7 +334,7 @@ func (x LineKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LineKind.Descriptor instead.
 func (LineKind) EnumDescriptor() ([]byte, []int) {
-	return file_ermite_git_proto_rawDescGZIP(), []int{3}
+	return file_ermite_git_proto_rawDescGZIP(), []int{4}
 }
 
 // Ref is a branch, a tag or HEAD.
@@ -1444,8 +1509,8 @@ type Diff struct {
 	// Files are the changed files, ordered by path. Files past the file limit are
 	// omitted.
 	Files []*FileDiff `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
-	// Truncated is true when the diff is incomplete: files were omitted, or at
-	// least one listed file has truncated set. DiffStats still count everything.
+	// Truncated is true when the diff is incomplete: files were omitted past the
+	// file limit, or at least one listed file has omitted set. DiffStats still count everything.
 	Truncated     bool `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1523,11 +1588,15 @@ type FileDiff struct {
 	// copied file, and 0 otherwise.
 	Similarity int32 `protobuf:"varint,11,opt,name=similarity,proto3" json:"similarity,omitempty"`
 	// Truncated is true when the file exceeded a diff limit: hunks is then empty
-	// although the file changed. Additions and deletions remain accurate.
+	// although the file changed. Additions and deletions remain accurate. It is
+	// kept for compatibility and equals omitted != FILE_OMISSION_UNSPECIFIED.
 	Truncated bool `protobuf:"varint,12,opt,name=truncated,proto3" json:"truncated,omitempty"`
 	// Hunks are the changed regions, in file order. Empty for a binary file, a
 	// truncated file, a pure rename and a mode-only change.
-	Hunks         []*Hunk `protobuf:"bytes,13,rep,name=hunks,proto3" json:"hunks,omitempty"`
+	Hunks []*Hunk `protobuf:"bytes,13,rep,name=hunks,proto3" json:"hunks,omitempty"`
+	// Omitted tells why hunks is empty although the file changed. truncated is
+	// true exactly when omitted is not FILE_OMISSION_UNSPECIFIED.
+	Omitted       FileOmission `protobuf:"varint,14,opt,name=omitted,proto3,enum=ermite.FileOmission" json:"omitted,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1651,6 +1720,13 @@ func (x *FileDiff) GetHunks() []*Hunk {
 		return x.Hunks
 	}
 	return nil
+}
+
+func (x *FileDiff) GetOmitted() FileOmission {
+	if x != nil {
+		return x.Omitted
+	}
+	return FileOmission_FILE_OMISSION_UNSPECIFIED
 }
 
 // Hunk is a contiguous changed region with its context.
@@ -2031,7 +2107,7 @@ const file_ermite_git_proto_rawDesc = "" +
 	"\tdeletions\x18\x03 \x01(\x05R\tdeletions\"L\n" +
 	"\x04Diff\x12&\n" +
 	"\x05files\x18\x01 \x03(\v2\x10.ermite.FileDiffR\x05files\x12\x1c\n" +
-	"\ttruncated\x18\x02 \x01(\bR\ttruncated\"\x86\x03\n" +
+	"\ttruncated\x18\x02 \x01(\bR\ttruncated\"\xb6\x03\n" +
 	"\bFileDiff\x12\x19\n" +
 	"\bold_path\x18\x01 \x01(\tR\aoldPath\x12\x19\n" +
 	"\bnew_path\x18\x02 \x01(\tR\anewPath\x12*\n" +
@@ -2048,7 +2124,8 @@ const file_ermite_git_proto_rawDesc = "" +
 	"similarity\x18\v \x01(\x05R\n" +
 	"similarity\x12\x1c\n" +
 	"\ttruncated\x18\f \x01(\bR\ttruncated\x12\"\n" +
-	"\x05hunks\x18\r \x03(\v2\f.ermite.HunkR\x05hunks\"\xb6\x01\n" +
+	"\x05hunks\x18\r \x03(\v2\f.ermite.HunkR\x05hunks\x12.\n" +
+	"\aomitted\x18\x0e \x01(\x0e2\x14.ermite.FileOmissionR\aomitted\"\xb6\x01\n" +
 	"\x04Hunk\x12\x1b\n" +
 	"\told_start\x18\x01 \x01(\x05R\boldStart\x12\x1b\n" +
 	"\told_lines\x18\x02 \x01(\x05R\boldLines\x12\x1b\n" +
@@ -2090,7 +2167,13 @@ const file_ermite_git_proto_rawDesc = "" +
 	"\x14FILE_STATUS_MODIFIED\x10\x03\x12\x17\n" +
 	"\x13FILE_STATUS_RENAMED\x10\x04\x12\x16\n" +
 	"\x12FILE_STATUS_COPIED\x10\x05\x12\x1c\n" +
-	"\x18FILE_STATUS_TYPE_CHANGED\x10\x06*l\n" +
+	"\x18FILE_STATUS_TYPE_CHANGED\x10\x06*\x9c\x01\n" +
+	"\fFileOmission\x12\x1d\n" +
+	"\x19FILE_OMISSION_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17FILE_OMISSION_GENERATED\x10\x01\x12\x17\n" +
+	"\x13FILE_OMISSION_LARGE\x10\x02\x12\x18\n" +
+	"\x14FILE_OMISSION_BUDGET\x10\x03\x12\x1d\n" +
+	"\x19FILE_OMISSION_UNAVAILABLE\x10\x04*l\n" +
 	"\bLineKind\x12\x19\n" +
 	"\x15LINE_KIND_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11LINE_KIND_CONTEXT\x10\x01\x12\x16\n" +
@@ -2120,73 +2203,75 @@ func file_ermite_git_proto_rawDescGZIP() []byte {
 	return file_ermite_git_proto_rawDescData
 }
 
-var file_ermite_git_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_ermite_git_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
 var file_ermite_git_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_ermite_git_proto_goTypes = []any{
 	(RefKind)(0),                    // 0: ermite.RefKind
 	(EntryKind)(0),                  // 1: ermite.EntryKind
 	(FileStatus)(0),                 // 2: ermite.FileStatus
-	(LineKind)(0),                   // 3: ermite.LineKind
-	(*Ref)(nil),                     // 4: ermite.Ref
-	(*ListRefsRequest)(nil),         // 5: ermite.ListRefsRequest
-	(*ListRefsResponse)(nil),        // 6: ermite.ListRefsResponse
-	(*TreeEntry)(nil),               // 7: ermite.TreeEntry
-	(*GetTreeRequest)(nil),          // 8: ermite.GetTreeRequest
-	(*GetTreeResponse)(nil),         // 9: ermite.GetTreeResponse
-	(*ListPathsRequest)(nil),        // 10: ermite.ListPathsRequest
-	(*ListPathsResponse)(nil),       // 11: ermite.ListPathsResponse
-	(*BlobInfo)(nil),                // 12: ermite.BlobInfo
-	(*GetBlobRequest)(nil),          // 13: ermite.GetBlobRequest
-	(*GetBlobResponse)(nil),         // 14: ermite.GetBlobResponse
-	(*ListCommitsRequest)(nil),      // 15: ermite.ListCommitsRequest
-	(*ListCommitsResponse)(nil),     // 16: ermite.ListCommitsResponse
-	(*GetCommitRequest)(nil),        // 17: ermite.GetCommitRequest
-	(*GetCommitResponse)(nil),       // 18: ermite.GetCommitResponse
-	(*DiffStats)(nil),               // 19: ermite.DiffStats
-	(*Diff)(nil),                    // 20: ermite.Diff
-	(*FileDiff)(nil),                // 21: ermite.FileDiff
-	(*Hunk)(nil),                    // 22: ermite.Hunk
-	(*Line)(nil),                    // 23: ermite.Line
-	(*ResolveRevisionRequest)(nil),  // 24: ermite.ResolveRevisionRequest
-	(*ResolveRevisionResponse)(nil), // 25: ermite.ResolveRevisionResponse
-	(*Commit)(nil),                  // 26: ermite.Commit
+	(FileOmission)(0),               // 3: ermite.FileOmission
+	(LineKind)(0),                   // 4: ermite.LineKind
+	(*Ref)(nil),                     // 5: ermite.Ref
+	(*ListRefsRequest)(nil),         // 6: ermite.ListRefsRequest
+	(*ListRefsResponse)(nil),        // 7: ermite.ListRefsResponse
+	(*TreeEntry)(nil),               // 8: ermite.TreeEntry
+	(*GetTreeRequest)(nil),          // 9: ermite.GetTreeRequest
+	(*GetTreeResponse)(nil),         // 10: ermite.GetTreeResponse
+	(*ListPathsRequest)(nil),        // 11: ermite.ListPathsRequest
+	(*ListPathsResponse)(nil),       // 12: ermite.ListPathsResponse
+	(*BlobInfo)(nil),                // 13: ermite.BlobInfo
+	(*GetBlobRequest)(nil),          // 14: ermite.GetBlobRequest
+	(*GetBlobResponse)(nil),         // 15: ermite.GetBlobResponse
+	(*ListCommitsRequest)(nil),      // 16: ermite.ListCommitsRequest
+	(*ListCommitsResponse)(nil),     // 17: ermite.ListCommitsResponse
+	(*GetCommitRequest)(nil),        // 18: ermite.GetCommitRequest
+	(*GetCommitResponse)(nil),       // 19: ermite.GetCommitResponse
+	(*DiffStats)(nil),               // 20: ermite.DiffStats
+	(*Diff)(nil),                    // 21: ermite.Diff
+	(*FileDiff)(nil),                // 22: ermite.FileDiff
+	(*Hunk)(nil),                    // 23: ermite.Hunk
+	(*Line)(nil),                    // 24: ermite.Line
+	(*ResolveRevisionRequest)(nil),  // 25: ermite.ResolveRevisionRequest
+	(*ResolveRevisionResponse)(nil), // 26: ermite.ResolveRevisionResponse
+	(*Commit)(nil),                  // 27: ermite.Commit
 }
 var file_ermite_git_proto_depIdxs = []int32{
 	0,  // 0: ermite.Ref.kind:type_name -> ermite.RefKind
 	0,  // 1: ermite.ListRefsRequest.kinds:type_name -> ermite.RefKind
-	4,  // 2: ermite.ListRefsResponse.refs:type_name -> ermite.Ref
+	5,  // 2: ermite.ListRefsResponse.refs:type_name -> ermite.Ref
 	1,  // 3: ermite.TreeEntry.kind:type_name -> ermite.EntryKind
-	26, // 4: ermite.TreeEntry.last_commit:type_name -> ermite.Commit
-	7,  // 5: ermite.GetTreeResponse.entries:type_name -> ermite.TreeEntry
-	12, // 6: ermite.GetBlobResponse.info:type_name -> ermite.BlobInfo
-	26, // 7: ermite.ListCommitsResponse.commits:type_name -> ermite.Commit
-	26, // 8: ermite.GetCommitResponse.commit:type_name -> ermite.Commit
-	19, // 9: ermite.GetCommitResponse.stats:type_name -> ermite.DiffStats
-	20, // 10: ermite.GetCommitResponse.diff:type_name -> ermite.Diff
-	21, // 11: ermite.Diff.files:type_name -> ermite.FileDiff
+	27, // 4: ermite.TreeEntry.last_commit:type_name -> ermite.Commit
+	8,  // 5: ermite.GetTreeResponse.entries:type_name -> ermite.TreeEntry
+	13, // 6: ermite.GetBlobResponse.info:type_name -> ermite.BlobInfo
+	27, // 7: ermite.ListCommitsResponse.commits:type_name -> ermite.Commit
+	27, // 8: ermite.GetCommitResponse.commit:type_name -> ermite.Commit
+	20, // 9: ermite.GetCommitResponse.stats:type_name -> ermite.DiffStats
+	21, // 10: ermite.GetCommitResponse.diff:type_name -> ermite.Diff
+	22, // 11: ermite.Diff.files:type_name -> ermite.FileDiff
 	2,  // 12: ermite.FileDiff.status:type_name -> ermite.FileStatus
-	22, // 13: ermite.FileDiff.hunks:type_name -> ermite.Hunk
-	23, // 14: ermite.Hunk.lines:type_name -> ermite.Line
-	3,  // 15: ermite.Line.kind:type_name -> ermite.LineKind
-	5,  // 16: ermite.GitService.ListRefs:input_type -> ermite.ListRefsRequest
-	8,  // 17: ermite.GitService.GetTree:input_type -> ermite.GetTreeRequest
-	10, // 18: ermite.GitService.ListPaths:input_type -> ermite.ListPathsRequest
-	13, // 19: ermite.GitService.GetBlob:input_type -> ermite.GetBlobRequest
-	15, // 20: ermite.GitService.ListCommits:input_type -> ermite.ListCommitsRequest
-	17, // 21: ermite.GitService.GetCommit:input_type -> ermite.GetCommitRequest
-	24, // 22: ermite.GitService.ResolveRevision:input_type -> ermite.ResolveRevisionRequest
-	6,  // 23: ermite.GitService.ListRefs:output_type -> ermite.ListRefsResponse
-	9,  // 24: ermite.GitService.GetTree:output_type -> ermite.GetTreeResponse
-	11, // 25: ermite.GitService.ListPaths:output_type -> ermite.ListPathsResponse
-	14, // 26: ermite.GitService.GetBlob:output_type -> ermite.GetBlobResponse
-	16, // 27: ermite.GitService.ListCommits:output_type -> ermite.ListCommitsResponse
-	18, // 28: ermite.GitService.GetCommit:output_type -> ermite.GetCommitResponse
-	25, // 29: ermite.GitService.ResolveRevision:output_type -> ermite.ResolveRevisionResponse
-	23, // [23:30] is the sub-list for method output_type
-	16, // [16:23] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	23, // 13: ermite.FileDiff.hunks:type_name -> ermite.Hunk
+	3,  // 14: ermite.FileDiff.omitted:type_name -> ermite.FileOmission
+	24, // 15: ermite.Hunk.lines:type_name -> ermite.Line
+	4,  // 16: ermite.Line.kind:type_name -> ermite.LineKind
+	6,  // 17: ermite.GitService.ListRefs:input_type -> ermite.ListRefsRequest
+	9,  // 18: ermite.GitService.GetTree:input_type -> ermite.GetTreeRequest
+	11, // 19: ermite.GitService.ListPaths:input_type -> ermite.ListPathsRequest
+	14, // 20: ermite.GitService.GetBlob:input_type -> ermite.GetBlobRequest
+	16, // 21: ermite.GitService.ListCommits:input_type -> ermite.ListCommitsRequest
+	18, // 22: ermite.GitService.GetCommit:input_type -> ermite.GetCommitRequest
+	25, // 23: ermite.GitService.ResolveRevision:input_type -> ermite.ResolveRevisionRequest
+	7,  // 24: ermite.GitService.ListRefs:output_type -> ermite.ListRefsResponse
+	10, // 25: ermite.GitService.GetTree:output_type -> ermite.GetTreeResponse
+	12, // 26: ermite.GitService.ListPaths:output_type -> ermite.ListPathsResponse
+	15, // 27: ermite.GitService.GetBlob:output_type -> ermite.GetBlobResponse
+	17, // 28: ermite.GitService.ListCommits:output_type -> ermite.ListCommitsResponse
+	19, // 29: ermite.GitService.GetCommit:output_type -> ermite.GetCommitResponse
+	26, // 30: ermite.GitService.ResolveRevision:output_type -> ermite.ResolveRevisionResponse
+	24, // [24:31] is the sub-list for method output_type
+	17, // [17:24] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_ermite_git_proto_init() }
@@ -2200,7 +2285,7 @@ func file_ermite_git_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_git_proto_rawDesc), len(file_ermite_git_proto_rawDesc)),
-			NumEnums:      4,
+			NumEnums:      5,
 			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
