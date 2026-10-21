@@ -35,14 +35,14 @@ enum IssuesMode {
 // RepoSettings are the settings of a repository that govern its merge
 // requests and issues.
 message RepoSettings {
-  reserved 2;
-  reserved "failing_checks_block";
-
   // AllowedMergeModes are the modes with which a merge request of the
   // repository may be merged. It is never empty in a response and has no
   // duplicate. Every mode is allowed by default. MERGE_MODE_UNSPECIFIED is
   // rejected.
   repeated MergeMode allowed_merge_modes = 1;
+  // FailingChecksBlock is unused: servers ignore it and never set it. A merge
+  // needs passing checks unless MergeMergeRequestRequest.ignore_checks is set.
+  bool failing_checks_block = 2 [deprecated = true];
   // Issues is the issue participation mode of the repository.
   IssuesMode issues = 3;
   // AllowAutoMerge says whether auto-merge can be enabled on the merge requests

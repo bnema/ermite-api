@@ -146,6 +146,11 @@ type RepoSettings struct {
 	// duplicate. Every mode is allowed by default. MERGE_MODE_UNSPECIFIED is
 	// rejected.
 	AllowedMergeModes []MergeMode `protobuf:"varint,1,rep,packed,name=allowed_merge_modes,json=allowedMergeModes,proto3,enum=ermite.MergeMode" json:"allowed_merge_modes,omitempty"`
+	// FailingChecksBlock is unused: servers ignore it and never set it. A merge
+	// needs passing checks unless MergeMergeRequestRequest.ignore_checks is set.
+	//
+	// Deprecated: Marked as deprecated in ermite/repo.proto.
+	FailingChecksBlock bool `protobuf:"varint,2,opt,name=failing_checks_block,json=failingChecksBlock,proto3" json:"failing_checks_block,omitempty"`
 	// Issues is the issue participation mode of the repository.
 	Issues IssuesMode `protobuf:"varint,3,opt,name=issues,proto3,enum=ermite.IssuesMode" json:"issues,omitempty"`
 	// AllowAutoMerge says whether auto-merge can be enabled on the merge requests
@@ -191,6 +196,14 @@ func (x *RepoSettings) GetAllowedMergeModes() []MergeMode {
 		return x.AllowedMergeModes
 	}
 	return nil
+}
+
+// Deprecated: Marked as deprecated in ermite/repo.proto.
+func (x *RepoSettings) GetFailingChecksBlock() bool {
+	if x != nil {
+		return x.FailingChecksBlock
+	}
+	return false
 }
 
 func (x *RepoSettings) GetIssues() IssuesMode {
@@ -910,11 +923,12 @@ var File_ermite_repo_proto protoreflect.FileDescriptor
 
 const file_ermite_repo_proto_rawDesc = "" +
 	"\n" +
-	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc3\x01\n" +
+	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdd\x01\n" +
 	"\fRepoSettings\x12A\n" +
-	"\x13allowed_merge_modes\x18\x01 \x03(\x0e2\x11.ermite.MergeModeR\x11allowedMergeModes\x12*\n" +
+	"\x13allowed_merge_modes\x18\x01 \x03(\x0e2\x11.ermite.MergeModeR\x11allowedMergeModes\x124\n" +
+	"\x14failing_checks_block\x18\x02 \x01(\bB\x02\x18\x01R\x12failingChecksBlock\x12*\n" +
 	"\x06issues\x18\x03 \x01(\x0e2\x12.ermite.IssuesModeR\x06issues\x12(\n" +
-	"\x10allow_auto_merge\x18\x04 \x01(\bR\x0eallowAutoMergeJ\x04\b\x02\x10\x03R\x14failing_checks_block\"\xd5\x02\n" +
+	"\x10allow_auto_merge\x18\x04 \x01(\bR\x0eallowAutoMerge\"\xd5\x02\n" +
 	"\x04Repo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
