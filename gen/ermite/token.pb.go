@@ -43,7 +43,8 @@ const (
 	// SCOPE_MR_WRITE allows creating, commenting on and closing merge requests.
 	// Wire name: mr:write.
 	Scope_SCOPE_MR_WRITE Scope = 4
-	// SCOPE_MR_MERGE allows merging merge requests. Wire name: mr:merge.
+	// SCOPE_MR_MERGE allows merging merge requests whose checks allow it. Wire name:
+	// mr:merge.
 	Scope_SCOPE_MR_MERGE Scope = 5
 	// SCOPE_CI_WRITE allows re-running or cancelling CI runs. Wire name:
 	// ci:write.
@@ -65,6 +66,9 @@ const (
 	// SCOPE_ISSUE_WRITE allows creating, commenting on, closing and reopening
 	// issues. Wire name: issue:write.
 	Scope_SCOPE_ISSUE_WRITE Scope = 11
+	// SCOPE_MR_FORCE_MERGE allows merging a merge request whatever its checks
+	// say (MergeMergeRequestRequest.ignore_checks). Wire name: mr:force-merge.
+	Scope_SCOPE_MR_FORCE_MERGE Scope = 12
 )
 
 // Enum value maps for Scope.
@@ -82,6 +86,7 @@ var (
 		9:  "SCOPE_TOKEN_ADMIN",
 		10: "SCOPE_MR_REVIEW",
 		11: "SCOPE_ISSUE_WRITE",
+		12: "SCOPE_MR_FORCE_MERGE",
 	}
 	Scope_value = map[string]int32{
 		"SCOPE_UNSPECIFIED":     0,
@@ -96,6 +101,7 @@ var (
 		"SCOPE_TOKEN_ADMIN":     9,
 		"SCOPE_MR_REVIEW":       10,
 		"SCOPE_ISSUE_WRITE":     11,
+		"SCOPE_MR_FORCE_MERGE":  12,
 	}
 )
 
@@ -620,7 +626,7 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"$\n" +
 	"\x12RevokeTokenRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x15\n" +
-	"\x13RevokeTokenResponse*\x92\x02\n" +
+	"\x13RevokeTokenResponse*\xac\x02\n" +
 	"\x05Scope\x12\x15\n" +
 	"\x11SCOPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSCOPE_REPO_READ\x10\x01\x12\x14\n" +
@@ -634,7 +640,8 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\x11SCOPE_TOKEN_ADMIN\x10\t\x12\x13\n" +
 	"\x0fSCOPE_MR_REVIEW\x10\n" +
 	"\x12\x15\n" +
-	"\x11SCOPE_ISSUE_WRITE\x10\v2\xe3\x01\n" +
+	"\x11SCOPE_ISSUE_WRITE\x10\v\x12\x18\n" +
+	"\x14SCOPE_MR_FORCE_MERGE\x10\f2\xe3\x01\n" +
 	"\fTokenService\x12F\n" +
 	"\vCreateToken\x12\x1a.ermite.CreateTokenRequest\x1a\x1b.ermite.CreateTokenResponse\x12C\n" +
 	"\n" +

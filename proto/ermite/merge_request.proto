@@ -300,7 +300,16 @@ service MergeRequestService {
   // the mr:write scope. Fails with failed_precondition if the merge request
   // is not open. A closed merge request cannot be reopened: open a new one.
   rpc CloseMergeRequest(CloseMergeRequestRequest) returns (CloseMergeRequestResponse);
-  // MergeMergeRequest merges an open merge request. Needs the mr:merge scope.
+  // MarkReady removes the draft prefix ("WIP:" or "[WIP]") from the title so
+  // the merge request can be merged. Needs the mr:write scope. Fails with
+  // failed_precondition if the merge request is not open or is not a draft.
+  // Publishes no event: there is none for a change of title. Needs the
+  // "merge_requests.ready" feature.
+  rpc MarkReady(MarkReadyRequest) returns (MarkReadyResponse);
+  // MergeMergeRequest merges an open merge request. Needs the mr:merge scope,
+  // which merges only when the checks on the head allow it: none failed and
+  // none queued or running (a head with no checks may be merged; success,
+  // skipped and neutral pass). The mr:force-merge scope allows ignore_checks.
   // The caller passes the head it reviewed: the server merges only if the
   // source branch still points to it, so a push between review and merge is
   // never merged unseen. Fails with invalid_argument if head_id is empty or
@@ -310,17 +319,17 @@ service MergeRequestService {
   // ancestor of the head (rebase and push again, or merge with squash or
   // merge commit), if the mode is squash or merge commit and the head
   // conflicts with the target or shares no history with it (rebase and push
-  // again), if the mode is not allowed by RepoSettings, or if a check fails
-  // and RepoSettings.failing_checks_block is set. Merges of one
+  // again), if the mode is not allowed by RepoSettings, or if a check failed or
+  // has not finished, unless ignore_checks is set. Merges of one
   // repository run one at a time. Repeating a call that succeeded fails with
   // failed_precondition (not open). On success the server publishes
   // MergeRequestMerged then Pushed for the target branch.
   rpc MergeMergeRequest(MergeMergeRequestRequest) returns (MergeMergeRequestResponse);
   // EnableAutoMerge asks the server to merge an open merge request by itself
   // once at least one check passed on its head, every run created on that head
-  // is complete, and the merge would be accepted whatever
-  // RepoSettings.failing_checks_block says. Needs the mr:merge scope and, for a
-  // token limited to branches, write access to the target branch
+  // is complete, and no check failed. It does not take ignore_checks. Needs
+  // the mr:merge scope and, for a token limited to branches, write access to
+  // the target branch
   // (permission_denied otherwise). The server records the caller, the mode and
   // the head the caller saw; it merges as the caller, after resolving the caller
   // again, and cancels the auto-merge if the caller can no longer merge, if the
@@ -549,6 +558,21 @@ message CloseMergeRequestResponse {
   MergeRequest merge_request = 1;
 }
 
+// MarkReadyRequest names the draft merge request to mark ready.
+message MarkReadyRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+}
+
+// MarkReadyResponse holds the merge request after marking it ready.
+message MarkReadyResponse {
+  // MergeRequest is the merge request with its title stripped of the draft
+  // prefix.
+  MergeRequest merge_request = 1;
+}
+
 // MergeMergeRequestRequest describes the merge to perform.
 message MergeMergeRequestRequest {
   // Repo is the repository name.
@@ -568,6 +592,11 @@ message MergeMergeRequestRequest {
   // request. Servers without the "merge_requests.delete_branch" feature ignore
   // it.
   bool delete_source_branch = 5;
+  // IgnoreChecks merges whatever the checks say. Needs the mr:force-merge
+  // scope (permission_denied otherwise). Servers without the
+  // "merge_requests.ignore_checks" feature ignore it: check the feature
+  // before setting it.
+  bool ignore_checks = 6;
 }
 
 // MergeMergeRequestResponse holds the merged merge request.

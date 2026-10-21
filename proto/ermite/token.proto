@@ -23,7 +23,8 @@ enum Scope {
   // SCOPE_MR_WRITE allows creating, commenting on and closing merge requests.
   // Wire name: mr:write.
   SCOPE_MR_WRITE = 4;
-  // SCOPE_MR_MERGE allows merging merge requests. Wire name: mr:merge.
+  // SCOPE_MR_MERGE allows merging merge requests whose checks allow it. Wire name:
+  // mr:merge.
   SCOPE_MR_MERGE = 5;
   // SCOPE_CI_WRITE allows re-running or cancelling CI runs. Wire name:
   // ci:write.
@@ -45,6 +46,9 @@ enum Scope {
   // SCOPE_ISSUE_WRITE allows creating, commenting on, closing and reopening
   // issues. Wire name: issue:write.
   SCOPE_ISSUE_WRITE = 11;
+  // SCOPE_MR_FORCE_MERGE allows merging a merge request whatever its checks
+  // say (MergeMergeRequestRequest.ignore_checks). Wire name: mr:force-merge.
+  SCOPE_MR_FORCE_MERGE = 12;
 }
 
 // Token describes a stored token. It never contains the secret nor its hash.

@@ -254,10 +254,9 @@ func TestMergeRequestEventRoundTrip(t *testing.T) {
 	req := &ermite.UpdateRepoRequest{
 		Repo: "ermite",
 		Settings: &ermite.RepoSettings{
-			AllowedMergeModes:  []ermite.MergeMode{ermite.MergeMode_MERGE_MODE_SQUASH},
-			FailingChecksBlock: true,
+			AllowedMergeModes: []ermite.MergeMode{ermite.MergeMode_MERGE_MODE_SQUASH},
 		},
-		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"settings.allowed_merge_modes", "settings.failing_checks_block"}},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"settings.allowed_merge_modes"}},
 	}
 	if got := req.GetSettings().GetAllowedMergeModes(); len(got) != 1 || got[0] != ermite.MergeMode_MERGE_MODE_SQUASH {
 		t.Errorf("modes = %v", got)

@@ -35,16 +35,14 @@ enum IssuesMode {
 // RepoSettings are the settings of a repository that govern its merge
 // requests and issues.
 message RepoSettings {
+  reserved 2;
+  reserved "failing_checks_block";
+
   // AllowedMergeModes are the modes with which a merge request of the
   // repository may be merged. It is never empty in a response and has no
   // duplicate. Every mode is allowed by default. MERGE_MODE_UNSPECIFIED is
   // rejected.
   repeated MergeMode allowed_merge_modes = 1;
-  // FailingChecksBlock says whether a merge request whose checks fail cannot be
-  // merged. It is true at creation of the repository and always stored
-  // explicitly, so a later change of the server default never alters an
-  // existing repository.
-  bool failing_checks_block = 2;
   // Issues is the issue participation mode of the repository.
   IssuesMode issues = 3;
   // AllowAutoMerge says whether auto-merge can be enabled on the merge requests
@@ -170,9 +168,9 @@ message UpdateRepoRequest {
   // the call fails with failed_precondition.
   string default_branch = 4;
   // UpdateMask lists the fields to change: "description", "visibility",
-  // "default_branch", "topics", "settings.allowed_merge_modes",
-  // "settings.failing_checks_block" and/or "settings.allow_auto_merge".
-  // "settings" stands for the three merge settings paths. It must not be empty unless issues is set. Other paths are
+  // "default_branch", "topics", "settings.allowed_merge_modes" and/or
+  // "settings.allow_auto_merge". "settings" stands for the two merge settings
+  // paths. It must not be empty unless issues is set. Other paths are
   // invalid_argument, including "settings.issues" and "issues": the issues
   // field is applied outside the mask.
   google.protobuf.FieldMask update_mask = 5;

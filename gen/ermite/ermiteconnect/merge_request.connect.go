@@ -59,6 +59,9 @@ const (
 	// MergeRequestServiceCloseMergeRequestProcedure is the fully-qualified name of the
 	// MergeRequestService's CloseMergeRequest RPC.
 	MergeRequestServiceCloseMergeRequestProcedure = "/ermite.MergeRequestService/CloseMergeRequest"
+	// MergeRequestServiceMarkReadyProcedure is the fully-qualified name of the MergeRequestService's
+	// MarkReady RPC.
+	MergeRequestServiceMarkReadyProcedure = "/ermite.MergeRequestService/MarkReady"
 	// MergeRequestServiceMergeMergeRequestProcedure is the fully-qualified name of the
 	// MergeRequestService's MergeMergeRequest RPC.
 	MergeRequestServiceMergeMergeRequestProcedure = "/ermite.MergeRequestService/MergeMergeRequest"
@@ -127,7 +130,16 @@ type MergeRequestServiceClient interface {
 	// the mr:write scope. Fails with failed_precondition if the merge request
 	// is not open. A closed merge request cannot be reopened: open a new one.
 	CloseMergeRequest(context.Context, *connect.Request[ermite.CloseMergeRequestRequest]) (*connect.Response[ermite.CloseMergeRequestResponse], error)
-	// MergeMergeRequest merges an open merge request. Needs the mr:merge scope.
+	// MarkReady removes the draft prefix ("WIP:" or "[WIP]") from the title so
+	// the merge request can be merged. Needs the mr:write scope. Fails with
+	// failed_precondition if the merge request is not open or is not a draft.
+	// Publishes no event: there is none for a change of title. Needs the
+	// "merge_requests.ready" feature.
+	MarkReady(context.Context, *connect.Request[ermite.MarkReadyRequest]) (*connect.Response[ermite.MarkReadyResponse], error)
+	// MergeMergeRequest merges an open merge request. Needs the mr:merge scope,
+	// which merges only when the checks on the head allow it: none failed and
+	// none queued or running (a head with no checks may be merged; success,
+	// skipped and neutral pass). The mr:force-merge scope allows ignore_checks.
 	// The caller passes the head it reviewed: the server merges only if the
 	// source branch still points to it, so a push between review and merge is
 	// never merged unseen. Fails with invalid_argument if head_id is empty or
@@ -137,17 +149,17 @@ type MergeRequestServiceClient interface {
 	// ancestor of the head (rebase and push again, or merge with squash or
 	// merge commit), if the mode is squash or merge commit and the head
 	// conflicts with the target or shares no history with it (rebase and push
-	// again), if the mode is not allowed by RepoSettings, or if a check fails
-	// and RepoSettings.failing_checks_block is set. Merges of one
+	// again), if the mode is not allowed by RepoSettings, or if a check failed or
+	// has not finished, unless ignore_checks is set. Merges of one
 	// repository run one at a time. Repeating a call that succeeded fails with
 	// failed_precondition (not open). On success the server publishes
 	// MergeRequestMerged then Pushed for the target branch.
 	MergeMergeRequest(context.Context, *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error)
 	// EnableAutoMerge asks the server to merge an open merge request by itself
 	// once at least one check passed on its head, every run created on that head
-	// is complete, and the merge would be accepted whatever
-	// RepoSettings.failing_checks_block says. Needs the mr:merge scope and, for a
-	// token limited to branches, write access to the target branch
+	// is complete, and no check failed. It does not take ignore_checks. Needs
+	// the mr:merge scope and, for a token limited to branches, write access to
+	// the target branch
 	// (permission_denied otherwise). The server records the caller, the mode and
 	// the head the caller saw; it merges as the caller, after resolving the caller
 	// again, and cancels the auto-merge if the caller can no longer merge, if the
@@ -232,6 +244,12 @@ func NewMergeRequestServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(mergeRequestServiceMethods.ByName("CloseMergeRequest")),
 			connect.WithClientOptions(opts...),
 		),
+		markReady: connect.NewClient[ermite.MarkReadyRequest, ermite.MarkReadyResponse](
+			httpClient,
+			baseURL+MergeRequestServiceMarkReadyProcedure,
+			connect.WithSchema(mergeRequestServiceMethods.ByName("MarkReady")),
+			connect.WithClientOptions(opts...),
+		),
 		mergeMergeRequest: connect.NewClient[ermite.MergeMergeRequestRequest, ermite.MergeMergeRequestResponse](
 			httpClient,
 			baseURL+MergeRequestServiceMergeMergeRequestProcedure,
@@ -269,6 +287,7 @@ type mergeRequestServiceClient struct {
 	deleteComment      *connect.Client[ermite.DeleteCommentRequest, ermite.DeleteCommentResponse]
 	resolveComment     *connect.Client[ermite.ResolveCommentRequest, ermite.ResolveCommentResponse]
 	closeMergeRequest  *connect.Client[ermite.CloseMergeRequestRequest, ermite.CloseMergeRequestResponse]
+	markReady          *connect.Client[ermite.MarkReadyRequest, ermite.MarkReadyResponse]
 	mergeMergeRequest  *connect.Client[ermite.MergeMergeRequestRequest, ermite.MergeMergeRequestResponse]
 	enableAutoMerge    *connect.Client[ermite.EnableAutoMergeRequest, ermite.EnableAutoMergeResponse]
 	cancelAutoMerge    *connect.Client[ermite.CancelAutoMergeRequest, ermite.CancelAutoMergeResponse]
@@ -313,6 +332,11 @@ func (c *mergeRequestServiceClient) ResolveComment(ctx context.Context, req *con
 // CloseMergeRequest calls ermite.MergeRequestService.CloseMergeRequest.
 func (c *mergeRequestServiceClient) CloseMergeRequest(ctx context.Context, req *connect.Request[ermite.CloseMergeRequestRequest]) (*connect.Response[ermite.CloseMergeRequestResponse], error) {
 	return c.closeMergeRequest.CallUnary(ctx, req)
+}
+
+// MarkReady calls ermite.MergeRequestService.MarkReady.
+func (c *mergeRequestServiceClient) MarkReady(ctx context.Context, req *connect.Request[ermite.MarkReadyRequest]) (*connect.Response[ermite.MarkReadyResponse], error) {
+	return c.markReady.CallUnary(ctx, req)
 }
 
 // MergeMergeRequest calls ermite.MergeRequestService.MergeMergeRequest.
@@ -389,7 +413,16 @@ type MergeRequestServiceHandler interface {
 	// the mr:write scope. Fails with failed_precondition if the merge request
 	// is not open. A closed merge request cannot be reopened: open a new one.
 	CloseMergeRequest(context.Context, *connect.Request[ermite.CloseMergeRequestRequest]) (*connect.Response[ermite.CloseMergeRequestResponse], error)
-	// MergeMergeRequest merges an open merge request. Needs the mr:merge scope.
+	// MarkReady removes the draft prefix ("WIP:" or "[WIP]") from the title so
+	// the merge request can be merged. Needs the mr:write scope. Fails with
+	// failed_precondition if the merge request is not open or is not a draft.
+	// Publishes no event: there is none for a change of title. Needs the
+	// "merge_requests.ready" feature.
+	MarkReady(context.Context, *connect.Request[ermite.MarkReadyRequest]) (*connect.Response[ermite.MarkReadyResponse], error)
+	// MergeMergeRequest merges an open merge request. Needs the mr:merge scope,
+	// which merges only when the checks on the head allow it: none failed and
+	// none queued or running (a head with no checks may be merged; success,
+	// skipped and neutral pass). The mr:force-merge scope allows ignore_checks.
 	// The caller passes the head it reviewed: the server merges only if the
 	// source branch still points to it, so a push between review and merge is
 	// never merged unseen. Fails with invalid_argument if head_id is empty or
@@ -399,17 +432,17 @@ type MergeRequestServiceHandler interface {
 	// ancestor of the head (rebase and push again, or merge with squash or
 	// merge commit), if the mode is squash or merge commit and the head
 	// conflicts with the target or shares no history with it (rebase and push
-	// again), if the mode is not allowed by RepoSettings, or if a check fails
-	// and RepoSettings.failing_checks_block is set. Merges of one
+	// again), if the mode is not allowed by RepoSettings, or if a check failed or
+	// has not finished, unless ignore_checks is set. Merges of one
 	// repository run one at a time. Repeating a call that succeeded fails with
 	// failed_precondition (not open). On success the server publishes
 	// MergeRequestMerged then Pushed for the target branch.
 	MergeMergeRequest(context.Context, *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error)
 	// EnableAutoMerge asks the server to merge an open merge request by itself
 	// once at least one check passed on its head, every run created on that head
-	// is complete, and the merge would be accepted whatever
-	// RepoSettings.failing_checks_block says. Needs the mr:merge scope and, for a
-	// token limited to branches, write access to the target branch
+	// is complete, and no check failed. It does not take ignore_checks. Needs
+	// the mr:merge scope and, for a token limited to branches, write access to
+	// the target branch
 	// (permission_denied otherwise). The server records the caller, the mode and
 	// the head the caller saw; it merges as the caller, after resolving the caller
 	// again, and cancels the auto-merge if the caller can no longer merge, if the
@@ -490,6 +523,12 @@ func NewMergeRequestServiceHandler(svc MergeRequestServiceHandler, opts ...conne
 		connect.WithSchema(mergeRequestServiceMethods.ByName("CloseMergeRequest")),
 		connect.WithHandlerOptions(opts...),
 	)
+	mergeRequestServiceMarkReadyHandler := connect.NewUnaryHandler(
+		MergeRequestServiceMarkReadyProcedure,
+		svc.MarkReady,
+		connect.WithSchema(mergeRequestServiceMethods.ByName("MarkReady")),
+		connect.WithHandlerOptions(opts...),
+	)
 	mergeRequestServiceMergeMergeRequestHandler := connect.NewUnaryHandler(
 		MergeRequestServiceMergeMergeRequestProcedure,
 		svc.MergeMergeRequest,
@@ -532,6 +571,8 @@ func NewMergeRequestServiceHandler(svc MergeRequestServiceHandler, opts ...conne
 			mergeRequestServiceResolveCommentHandler.ServeHTTP(w, r)
 		case MergeRequestServiceCloseMergeRequestProcedure:
 			mergeRequestServiceCloseMergeRequestHandler.ServeHTTP(w, r)
+		case MergeRequestServiceMarkReadyProcedure:
+			mergeRequestServiceMarkReadyHandler.ServeHTTP(w, r)
 		case MergeRequestServiceMergeMergeRequestProcedure:
 			mergeRequestServiceMergeMergeRequestHandler.ServeHTTP(w, r)
 		case MergeRequestServiceEnableAutoMergeProcedure:
@@ -579,6 +620,10 @@ func (UnimplementedMergeRequestServiceHandler) ResolveComment(context.Context, *
 
 func (UnimplementedMergeRequestServiceHandler) CloseMergeRequest(context.Context, *connect.Request[ermite.CloseMergeRequestRequest]) (*connect.Response[ermite.CloseMergeRequestResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.CloseMergeRequest is not implemented"))
+}
+
+func (UnimplementedMergeRequestServiceHandler) MarkReady(context.Context, *connect.Request[ermite.MarkReadyRequest]) (*connect.Response[ermite.MarkReadyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.MarkReady is not implemented"))
 }
 
 func (UnimplementedMergeRequestServiceHandler) MergeMergeRequest(context.Context, *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error) {
