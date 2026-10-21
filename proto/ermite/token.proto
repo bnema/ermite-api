@@ -49,6 +49,9 @@ enum Scope {
   // SCOPE_MR_FORCE_MERGE allows merging a merge request whatever its checks
   // say (MergeMergeRequestRequest.ignore_checks). Wire name: mr:force-merge.
   SCOPE_MR_FORCE_MERGE = 12;
+  // SCOPE_RELEASE_WRITE allows creating, editing and deleting releases and their assets.
+  // Wire name: release:write.
+  SCOPE_RELEASE_WRITE = 13;
 }
 
 // Token describes a stored token. It never contains the secret nor its hash.

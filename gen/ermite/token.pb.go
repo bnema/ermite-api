@@ -69,6 +69,9 @@ const (
 	// SCOPE_MR_FORCE_MERGE allows merging a merge request whatever its checks
 	// say (MergeMergeRequestRequest.ignore_checks). Wire name: mr:force-merge.
 	Scope_SCOPE_MR_FORCE_MERGE Scope = 12
+	// SCOPE_RELEASE_WRITE allows creating, editing and deleting releases and their assets.
+	// Wire name: release:write.
+	Scope_SCOPE_RELEASE_WRITE Scope = 13
 )
 
 // Enum value maps for Scope.
@@ -87,6 +90,7 @@ var (
 		10: "SCOPE_MR_REVIEW",
 		11: "SCOPE_ISSUE_WRITE",
 		12: "SCOPE_MR_FORCE_MERGE",
+		13: "SCOPE_RELEASE_WRITE",
 	}
 	Scope_value = map[string]int32{
 		"SCOPE_UNSPECIFIED":     0,
@@ -102,6 +106,7 @@ var (
 		"SCOPE_MR_REVIEW":       10,
 		"SCOPE_ISSUE_WRITE":     11,
 		"SCOPE_MR_FORCE_MERGE":  12,
+		"SCOPE_RELEASE_WRITE":   13,
 	}
 )
 
@@ -626,7 +631,7 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"$\n" +
 	"\x12RevokeTokenRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x15\n" +
-	"\x13RevokeTokenResponse*\xac\x02\n" +
+	"\x13RevokeTokenResponse*\xc5\x02\n" +
 	"\x05Scope\x12\x15\n" +
 	"\x11SCOPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSCOPE_REPO_READ\x10\x01\x12\x14\n" +
@@ -641,7 +646,8 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\x0fSCOPE_MR_REVIEW\x10\n" +
 	"\x12\x15\n" +
 	"\x11SCOPE_ISSUE_WRITE\x10\v\x12\x18\n" +
-	"\x14SCOPE_MR_FORCE_MERGE\x10\f2\xe3\x01\n" +
+	"\x14SCOPE_MR_FORCE_MERGE\x10\f\x12\x17\n" +
+	"\x13SCOPE_RELEASE_WRITE\x10\r2\xe3\x01\n" +
 	"\fTokenService\x12F\n" +
 	"\vCreateToken\x12\x1a.ermite.CreateTokenRequest\x1a\x1b.ermite.CreateTokenResponse\x12C\n" +
 	"\n" +

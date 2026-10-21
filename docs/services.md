@@ -50,3 +50,29 @@ starts failing (ok or disabled to failing or paused, once per incident), and `mi
 These are transition events, not events for every attempt. They are delivered on
 `repo:<name>` and `home`, subject to repository visibility. Neither event carries
 a URL, reason or error detail (`MirrorFailed` field 4, `reason`, was removed).
+
+## ReleaseService
+
+Servers advertise `releases` in `GetVersionResponse.features`.
+
+| RPC | Behavior |
+|---|---|
+| `CreateRelease`, `GetRelease`, `ListReleases`, `UpdateRelease`, `DeleteRelease` | Manage releases; get selects by id, tag or latest. Lists are paginated, newest first. Updates use a field mask |
+| `UploadReleaseAsset` | Client stream: metadata and nonnegative exact size first, then data in chunks of at most 1 MiB. `replace` replaces a taken name |
+| `UpdateReleaseAsset`, `DeleteReleaseAsset`, `ListReleaseAssets` | Rename/relabel with a field mask, delete, or list uploaded assets by name |
+| `DownloadReleaseAsset` | Select by asset id, tag/name or latest/name; metadata first, then chunks of at most 1 MiB. Resume with a byte offset |
+| `GetReleaseUsage` | Repository usage including reserved uploads, quota, asset size and count limits |
+
+Published releases follow repository read access; drafts are visible only to
+writers. Writes require `release:write` (`SCOPE_RELEASE_WRITE = 13`) or a job
+token with `contents: write` for that repository. Branch-limited tokens cannot
+write releases. Unreadable objects return `not_found`. Duplicate tags or asset
+names return `already_exists`; limits return `resource_exhausted`. Publishing
+requires an existing tag or `target_commitish` to create it; existing tags never
+move. `make_latest` is a boolean pin, and updates use mask presence.
+
+`EventService.Watch` adds `release_published` (27), `release_updated` (28),
+`release_deleted` (29) and `release_unpublished` (30), delivered on `repo:<name>`
+and `home` subject to repository visibility. Payloads carry repository, release
+id and tag; all except deletion also carry draft and prerelease flags. Tag
+deletion turns a release into a draft without deleting its assets.

@@ -1,0 +1,264 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+// Release describes a tag and its notes. Drafts are visible only to writers.
+message Release {
+  int64 id = 1;
+  string repo = 2;
+  string tag = 3;
+  string title = 4;
+  string notes = 5;
+  bool draft = 6;
+  bool prerelease = 7;
+  // Latest identifies the release returned by the latest selector, computed or pinned.
+  bool latest = 8;
+  // TargetCommitish is the tag's commit; empty for a draft without a tag.
+  string target_commitish = 9;
+  // Author is the label of the principal that created the release.
+  string author = 10;
+  google.protobuf.Timestamp created_at = 11;
+  // PublishedAt is unset while draft.
+  google.protobuf.Timestamp published_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+  // Assets contains uploaded assets only, ordered by name.
+  repeated ReleaseAsset assets = 14;
+}
+
+// ReleaseAsset describes an uploaded file, with a sha256:<hex> digest.
+message ReleaseAsset {
+  int64 id = 1;
+  int64 release_id = 2;
+  // Name is unique within the release, 1–255 characters, without slashes or controls.
+  string name = 3;
+  string label = 4;
+  // ContentType defaults to application/octet-stream.
+  string content_type = 5;
+  int64 size = 6;
+  string digest = 7;
+  string uploader = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+// ReleaseService manages releases and their assets. Servers list "releases" in
+// GetVersionResponse.features; other servers answer unimplemented.
+// Published releases follow repository read access; drafts require write access.
+// Unknown or unreadable repositories, releases and assets give not_found.
+// Writes require release:write or a job token with contents: write for the repo;
+// readers and branch-limited tokens receive permission_denied.
+// Invalid names, media types or masks give invalid_argument. Size, asset count
+// and repository quota limits give resource_exhausted and leave no stored upload.
+service ReleaseService {
+  // CreateRelease creates one release per tag (already_exists on duplication).
+  // Publishing without an existing tag is failed_precondition, unless
+  // target_commitish is supplied to create it; existing tags never move.
+  rpc CreateRelease(CreateReleaseRequest) returns (CreateReleaseResponse);
+  // GetRelease selects by id, tag or latest (latest must be true).
+  rpc GetRelease(GetReleaseRequest) returns (GetReleaseResponse);
+  // ListReleases lists newest first, including drafts only for writers.
+  rpc ListReleases(ListReleasesRequest) returns (ListReleasesResponse);
+  // UpdateRelease changes masked fields. Publishing requires an existing tag
+  // or target_commitish to create it; otherwise failed_precondition.
+  rpc UpdateRelease(UpdateReleaseRequest) returns (UpdateReleaseResponse);
+  // DeleteRelease removes a release and its assets.
+  rpc DeleteRelease(DeleteReleaseRequest) returns (DeleteReleaseResponse);
+  // UploadReleaseAsset reserves size before reading. The first message carries
+  // metadata; subsequent messages carry only data, at most 1 MiB per message.
+  // Size must be nonnegative (-1 is refused). An interrupted stream stores no
+  // asset. A taken name gives already_exists unless replace is true. Uploading
+  // to a release of another repo gives failed_precondition.
+  rpc UploadReleaseAsset(stream UploadReleaseAssetRequest) returns (UploadReleaseAssetResponse);
+  // UpdateReleaseAsset changes masked name and label; a taken name gives already_exists.
+  rpc UpdateReleaseAsset(UpdateReleaseAssetRequest) returns (UpdateReleaseAssetResponse);
+  // DeleteReleaseAsset removes an asset.
+  rpc DeleteReleaseAsset(DeleteReleaseAssetRequest) returns (DeleteReleaseAssetResponse);
+  // DownloadReleaseAsset sends asset metadata first, then chunks of at most
+  // 1 MiB. Resume with the offset after the last byte received. An offset
+  // beyond the size gives out_of_range.
+  rpc DownloadReleaseAsset(DownloadReleaseAssetRequest) returns (stream DownloadReleaseAssetResponse);
+  // ListReleaseAssets lists uploaded assets, ordered by name.
+  rpc ListReleaseAssets(ListReleaseAssetsRequest) returns (ListReleaseAssetsResponse);
+  // GetReleaseUsage returns usage (including reserved uploads) and limits.
+  rpc GetReleaseUsage(GetReleaseUsageRequest) returns (GetReleaseUsageResponse);
+}
+
+// CreateReleaseRequest is the request of ReleaseService.CreateRelease.
+message CreateReleaseRequest {
+  string repo = 1;
+  string tag = 2;
+  string target_commitish = 3;
+  string title = 4;
+  string notes = 5;
+  bool draft = 6;
+  bool prerelease = 7;
+  // MakeLatest pins this published non-prerelease as latest. False does not pin the release.
+  bool make_latest = 8;
+}
+
+// CreateReleaseResponse is the response of ReleaseService.CreateRelease.
+message CreateReleaseResponse {
+  Release release = 1;
+}
+
+// ListReleasesRequest is the request of ReleaseService.ListReleases.
+message ListReleasesRequest {
+  string repo = 1;
+  // PageSize is the maximum count; zero uses the server default.
+  int32 page_size = 2;
+  // PageToken is next_page_token from the preceding page, or empty initially.
+  string page_token = 3;
+}
+
+// ListReleasesResponse is the response of ReleaseService.ListReleases.
+message ListReleasesResponse {
+  repeated Release releases = 1;
+  string next_page_token = 2;
+}
+
+// UpdateReleaseRequest is the request of ReleaseService.UpdateRelease.
+message UpdateReleaseRequest {
+  string repo = 1;
+  int64 id = 2;
+  string tag = 3;
+  string target_commitish = 4;
+  string title = 5;
+  string notes = 6;
+  bool draft = 7;
+  bool prerelease = 8;
+  // MakeLatest pins this published non-prerelease as latest. False does not pin the release.
+  bool make_latest = 9;
+  // UpdateMask names the fields to change; unknown paths are invalid_argument.
+  google.protobuf.FieldMask update_mask = 10;
+}
+
+// UpdateReleaseResponse is the response of ReleaseService.UpdateRelease.
+message UpdateReleaseResponse {
+  Release release = 1;
+}
+
+// DeleteReleaseRequest is the request of ReleaseService.DeleteRelease.
+message DeleteReleaseRequest {
+  string repo = 1;
+  int64 id = 2;
+}
+
+// DeleteReleaseResponse is the response of ReleaseService.DeleteRelease.
+message DeleteReleaseResponse {
+}
+
+// UploadReleaseAssetRequest is the request of ReleaseService.UploadReleaseAsset.
+message UploadReleaseAssetRequest {
+  string repo = 1;
+  int64 release_id = 2;
+  string name = 3;
+  string label = 4;
+  string content_type = 5;
+  int64 size = 6;
+  bool replace = 7;
+  bytes data = 8;
+}
+
+// UploadReleaseAssetResponse is the response of ReleaseService.UploadReleaseAsset.
+message UploadReleaseAssetResponse {
+  ReleaseAsset asset = 1;
+}
+
+// UpdateReleaseAssetRequest is the request of ReleaseService.UpdateReleaseAsset.
+message UpdateReleaseAssetRequest {
+  string repo = 1;
+  int64 asset_id = 2;
+  string name = 3;
+  string label = 4;
+  // UpdateMask names the fields to change; unknown paths are invalid_argument.
+  google.protobuf.FieldMask update_mask = 5;
+}
+
+// UpdateReleaseAssetResponse is the response of ReleaseService.UpdateReleaseAsset.
+message UpdateReleaseAssetResponse {
+  ReleaseAsset asset = 1;
+}
+
+// DeleteReleaseAssetRequest is the request of ReleaseService.DeleteReleaseAsset.
+message DeleteReleaseAssetRequest {
+  string repo = 1;
+  int64 asset_id = 2;
+}
+
+// DeleteReleaseAssetResponse is the response of ReleaseService.DeleteReleaseAsset.
+message DeleteReleaseAssetResponse {
+}
+
+// DownloadReleaseAssetResponse is the response of ReleaseService.DownloadReleaseAsset.
+message DownloadReleaseAssetResponse {
+  ReleaseAsset asset = 1;
+  bytes chunk = 2;
+}
+
+// ListReleaseAssetsRequest is the request of ReleaseService.ListReleaseAssets.
+message ListReleaseAssetsRequest {
+  string repo = 1;
+  int64 release_id = 2;
+}
+
+// ListReleaseAssetsResponse is the response of ReleaseService.ListReleaseAssets.
+message ListReleaseAssetsResponse {
+  repeated ReleaseAsset assets = 1;
+}
+
+// GetReleaseUsageRequest is the request of ReleaseService.GetReleaseUsage.
+message GetReleaseUsageRequest {
+  string repo = 1;
+}
+
+// GetReleaseUsageResponse is the response of ReleaseService.GetReleaseUsage.
+message GetReleaseUsageResponse {
+  int64 used_bytes = 1;
+  int64 quota_bytes = 2;
+  int64 asset_max_bytes = 3;
+  int32 assets_max = 4;
+}
+
+// GetReleaseRequest selects exactly one release.
+message GetReleaseRequest {
+  string repo = 1;
+  oneof selector {
+    int64 id = 2;
+    string tag = 3;
+    bool latest = 4;
+  }
+}
+
+// ReleaseAssetTag selects a named asset of a tag.
+message ReleaseAssetTag {
+  string tag = 1;
+  string name = 2;
+}
+
+// ReleaseAssetLatest selects a named asset of the latest release.
+message ReleaseAssetLatest {
+  // Latest must be true.
+  bool latest = 1;
+  string name = 2;
+}
+
+// DownloadReleaseAssetRequest selects an asset and a resume offset.
+message DownloadReleaseAssetRequest {
+  string repo = 1;
+  oneof selector {
+    int64 asset_id = 2;
+    ReleaseAssetTag tag = 3;
+    ReleaseAssetLatest latest = 4;
+  }
+  int64 offset = 5;
+}
+
+// GetReleaseResponse contains the selected release.
+message GetReleaseResponse {
+  Release release = 1;
+}

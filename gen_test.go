@@ -19,6 +19,18 @@ import (
 // TestProcedures pins the procedure paths: they are the wire contract.
 func TestProcedures(t *testing.T) {
 	tests := []struct{ got, want string }{
+		{ermiteconnect.ReleaseServiceCreateReleaseProcedure, "/ermite.ReleaseService/CreateRelease"},
+		{ermiteconnect.ReleaseServiceGetReleaseProcedure, "/ermite.ReleaseService/GetRelease"},
+		{ermiteconnect.ReleaseServiceListReleasesProcedure, "/ermite.ReleaseService/ListReleases"},
+		{ermiteconnect.ReleaseServiceUpdateReleaseProcedure, "/ermite.ReleaseService/UpdateRelease"},
+		{ermiteconnect.ReleaseServiceDeleteReleaseProcedure, "/ermite.ReleaseService/DeleteRelease"},
+		{ermiteconnect.ReleaseServiceUploadReleaseAssetProcedure, "/ermite.ReleaseService/UploadReleaseAsset"},
+		{ermiteconnect.ReleaseServiceUpdateReleaseAssetProcedure, "/ermite.ReleaseService/UpdateReleaseAsset"},
+		{ermiteconnect.ReleaseServiceDeleteReleaseAssetProcedure, "/ermite.ReleaseService/DeleteReleaseAsset"},
+		{ermiteconnect.ReleaseServiceDownloadReleaseAssetProcedure, "/ermite.ReleaseService/DownloadReleaseAsset"},
+		{ermiteconnect.ReleaseServiceListReleaseAssetsProcedure, "/ermite.ReleaseService/ListReleaseAssets"},
+		{ermiteconnect.ReleaseServiceGetReleaseUsageProcedure, "/ermite.ReleaseService/GetReleaseUsage"},
+
 		{ermiteconnect.MirrorServiceGetMirrorKeyProcedure, "/ermite.MirrorService/GetMirrorKey"},
 		{ermiteconnect.MirrorServiceRotateMirrorKeyProcedure, "/ermite.MirrorService/RotateMirrorKey"},
 		{ermiteconnect.MirrorServiceGetMirrorConfigProcedure, "/ermite.MirrorService/GetMirrorConfig"},
@@ -614,4 +626,12 @@ func TestMirrorWire(t *testing.T) {
 			t.Errorf("%T: round trip mismatch: %v != %v", in, out, in)
 		}
 	}
+}
+
+// TestReleaseSymbols pins the scope and event wrapper exports used by callers.
+func TestReleaseSymbols(t *testing.T) {
+	if ermite.Scope_SCOPE_RELEASE_WRITE != 13 {
+		t.Fatal("release scope wire value changed")
+	}
+	var _ proto.Message = &ermite.Event{Kind: &ermite.Event_ReleasePublished{ReleasePublished: &ermite.ReleasePublished{}}}
 }

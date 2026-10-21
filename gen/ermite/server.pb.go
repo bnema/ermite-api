@@ -92,7 +92,8 @@ type GetVersionResponse struct {
 	// RepoSettings.allow_auto_merge, MergeRequest.auto_merge and auto_merged,
 	// the EnableAutoMerge and CancelAutoMerge RPCs, the
 	// MergeRequestAutoMergeEnabled and MergeRequestAutoMergeCancelled events
-	// and MergeRequestMerged.auto.
+	// and MergeRequestMerged.auto. "releases" covers ReleaseService and the
+	// release_published, release_updated, release_deleted and release_unpublished events.
 	Features      []string `protobuf:"bytes,2,rep,name=features,proto3" json:"features,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

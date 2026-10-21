@@ -64,7 +64,8 @@ message GetVersionResponse {
   // RepoSettings.allow_auto_merge, MergeRequest.auto_merge and auto_merged,
   // the EnableAutoMerge and CancelAutoMerge RPCs, the
   // MergeRequestAutoMergeEnabled and MergeRequestAutoMergeCancelled events
-  // and MergeRequestMerged.auto.
+  // and MergeRequestMerged.auto. "releases" covers ReleaseService and the
+  // release_published, release_updated, release_deleted and release_unpublished events.
   repeated string features = 2;
 }
 

@@ -175,6 +175,10 @@ type Event struct {
 	//	*Event_MirrorRecovered
 	//	*Event_MergeRequestAutoMergeEnabled
 	//	*Event_MergeRequestAutoMergeCancelled
+	//	*Event_ReleasePublished
+	//	*Event_ReleaseUpdated
+	//	*Event_ReleaseDeleted
+	//	*Event_ReleaseUnpublished
 	Kind          isEvent_Kind `protobuf_oneof:"kind"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -447,6 +451,42 @@ func (x *Event) GetMergeRequestAutoMergeCancelled() *MergeRequestAutoMergeCancel
 	return nil
 }
 
+func (x *Event) GetReleasePublished() *ReleasePublished {
+	if x != nil {
+		if x, ok := x.Kind.(*Event_ReleasePublished); ok {
+			return x.ReleasePublished
+		}
+	}
+	return nil
+}
+
+func (x *Event) GetReleaseUpdated() *ReleaseUpdated {
+	if x != nil {
+		if x, ok := x.Kind.(*Event_ReleaseUpdated); ok {
+			return x.ReleaseUpdated
+		}
+	}
+	return nil
+}
+
+func (x *Event) GetReleaseDeleted() *ReleaseDeleted {
+	if x != nil {
+		if x, ok := x.Kind.(*Event_ReleaseDeleted); ok {
+			return x.ReleaseDeleted
+		}
+	}
+	return nil
+}
+
+func (x *Event) GetReleaseUnpublished() *ReleaseUnpublished {
+	if x != nil {
+		if x, ok := x.Kind.(*Event_ReleaseUnpublished); ok {
+			return x.ReleaseUnpublished
+		}
+	}
+	return nil
+}
+
 type isEvent_Kind interface {
 	isEvent_Kind()
 }
@@ -574,6 +614,26 @@ type Event_MergeRequestAutoMergeCancelled struct {
 	MergeRequestAutoMergeCancelled *MergeRequestAutoMergeCancelled `protobuf:"bytes,26,opt,name=merge_request_auto_merge_cancelled,json=mergeRequestAutoMergeCancelled,proto3,oneof"`
 }
 
+type Event_ReleasePublished struct {
+	// ReleasePublished reports a release published.
+	ReleasePublished *ReleasePublished `protobuf:"bytes,27,opt,name=release_published,json=releasePublished,proto3,oneof"`
+}
+
+type Event_ReleaseUpdated struct {
+	// ReleaseUpdated reports a release updated.
+	ReleaseUpdated *ReleaseUpdated `protobuf:"bytes,28,opt,name=release_updated,json=releaseUpdated,proto3,oneof"`
+}
+
+type Event_ReleaseDeleted struct {
+	// ReleaseDeleted reports a release deleted.
+	ReleaseDeleted *ReleaseDeleted `protobuf:"bytes,29,opt,name=release_deleted,json=releaseDeleted,proto3,oneof"`
+}
+
+type Event_ReleaseUnpublished struct {
+	// ReleaseUnpublished reports a release turned into a draft after tag deletion.
+	ReleaseUnpublished *ReleaseUnpublished `protobuf:"bytes,30,opt,name=release_unpublished,json=releaseUnpublished,proto3,oneof"`
+}
+
 func (*Event_RepoCreated) isEvent_Kind() {}
 
 func (*Event_RepoUpdated) isEvent_Kind() {}
@@ -621,6 +681,14 @@ func (*Event_MirrorRecovered) isEvent_Kind() {}
 func (*Event_MergeRequestAutoMergeEnabled) isEvent_Kind() {}
 
 func (*Event_MergeRequestAutoMergeCancelled) isEvent_Kind() {}
+
+func (*Event_ReleasePublished) isEvent_Kind() {}
+
+func (*Event_ReleaseUpdated) isEvent_Kind() {}
+
+func (*Event_ReleaseDeleted) isEvent_Kind() {}
+
+func (*Event_ReleaseUnpublished) isEvent_Kind() {}
 
 // RepoCreated reports a new repository.
 type RepoCreated struct {
@@ -1964,6 +2032,298 @@ func (x *MirrorRecovered) GetRepo() string {
 	return ""
 }
 
+// ReleasePublished reports a release change on repo:<name> and home topics.
+type ReleasePublished struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Repo          string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	Id            int64                  `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
+	Tag           string                 `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
+	Draft         bool                   `protobuf:"varint,4,opt,name=draft,proto3" json:"draft,omitempty"`
+	Prerelease    bool                   `protobuf:"varint,5,opt,name=prerelease,proto3" json:"prerelease,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReleasePublished) Reset() {
+	*x = ReleasePublished{}
+	mi := &file_ermite_event_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReleasePublished) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReleasePublished) ProtoMessage() {}
+
+func (x *ReleasePublished) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_event_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReleasePublished.ProtoReflect.Descriptor instead.
+func (*ReleasePublished) Descriptor() ([]byte, []int) {
+	return file_ermite_event_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *ReleasePublished) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *ReleasePublished) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *ReleasePublished) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *ReleasePublished) GetDraft() bool {
+	if x != nil {
+		return x.Draft
+	}
+	return false
+}
+
+func (x *ReleasePublished) GetPrerelease() bool {
+	if x != nil {
+		return x.Prerelease
+	}
+	return false
+}
+
+// ReleaseUpdated reports a release change on repo:<name> and home topics.
+type ReleaseUpdated struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Repo          string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	Id            int64                  `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
+	Tag           string                 `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
+	Draft         bool                   `protobuf:"varint,4,opt,name=draft,proto3" json:"draft,omitempty"`
+	Prerelease    bool                   `protobuf:"varint,5,opt,name=prerelease,proto3" json:"prerelease,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReleaseUpdated) Reset() {
+	*x = ReleaseUpdated{}
+	mi := &file_ermite_event_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReleaseUpdated) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReleaseUpdated) ProtoMessage() {}
+
+func (x *ReleaseUpdated) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_event_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReleaseUpdated.ProtoReflect.Descriptor instead.
+func (*ReleaseUpdated) Descriptor() ([]byte, []int) {
+	return file_ermite_event_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ReleaseUpdated) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *ReleaseUpdated) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *ReleaseUpdated) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *ReleaseUpdated) GetDraft() bool {
+	if x != nil {
+		return x.Draft
+	}
+	return false
+}
+
+func (x *ReleaseUpdated) GetPrerelease() bool {
+	if x != nil {
+		return x.Prerelease
+	}
+	return false
+}
+
+// ReleaseDeleted reports a release change on repo:<name> and home topics.
+type ReleaseDeleted struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Repo          string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	Id            int64                  `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
+	Tag           string                 `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReleaseDeleted) Reset() {
+	*x = ReleaseDeleted{}
+	mi := &file_ermite_event_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReleaseDeleted) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReleaseDeleted) ProtoMessage() {}
+
+func (x *ReleaseDeleted) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_event_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReleaseDeleted.ProtoReflect.Descriptor instead.
+func (*ReleaseDeleted) Descriptor() ([]byte, []int) {
+	return file_ermite_event_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ReleaseDeleted) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *ReleaseDeleted) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *ReleaseDeleted) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+// ReleaseUnpublished reports a release change on repo:<name> and home topics.
+type ReleaseUnpublished struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Repo          string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	Id            int64                  `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
+	Tag           string                 `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
+	Draft         bool                   `protobuf:"varint,4,opt,name=draft,proto3" json:"draft,omitempty"`
+	Prerelease    bool                   `protobuf:"varint,5,opt,name=prerelease,proto3" json:"prerelease,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReleaseUnpublished) Reset() {
+	*x = ReleaseUnpublished{}
+	mi := &file_ermite_event_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReleaseUnpublished) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReleaseUnpublished) ProtoMessage() {}
+
+func (x *ReleaseUnpublished) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_event_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReleaseUnpublished.ProtoReflect.Descriptor instead.
+func (*ReleaseUnpublished) Descriptor() ([]byte, []int) {
+	return file_ermite_event_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *ReleaseUnpublished) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *ReleaseUnpublished) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *ReleaseUnpublished) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *ReleaseUnpublished) GetDraft() bool {
+	if x != nil {
+		return x.Draft
+	}
+	return false
+}
+
+func (x *ReleaseUnpublished) GetPrerelease() bool {
+	if x != nil {
+		return x.Prerelease
+	}
+	return false
+}
+
 var File_ermite_event_proto protoreflect.FileDescriptor
 
 const file_ermite_event_proto_rawDesc = "" +
@@ -1973,7 +2333,7 @@ const file_ermite_event_proto_rawDesc = "" +
 	"\x06topics\x18\x01 \x03(\tR\x06topics\x12!\n" +
 	"\fresume_after\x18\x02 \x01(\tR\vresumeAfter\"4\n" +
 	"\rWatchResponse\x12#\n" +
-	"\x05event\x18\x01 \x01(\v2\r.ermite.EventR\x05event\"\xb1\r\n" +
+	"\x05event\x18\x01 \x01(\v2\r.ermite.EventR\x05event\"\xcf\x0f\n" +
 	"\x05Event\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\x04time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x128\n" +
@@ -2003,7 +2363,11 @@ const file_ermite_event_proto_rawDesc = "" +
 	"\rmirror_failed\x18\x17 \x01(\v2\x14.ermite.MirrorFailedH\x00R\fmirrorFailed\x12D\n" +
 	"\x10mirror_recovered\x18\x18 \x01(\v2\x17.ermite.MirrorRecoveredH\x00R\x0fmirrorRecovered\x12n\n" +
 	" merge_request_auto_merge_enabled\x18\x19 \x01(\v2$.ermite.MergeRequestAutoMergeEnabledH\x00R\x1cmergeRequestAutoMergeEnabled\x12t\n" +
-	"\"merge_request_auto_merge_cancelled\x18\x1a \x01(\v2&.ermite.MergeRequestAutoMergeCancelledH\x00R\x1emergeRequestAutoMergeCancelledB\x06\n" +
+	"\"merge_request_auto_merge_cancelled\x18\x1a \x01(\v2&.ermite.MergeRequestAutoMergeCancelledH\x00R\x1emergeRequestAutoMergeCancelled\x12G\n" +
+	"\x11release_published\x18\x1b \x01(\v2\x18.ermite.ReleasePublishedH\x00R\x10releasePublished\x12A\n" +
+	"\x0frelease_updated\x18\x1c \x01(\v2\x16.ermite.ReleaseUpdatedH\x00R\x0ereleaseUpdated\x12A\n" +
+	"\x0frelease_deleted\x18\x1d \x01(\v2\x16.ermite.ReleaseDeletedH\x00R\x0ereleaseDeleted\x12M\n" +
+	"\x13release_unpublished\x18\x1e \x01(\v2\x1a.ermite.ReleaseUnpublishedH\x00R\x12releaseUnpublishedB\x06\n" +
 	"\x04kind\"/\n" +
 	"\vRepoCreated\x12 \n" +
 	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"/\n" +
@@ -2076,7 +2440,35 @@ const file_ermite_event_proto_rawDesc = "" +
 	"\x05state\x18\x02 \x01(\x0e2\x13.ermite.MirrorStateR\x05state\x12#\n" +
 	"\rfailure_class\x18\x03 \x01(\tR\ffailureClassJ\x04\b\x04\x10\x05R\x06reason\"%\n" +
 	"\x0fMirrorRecovered\x12\x12\n" +
-	"\x04repo\x18\x01 \x01(\tR\x04repo2F\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\"~\n" +
+	"\x10ReleasePublished\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\x12\x10\n" +
+	"\x03tag\x18\x03 \x01(\tR\x03tag\x12\x14\n" +
+	"\x05draft\x18\x04 \x01(\bR\x05draft\x12\x1e\n" +
+	"\n" +
+	"prerelease\x18\x05 \x01(\bR\n" +
+	"prerelease\"|\n" +
+	"\x0eReleaseUpdated\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\x12\x10\n" +
+	"\x03tag\x18\x03 \x01(\tR\x03tag\x12\x14\n" +
+	"\x05draft\x18\x04 \x01(\bR\x05draft\x12\x1e\n" +
+	"\n" +
+	"prerelease\x18\x05 \x01(\bR\n" +
+	"prerelease\"F\n" +
+	"\x0eReleaseDeleted\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\x12\x10\n" +
+	"\x03tag\x18\x03 \x01(\tR\x03tag\"\x80\x01\n" +
+	"\x12ReleaseUnpublished\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\x12\x10\n" +
+	"\x03tag\x18\x03 \x01(\tR\x03tag\x12\x14\n" +
+	"\x05draft\x18\x04 \x01(\bR\x05draft\x12\x1e\n" +
+	"\n" +
+	"prerelease\x18\x05 \x01(\bR\n" +
+	"prerelease2F\n" +
 	"\fEventService\x126\n" +
 	"\x05Watch\x12\x14.ermite.WatchRequest\x1a\x15.ermite.WatchResponse0\x01Bq\n" +
 	"\n" +
@@ -2095,7 +2487,7 @@ func file_ermite_event_proto_rawDescGZIP() []byte {
 	return file_ermite_event_proto_rawDescData
 }
 
-var file_ermite_event_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_ermite_event_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_ermite_event_proto_goTypes = []any{
 	(*WatchRequest)(nil),                   // 0: ermite.WatchRequest
 	(*WatchResponse)(nil),                  // 1: ermite.WatchResponse
@@ -2125,20 +2517,24 @@ var file_ermite_event_proto_goTypes = []any{
 	(*JobUpdated)(nil),                     // 25: ermite.JobUpdated
 	(*MirrorFailed)(nil),                   // 26: ermite.MirrorFailed
 	(*MirrorRecovered)(nil),                // 27: ermite.MirrorRecovered
-	(*timestamppb.Timestamp)(nil),          // 28: google.protobuf.Timestamp
-	(*Repo)(nil),                           // 29: ermite.Repo
-	(*MergeRequest)(nil),                   // 30: ermite.MergeRequest
-	(*Mergeability)(nil),                   // 31: ermite.Mergeability
-	(*Comment)(nil),                        // 32: ermite.Comment
-	(*Issue)(nil),                          // 33: ermite.Issue
-	(*IssueComment)(nil),                   // 34: ermite.IssueComment
-	(*Run)(nil),                            // 35: ermite.Run
-	(*RunJob)(nil),                         // 36: ermite.RunJob
-	(MirrorState)(0),                       // 37: ermite.MirrorState
+	(*ReleasePublished)(nil),               // 28: ermite.ReleasePublished
+	(*ReleaseUpdated)(nil),                 // 29: ermite.ReleaseUpdated
+	(*ReleaseDeleted)(nil),                 // 30: ermite.ReleaseDeleted
+	(*ReleaseUnpublished)(nil),             // 31: ermite.ReleaseUnpublished
+	(*timestamppb.Timestamp)(nil),          // 32: google.protobuf.Timestamp
+	(*Repo)(nil),                           // 33: ermite.Repo
+	(*MergeRequest)(nil),                   // 34: ermite.MergeRequest
+	(*Mergeability)(nil),                   // 35: ermite.Mergeability
+	(*Comment)(nil),                        // 36: ermite.Comment
+	(*Issue)(nil),                          // 37: ermite.Issue
+	(*IssueComment)(nil),                   // 38: ermite.IssueComment
+	(*Run)(nil),                            // 39: ermite.Run
+	(*RunJob)(nil),                         // 40: ermite.RunJob
+	(MirrorState)(0),                       // 41: ermite.MirrorState
 }
 var file_ermite_event_proto_depIdxs = []int32{
 	2,  // 0: ermite.WatchResponse.event:type_name -> ermite.Event
-	28, // 1: ermite.Event.time:type_name -> google.protobuf.Timestamp
+	32, // 1: ermite.Event.time:type_name -> google.protobuf.Timestamp
 	3,  // 2: ermite.Event.repo_created:type_name -> ermite.RepoCreated
 	4,  // 3: ermite.Event.repo_updated:type_name -> ermite.RepoUpdated
 	5,  // 4: ermite.Event.repo_deleted:type_name -> ermite.RepoDeleted
@@ -2163,33 +2559,37 @@ var file_ermite_event_proto_depIdxs = []int32{
 	27, // 23: ermite.Event.mirror_recovered:type_name -> ermite.MirrorRecovered
 	10, // 24: ermite.Event.merge_request_auto_merge_enabled:type_name -> ermite.MergeRequestAutoMergeEnabled
 	11, // 25: ermite.Event.merge_request_auto_merge_cancelled:type_name -> ermite.MergeRequestAutoMergeCancelled
-	29, // 26: ermite.RepoCreated.repo:type_name -> ermite.Repo
-	29, // 27: ermite.RepoUpdated.repo:type_name -> ermite.Repo
-	7,  // 28: ermite.Pushed.ref_updates:type_name -> ermite.RefUpdate
-	30, // 29: ermite.MergeRequestOpened.merge_request:type_name -> ermite.MergeRequest
-	30, // 30: ermite.MergeRequestMerged.merge_request:type_name -> ermite.MergeRequest
-	30, // 31: ermite.MergeRequestAutoMergeEnabled.merge_request:type_name -> ermite.MergeRequest
-	30, // 32: ermite.MergeRequestAutoMergeCancelled.merge_request:type_name -> ermite.MergeRequest
-	31, // 33: ermite.MergeRequestMergeability.mergeability:type_name -> ermite.Mergeability
-	30, // 34: ermite.MergeRequestClosed.merge_request:type_name -> ermite.MergeRequest
-	32, // 35: ermite.CommentAdded.comment:type_name -> ermite.Comment
-	32, // 36: ermite.CommentEdited.comment:type_name -> ermite.Comment
-	32, // 37: ermite.CommentDeleted.comment:type_name -> ermite.Comment
-	32, // 38: ermite.CommentResolved.comment:type_name -> ermite.Comment
-	33, // 39: ermite.IssueOpened.issue:type_name -> ermite.Issue
-	33, // 40: ermite.IssueClosed.issue:type_name -> ermite.Issue
-	33, // 41: ermite.IssueReopened.issue:type_name -> ermite.Issue
-	34, // 42: ermite.IssueCommented.comment:type_name -> ermite.IssueComment
-	35, // 43: ermite.RunUpdated.run:type_name -> ermite.Run
-	36, // 44: ermite.JobUpdated.job:type_name -> ermite.RunJob
-	37, // 45: ermite.MirrorFailed.state:type_name -> ermite.MirrorState
-	0,  // 46: ermite.EventService.Watch:input_type -> ermite.WatchRequest
-	1,  // 47: ermite.EventService.Watch:output_type -> ermite.WatchResponse
-	47, // [47:48] is the sub-list for method output_type
-	46, // [46:47] is the sub-list for method input_type
-	46, // [46:46] is the sub-list for extension type_name
-	46, // [46:46] is the sub-list for extension extendee
-	0,  // [0:46] is the sub-list for field type_name
+	28, // 26: ermite.Event.release_published:type_name -> ermite.ReleasePublished
+	29, // 27: ermite.Event.release_updated:type_name -> ermite.ReleaseUpdated
+	30, // 28: ermite.Event.release_deleted:type_name -> ermite.ReleaseDeleted
+	31, // 29: ermite.Event.release_unpublished:type_name -> ermite.ReleaseUnpublished
+	33, // 30: ermite.RepoCreated.repo:type_name -> ermite.Repo
+	33, // 31: ermite.RepoUpdated.repo:type_name -> ermite.Repo
+	7,  // 32: ermite.Pushed.ref_updates:type_name -> ermite.RefUpdate
+	34, // 33: ermite.MergeRequestOpened.merge_request:type_name -> ermite.MergeRequest
+	34, // 34: ermite.MergeRequestMerged.merge_request:type_name -> ermite.MergeRequest
+	34, // 35: ermite.MergeRequestAutoMergeEnabled.merge_request:type_name -> ermite.MergeRequest
+	34, // 36: ermite.MergeRequestAutoMergeCancelled.merge_request:type_name -> ermite.MergeRequest
+	35, // 37: ermite.MergeRequestMergeability.mergeability:type_name -> ermite.Mergeability
+	34, // 38: ermite.MergeRequestClosed.merge_request:type_name -> ermite.MergeRequest
+	36, // 39: ermite.CommentAdded.comment:type_name -> ermite.Comment
+	36, // 40: ermite.CommentEdited.comment:type_name -> ermite.Comment
+	36, // 41: ermite.CommentDeleted.comment:type_name -> ermite.Comment
+	36, // 42: ermite.CommentResolved.comment:type_name -> ermite.Comment
+	37, // 43: ermite.IssueOpened.issue:type_name -> ermite.Issue
+	37, // 44: ermite.IssueClosed.issue:type_name -> ermite.Issue
+	37, // 45: ermite.IssueReopened.issue:type_name -> ermite.Issue
+	38, // 46: ermite.IssueCommented.comment:type_name -> ermite.IssueComment
+	39, // 47: ermite.RunUpdated.run:type_name -> ermite.Run
+	40, // 48: ermite.JobUpdated.job:type_name -> ermite.RunJob
+	41, // 49: ermite.MirrorFailed.state:type_name -> ermite.MirrorState
+	0,  // 50: ermite.EventService.Watch:input_type -> ermite.WatchRequest
+	1,  // 51: ermite.EventService.Watch:output_type -> ermite.WatchResponse
+	51, // [51:52] is the sub-list for method output_type
+	50, // [50:51] is the sub-list for method input_type
+	50, // [50:50] is the sub-list for extension type_name
+	50, // [50:50] is the sub-list for extension extendee
+	0,  // [0:50] is the sub-list for field type_name
 }
 
 func init() { file_ermite_event_proto_init() }
@@ -2227,6 +2627,10 @@ func file_ermite_event_proto_init() {
 		(*Event_MirrorRecovered)(nil),
 		(*Event_MergeRequestAutoMergeEnabled)(nil),
 		(*Event_MergeRequestAutoMergeCancelled)(nil),
+		(*Event_ReleasePublished)(nil),
+		(*Event_ReleaseUpdated)(nil),
+		(*Event_ReleaseDeleted)(nil),
+		(*Event_ReleaseUnpublished)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -2234,7 +2638,7 @@ func file_ermite_event_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_event_proto_rawDesc), len(file_ermite_event_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

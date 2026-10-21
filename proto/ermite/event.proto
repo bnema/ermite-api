@@ -145,6 +145,14 @@ message Event {
     // MergeRequestAutoMergeCancelled: the auto-merge of a merge request was
     // cancelled.
     MergeRequestAutoMergeCancelled merge_request_auto_merge_cancelled = 26;
+    // ReleasePublished reports a release published.
+    ReleasePublished release_published = 27;
+    // ReleaseUpdated reports a release updated.
+    ReleaseUpdated release_updated = 28;
+    // ReleaseDeleted reports a release deleted.
+    ReleaseDeleted release_deleted = 29;
+    // ReleaseUnpublished reports a release turned into a draft after tag deletion.
+    ReleaseUnpublished release_unpublished = 30;
   }
 }
 
@@ -357,4 +365,38 @@ message MirrorFailed {
 message MirrorRecovered {
   // Repo is the repository name.
   string repo = 1;
+}
+
+// ReleasePublished reports a release change on repo:<name> and home topics.
+message ReleasePublished {
+  string repo = 1;
+  int64 id = 2;
+  string tag = 3;
+  bool draft = 4;
+  bool prerelease = 5;
+}
+
+// ReleaseUpdated reports a release change on repo:<name> and home topics.
+message ReleaseUpdated {
+  string repo = 1;
+  int64 id = 2;
+  string tag = 3;
+  bool draft = 4;
+  bool prerelease = 5;
+}
+
+// ReleaseDeleted reports a release change on repo:<name> and home topics.
+message ReleaseDeleted {
+  string repo = 1;
+  int64 id = 2;
+  string tag = 3;
+}
+
+// ReleaseUnpublished reports a release change on repo:<name> and home topics.
+message ReleaseUnpublished {
+  string repo = 1;
+  int64 id = 2;
+  string tag = 3;
+  bool draft = 4;
+  bool prerelease = 5;
 }
