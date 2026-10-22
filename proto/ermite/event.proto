@@ -21,7 +21,7 @@ service EventService {
   // for merge requests, merge_request_opened, merge_request_merged,
   // merge_request_closed, comment_added, comment_edited, comment_deleted and
   // comment_resolved (a thread resolved or reopened); for issues, issue_opened,
-  // issue_closed, issue_reopened and issue_commented, and issue_submitted. Each
+  // issue_closed, issue_resolved, issue_reopened and issue_commented, and issue_submitted. Each
   // one is delivered on the "repo:<name>" topic of its repository and on
   // "home", subject to the visibility of the repository, except
   // issue_submitted: it is delivered only on the "owner" topic, never on
@@ -153,6 +153,8 @@ message Event {
     ReleaseDeleted release_deleted = 29;
     // ReleaseUnpublished reports a release turned into a draft after tag deletion.
     ReleaseUnpublished release_unpublished = 30;
+    // IssueResolved: an issue was resolved.
+    IssueResolved issue_resolved = 31;
   }
 }
 
@@ -290,9 +292,17 @@ message IssueOpened {
   Issue issue = 1;
 }
 
-// IssueClosed reports a closed issue.
+// IssueClosed reports a closed issue. A merge that resolves an issue sends
+// issue_resolved, not issue_closed.
 message IssueClosed {
   // Issue is the issue after closing, including its repository and number.
+  Issue issue = 1;
+}
+
+// IssueResolved reports a resolved issue.
+message IssueResolved {
+  // Issue is the issue after resolving, including its repository, number and
+  // closed_by_merge_request.
   Issue issue = 1;
 }
 

@@ -14,10 +14,14 @@ enum IssueState {
   ISSUE_STATE_UNSPECIFIED = 0;
   // The issue is open.
   ISSUE_STATE_OPEN = 1;
-  // The issue is closed.
+  // The issue is closed without being resolved (won't fix, duplicate, ...).
   ISSUE_STATE_CLOSED = 2;
   // Reserved for later use: awaiting moderation, owner-only.
   ISSUE_STATE_PENDING = 3;
+  // The issue was fixed: by the merge of a merge request with a closing
+  // reference, or by hand (ResolveIssue). CLOSED means closed without being
+  // resolved.
+  ISSUE_STATE_RESOLVED = 4;
 }
 
 // Issue is a discussion in a repository.
@@ -45,9 +49,10 @@ message Issue {
   google.protobuf.Timestamp updated_at = 8;
   // CommentCount is the number of comments on the issue.
   int32 comment_count = 9;
-  // ClosedByMergeRequest is the number of the merge request whose merge closed
-  // the issue (a closing reference such as "Fixes #N"); 0 when the issue was
-  // closed by hand or is open. Reset when the issue is reopened.
+  // ClosedByMergeRequest is the number of the merge request whose merge
+  // resolved the issue (a closing reference such as "Fixes #N"); 0 when the
+  // issue was resolved by hand, is closed, or is open. Reset when the issue is
+  // reopened.
   int64 closed_by_merge_request = 10;
 }
 
@@ -86,29 +91,35 @@ message IssueComment {
 //
 // Reading (ListIssues, GetIssue) needs the same access as reading the
 // repository: nothing for a public one, the repo:read scope for a private one.
-// Writing (CreateIssue, AddIssueComment, CloseIssue, ReopenIssue) needs the
+// Writing (CreateIssue, AddIssueComment, CloseIssue, ResolveIssue,
+// ReopenIssue) needs the
 // owner or a token with the issue:write scope on the repository; branch
 // prefixes do not restrict it. A caller without credentials gets
 // unauthenticated, one with an insufficient scope gets permission_denied, and
 // one that cannot read the repository gets not_found.
 //
 // A closing reference ("Fixes #N", "Closes #N", "Resolves #N") in the title,
-// description or commit messages of a merge request closes the issue when the
-// request is merged, and only then; the issue.closed event and Issue carry
-// closed_by_merge_request. Servers that report these links (GetIssueResponse.
-// references, Issue.closed_by_merge_request) list "issues.links" in
-// GetVersionResponse.features; older servers leave them empty.
+// description or commit messages of a merge request resolves the issue when the
+// request is merged, and only then: the issue gets the state RESOLVED, an
+// issue.resolved event is sent, and Issue carries closed_by_merge_request.
+// Servers that report these links (GetIssueResponse.references,
+// Issue.closed_by_merge_request) list "issues.links" in
+// GetVersionResponse.features; older servers leave them empty. Servers that
+// also keep the history of issues (GetIssueResponse.events), implement
+// ResolveIssue and the RESOLVED state list "issues.resolve".
 //
 // Text fields are normalized to NFC and stripped of control and Unicode
 // bidirectional characters (line breaks and tabs stay in bodies and comments).
 // The title is one line of 1 to 120 code points; body and comment text are at
 // most 10,000 code points and a comment must not be blank. A text that breaks
 // a rule is rejected with invalid_argument. A comment on an issue that already
-// holds 1,000 comments gives resource_exhausted. Closing an issue that is not
-// open, or reopening one that is not closed, gives failed_precondition.
+// holds 1,000 comments gives resource_exhausted. Closing or resolving an issue
+// that is not open, or reopening one that is neither closed nor resolved,
+// gives failed_precondition.
 //
-// The ordinary RPCs only return issues in state OPEN or CLOSED, and
-// ListIssues with state ISSUE_STATE_PENDING is invalid_argument. Submissions
+// The ordinary RPCs return issues in state OPEN, CLOSED or RESOLVED, and
+// ListIssues accepts these three states; ISSUE_STATE_PENDING is
+// invalid_argument. Submissions
 // from the public form wait as PendingIssue records, reachable only through
 // the three moderation RPCs (ListPendingIssues, ApproveIssue, RejectIssue).
 // These need owner rights (root, an owner session, or a token holding every
@@ -126,7 +137,10 @@ service IssueService {
   rpc AddIssueComment(AddIssueCommentRequest) returns (AddIssueCommentResponse);
   // CloseIssue closes an issue. Needs the issue:write scope.
   rpc CloseIssue(CloseIssueRequest) returns (CloseIssueResponse);
-  // ReopenIssue reopens an issue. Needs the issue:write scope.
+  // ResolveIssue marks an open issue as resolved. Needs the issue:write scope.
+  rpc ResolveIssue(ResolveIssueRequest) returns (ResolveIssueResponse);
+  // ReopenIssue reopens a closed or resolved issue. Needs the issue:write
+  // scope.
   rpc ReopenIssue(ReopenIssueRequest) returns (ReopenIssueResponse);
   // ListPendingIssues lists issues awaiting moderation, oldest first. Owner
   // rights only; anyone else gets NOT_FOUND.
@@ -196,6 +210,9 @@ message GetIssueResponse {
   // References are the merge requests naming the issue, ascending by number,
   // at most 100.
   repeated IssueReference references = 3;
+  // Events are the history of the issue, oldest first, at most 500 (a server
+  // limit). Clients interleave them with the comments by created_at.
+  repeated IssueEvent events = 4;
 }
 
 // AddIssueCommentRequest describes the comment to add.
@@ -225,6 +242,20 @@ message CloseIssueRequest {
 // CloseIssueResponse holds the issue after closing.
 message CloseIssueResponse {
   // Issue is the closed issue.
+  Issue issue = 1;
+}
+
+// ResolveIssueRequest names the issue to resolve.
+message ResolveIssueRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the issue number.
+  int64 number = 2;
+}
+
+// ResolveIssueResponse holds the issue after resolving.
+message ResolveIssueResponse {
+  // Issue is the resolved issue.
   Issue issue = 1;
 }
 

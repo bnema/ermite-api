@@ -33,10 +33,14 @@ const (
 	IssueState_ISSUE_STATE_UNSPECIFIED IssueState = 0
 	// The issue is open.
 	IssueState_ISSUE_STATE_OPEN IssueState = 1
-	// The issue is closed.
+	// The issue is closed without being resolved (won't fix, duplicate, ...).
 	IssueState_ISSUE_STATE_CLOSED IssueState = 2
 	// Reserved for later use: awaiting moderation, owner-only.
 	IssueState_ISSUE_STATE_PENDING IssueState = 3
+	// The issue was fixed: by the merge of a merge request with a closing
+	// reference, or by hand (ResolveIssue). CLOSED means closed without being
+	// resolved.
+	IssueState_ISSUE_STATE_RESOLVED IssueState = 4
 )
 
 // Enum value maps for IssueState.
@@ -46,12 +50,14 @@ var (
 		1: "ISSUE_STATE_OPEN",
 		2: "ISSUE_STATE_CLOSED",
 		3: "ISSUE_STATE_PENDING",
+		4: "ISSUE_STATE_RESOLVED",
 	}
 	IssueState_value = map[string]int32{
 		"ISSUE_STATE_UNSPECIFIED": 0,
 		"ISSUE_STATE_OPEN":        1,
 		"ISSUE_STATE_CLOSED":      2,
 		"ISSUE_STATE_PENDING":     3,
+		"ISSUE_STATE_RESOLVED":    4,
 	}
 )
 
@@ -108,9 +114,10 @@ type Issue struct {
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// CommentCount is the number of comments on the issue.
 	CommentCount int32 `protobuf:"varint,9,opt,name=comment_count,json=commentCount,proto3" json:"comment_count,omitempty"`
-	// ClosedByMergeRequest is the number of the merge request whose merge closed
-	// the issue (a closing reference such as "Fixes #N"); 0 when the issue was
-	// closed by hand or is open. Reset when the issue is reopened.
+	// ClosedByMergeRequest is the number of the merge request whose merge
+	// resolved the issue (a closing reference such as "Fixes #N"); 0 when the
+	// issue was resolved by hand, is closed, or is open. Reset when the issue is
+	// reopened.
 	ClosedByMergeRequest int64 `protobuf:"varint,10,opt,name=closed_by_merge_request,json=closedByMergeRequest,proto3" json:"closed_by_merge_request,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
@@ -670,7 +677,10 @@ type GetIssueResponse struct {
 	Comments []*IssueComment `protobuf:"bytes,2,rep,name=comments,proto3" json:"comments,omitempty"`
 	// References are the merge requests naming the issue, ascending by number,
 	// at most 100.
-	References    []*IssueReference `protobuf:"bytes,3,rep,name=references,proto3" json:"references,omitempty"`
+	References []*IssueReference `protobuf:"bytes,3,rep,name=references,proto3" json:"references,omitempty"`
+	// Events are the history of the issue, oldest first, at most 500 (a server
+	// limit). Clients interleave them with the comments by created_at.
+	Events        []*IssueEvent `protobuf:"bytes,4,rep,name=events,proto3" json:"events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -722,6 +732,13 @@ func (x *GetIssueResponse) GetComments() []*IssueComment {
 func (x *GetIssueResponse) GetReferences() []*IssueReference {
 	if x != nil {
 		return x.References
+	}
+	return nil
+}
+
+func (x *GetIssueResponse) GetEvents() []*IssueEvent {
+	if x != nil {
+		return x.Events
 	}
 	return nil
 }
@@ -937,6 +954,107 @@ func (x *CloseIssueResponse) GetIssue() *Issue {
 	return nil
 }
 
+// ResolveIssueRequest names the issue to resolve.
+type ResolveIssueRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Repo is the repository name.
+	Repo string `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	// Number is the issue number.
+	Number        int64 `protobuf:"varint,2,opt,name=number,proto3" json:"number,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveIssueRequest) Reset() {
+	*x = ResolveIssueRequest{}
+	mi := &file_ermite_issue_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveIssueRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveIssueRequest) ProtoMessage() {}
+
+func (x *ResolveIssueRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_issue_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveIssueRequest.ProtoReflect.Descriptor instead.
+func (*ResolveIssueRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_issue_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ResolveIssueRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *ResolveIssueRequest) GetNumber() int64 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+// ResolveIssueResponse holds the issue after resolving.
+type ResolveIssueResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Issue is the resolved issue.
+	Issue         *Issue `protobuf:"bytes,1,opt,name=issue,proto3" json:"issue,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveIssueResponse) Reset() {
+	*x = ResolveIssueResponse{}
+	mi := &file_ermite_issue_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveIssueResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveIssueResponse) ProtoMessage() {}
+
+func (x *ResolveIssueResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_issue_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveIssueResponse.ProtoReflect.Descriptor instead.
+func (*ResolveIssueResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_issue_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ResolveIssueResponse) GetIssue() *Issue {
+	if x != nil {
+		return x.Issue
+	}
+	return nil
+}
+
 // ReopenIssueRequest names the issue to reopen.
 type ReopenIssueRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -950,7 +1068,7 @@ type ReopenIssueRequest struct {
 
 func (x *ReopenIssueRequest) Reset() {
 	*x = ReopenIssueRequest{}
-	mi := &file_ermite_issue_proto_msgTypes[13]
+	mi := &file_ermite_issue_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -962,7 +1080,7 @@ func (x *ReopenIssueRequest) String() string {
 func (*ReopenIssueRequest) ProtoMessage() {}
 
 func (x *ReopenIssueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_issue_proto_msgTypes[13]
+	mi := &file_ermite_issue_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -975,7 +1093,7 @@ func (x *ReopenIssueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReopenIssueRequest.ProtoReflect.Descriptor instead.
 func (*ReopenIssueRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_issue_proto_rawDescGZIP(), []int{13}
+	return file_ermite_issue_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ReopenIssueRequest) GetRepo() string {
@@ -1003,7 +1121,7 @@ type ReopenIssueResponse struct {
 
 func (x *ReopenIssueResponse) Reset() {
 	*x = ReopenIssueResponse{}
-	mi := &file_ermite_issue_proto_msgTypes[14]
+	mi := &file_ermite_issue_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1015,7 +1133,7 @@ func (x *ReopenIssueResponse) String() string {
 func (*ReopenIssueResponse) ProtoMessage() {}
 
 func (x *ReopenIssueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_issue_proto_msgTypes[14]
+	mi := &file_ermite_issue_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1028,7 +1146,7 @@ func (x *ReopenIssueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReopenIssueResponse.ProtoReflect.Descriptor instead.
 func (*ReopenIssueResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_issue_proto_rawDescGZIP(), []int{14}
+	return file_ermite_issue_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ReopenIssueResponse) GetIssue() *Issue {
@@ -1061,7 +1179,7 @@ type PendingIssue struct {
 
 func (x *PendingIssue) Reset() {
 	*x = PendingIssue{}
-	mi := &file_ermite_issue_proto_msgTypes[15]
+	mi := &file_ermite_issue_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1073,7 +1191,7 @@ func (x *PendingIssue) String() string {
 func (*PendingIssue) ProtoMessage() {}
 
 func (x *PendingIssue) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_issue_proto_msgTypes[15]
+	mi := &file_ermite_issue_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1086,7 +1204,7 @@ func (x *PendingIssue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PendingIssue.ProtoReflect.Descriptor instead.
 func (*PendingIssue) Descriptor() ([]byte, []int) {
-	return file_ermite_issue_proto_rawDescGZIP(), []int{15}
+	return file_ermite_issue_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *PendingIssue) GetId() string {
@@ -1148,7 +1266,7 @@ type ListPendingIssuesRequest struct {
 
 func (x *ListPendingIssuesRequest) Reset() {
 	*x = ListPendingIssuesRequest{}
-	mi := &file_ermite_issue_proto_msgTypes[16]
+	mi := &file_ermite_issue_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1160,7 +1278,7 @@ func (x *ListPendingIssuesRequest) String() string {
 func (*ListPendingIssuesRequest) ProtoMessage() {}
 
 func (x *ListPendingIssuesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_issue_proto_msgTypes[16]
+	mi := &file_ermite_issue_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1173,7 +1291,7 @@ func (x *ListPendingIssuesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPendingIssuesRequest.ProtoReflect.Descriptor instead.
 func (*ListPendingIssuesRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_issue_proto_rawDescGZIP(), []int{16}
+	return file_ermite_issue_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListPendingIssuesRequest) GetRepo() string {
@@ -1211,7 +1329,7 @@ type ListPendingIssuesResponse struct {
 
 func (x *ListPendingIssuesResponse) Reset() {
 	*x = ListPendingIssuesResponse{}
-	mi := &file_ermite_issue_proto_msgTypes[17]
+	mi := &file_ermite_issue_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1223,7 +1341,7 @@ func (x *ListPendingIssuesResponse) String() string {
 func (*ListPendingIssuesResponse) ProtoMessage() {}
 
 func (x *ListPendingIssuesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_issue_proto_msgTypes[17]
+	mi := &file_ermite_issue_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1236,7 +1354,7 @@ func (x *ListPendingIssuesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPendingIssuesResponse.ProtoReflect.Descriptor instead.
 func (*ListPendingIssuesResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_issue_proto_rawDescGZIP(), []int{17}
+	return file_ermite_issue_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListPendingIssuesResponse) GetIssues() []*PendingIssue {
@@ -1266,7 +1384,7 @@ type ApproveIssueRequest struct {
 
 func (x *ApproveIssueRequest) Reset() {
 	*x = ApproveIssueRequest{}
-	mi := &file_ermite_issue_proto_msgTypes[18]
+	mi := &file_ermite_issue_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1278,7 +1396,7 @@ func (x *ApproveIssueRequest) String() string {
 func (*ApproveIssueRequest) ProtoMessage() {}
 
 func (x *ApproveIssueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_issue_proto_msgTypes[18]
+	mi := &file_ermite_issue_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1291,7 +1409,7 @@ func (x *ApproveIssueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveIssueRequest.ProtoReflect.Descriptor instead.
 func (*ApproveIssueRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_issue_proto_rawDescGZIP(), []int{18}
+	return file_ermite_issue_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ApproveIssueRequest) GetRepo() string {
@@ -1320,7 +1438,7 @@ type ApproveIssueResponse struct {
 
 func (x *ApproveIssueResponse) Reset() {
 	*x = ApproveIssueResponse{}
-	mi := &file_ermite_issue_proto_msgTypes[19]
+	mi := &file_ermite_issue_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1332,7 +1450,7 @@ func (x *ApproveIssueResponse) String() string {
 func (*ApproveIssueResponse) ProtoMessage() {}
 
 func (x *ApproveIssueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_issue_proto_msgTypes[19]
+	mi := &file_ermite_issue_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1345,7 +1463,7 @@ func (x *ApproveIssueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveIssueResponse.ProtoReflect.Descriptor instead.
 func (*ApproveIssueResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_issue_proto_rawDescGZIP(), []int{19}
+	return file_ermite_issue_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ApproveIssueResponse) GetIssue() *Issue {
@@ -1370,7 +1488,7 @@ type RejectIssueRequest struct {
 
 func (x *RejectIssueRequest) Reset() {
 	*x = RejectIssueRequest{}
-	mi := &file_ermite_issue_proto_msgTypes[20]
+	mi := &file_ermite_issue_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1382,7 +1500,7 @@ func (x *RejectIssueRequest) String() string {
 func (*RejectIssueRequest) ProtoMessage() {}
 
 func (x *RejectIssueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_issue_proto_msgTypes[20]
+	mi := &file_ermite_issue_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1395,7 +1513,7 @@ func (x *RejectIssueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RejectIssueRequest.ProtoReflect.Descriptor instead.
 func (*RejectIssueRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_issue_proto_rawDescGZIP(), []int{20}
+	return file_ermite_issue_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *RejectIssueRequest) GetRepo() string {
@@ -1428,7 +1546,7 @@ type RejectIssueResponse struct {
 
 func (x *RejectIssueResponse) Reset() {
 	*x = RejectIssueResponse{}
-	mi := &file_ermite_issue_proto_msgTypes[21]
+	mi := &file_ermite_issue_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1440,7 +1558,7 @@ func (x *RejectIssueResponse) String() string {
 func (*RejectIssueResponse) ProtoMessage() {}
 
 func (x *RejectIssueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_issue_proto_msgTypes[21]
+	mi := &file_ermite_issue_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1453,7 +1571,7 @@ func (x *RejectIssueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RejectIssueResponse.ProtoReflect.Descriptor instead.
 func (*RejectIssueResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_issue_proto_rawDescGZIP(), []int{21}
+	return file_ermite_issue_proto_rawDescGZIP(), []int{23}
 }
 
 var File_ermite_issue_proto protoreflect.FileDescriptor
@@ -1503,13 +1621,14 @@ const file_ermite_issue_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"=\n" +
 	"\x0fGetIssueRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
-	"\x06number\x18\x02 \x01(\x03R\x06number\"\xa1\x01\n" +
+	"\x06number\x18\x02 \x01(\x03R\x06number\"\xcd\x01\n" +
 	"\x10GetIssueResponse\x12#\n" +
 	"\x05issue\x18\x01 \x01(\v2\r.ermite.IssueR\x05issue\x120\n" +
 	"\bcomments\x18\x02 \x03(\v2\x14.ermite.IssueCommentR\bcomments\x126\n" +
 	"\n" +
 	"references\x18\x03 \x03(\v2\x16.ermite.IssueReferenceR\n" +
-	"references\"X\n" +
+	"references\x12*\n" +
+	"\x06events\x18\x04 \x03(\v2\x12.ermite.IssueEventR\x06events\"X\n" +
 	"\x16AddIssueCommentRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
 	"\x06number\x18\x02 \x01(\x03R\x06number\x12\x12\n" +
@@ -1520,6 +1639,11 @@ const file_ermite_issue_proto_rawDesc = "" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
 	"\x06number\x18\x02 \x01(\x03R\x06number\"9\n" +
 	"\x12CloseIssueResponse\x12#\n" +
+	"\x05issue\x18\x01 \x01(\v2\r.ermite.IssueR\x05issue\"A\n" +
+	"\x13ResolveIssueRequest\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
+	"\x06number\x18\x02 \x01(\x03R\x06number\";\n" +
+	"\x14ResolveIssueResponse\x12#\n" +
 	"\x05issue\x18\x01 \x01(\v2\r.ermite.IssueR\x05issue\"@\n" +
 	"\x12ReopenIssueRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x16\n" +
@@ -1551,13 +1675,14 @@ const file_ermite_issue_proto_rawDesc = "" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x10\n" +
 	"\x03ban\x18\x03 \x01(\bR\x03ban\"\x15\n" +
-	"\x13RejectIssueResponse*p\n" +
+	"\x13RejectIssueResponse*\x8a\x01\n" +
 	"\n" +
 	"IssueState\x12\x1b\n" +
 	"\x17ISSUE_STATE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10ISSUE_STATE_OPEN\x10\x01\x12\x16\n" +
 	"\x12ISSUE_STATE_CLOSED\x10\x02\x12\x17\n" +
-	"\x13ISSUE_STATE_PENDING\x10\x032\xa8\x05\n" +
+	"\x13ISSUE_STATE_PENDING\x10\x03\x12\x18\n" +
+	"\x14ISSUE_STATE_RESOLVED\x10\x042\xf3\x05\n" +
 	"\fIssueService\x12F\n" +
 	"\vCreateIssue\x12\x1a.ermite.CreateIssueRequest\x1a\x1b.ermite.CreateIssueResponse\x12C\n" +
 	"\n" +
@@ -1565,7 +1690,8 @@ const file_ermite_issue_proto_rawDesc = "" +
 	"\bGetIssue\x12\x17.ermite.GetIssueRequest\x1a\x18.ermite.GetIssueResponse\x12R\n" +
 	"\x0fAddIssueComment\x12\x1e.ermite.AddIssueCommentRequest\x1a\x1f.ermite.AddIssueCommentResponse\x12C\n" +
 	"\n" +
-	"CloseIssue\x12\x19.ermite.CloseIssueRequest\x1a\x1a.ermite.CloseIssueResponse\x12F\n" +
+	"CloseIssue\x12\x19.ermite.CloseIssueRequest\x1a\x1a.ermite.CloseIssueResponse\x12I\n" +
+	"\fResolveIssue\x12\x1b.ermite.ResolveIssueRequest\x1a\x1c.ermite.ResolveIssueResponse\x12F\n" +
 	"\vReopenIssue\x12\x1a.ermite.ReopenIssueRequest\x1a\x1b.ermite.ReopenIssueResponse\x12X\n" +
 	"\x11ListPendingIssues\x12 .ermite.ListPendingIssuesRequest\x1a!.ermite.ListPendingIssuesResponse\x12I\n" +
 	"\fApproveIssue\x12\x1b.ermite.ApproveIssueRequest\x1a\x1c.ermite.ApproveIssueResponse\x12F\n" +
@@ -1587,7 +1713,7 @@ func file_ermite_issue_proto_rawDescGZIP() []byte {
 }
 
 var file_ermite_issue_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ermite_issue_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_ermite_issue_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_ermite_issue_proto_goTypes = []any{
 	(IssueState)(0),                   // 0: ermite.IssueState
 	(*Issue)(nil),                     // 1: ermite.Issue
@@ -1603,59 +1729,66 @@ var file_ermite_issue_proto_goTypes = []any{
 	(*AddIssueCommentResponse)(nil),   // 11: ermite.AddIssueCommentResponse
 	(*CloseIssueRequest)(nil),         // 12: ermite.CloseIssueRequest
 	(*CloseIssueResponse)(nil),        // 13: ermite.CloseIssueResponse
-	(*ReopenIssueRequest)(nil),        // 14: ermite.ReopenIssueRequest
-	(*ReopenIssueResponse)(nil),       // 15: ermite.ReopenIssueResponse
-	(*PendingIssue)(nil),              // 16: ermite.PendingIssue
-	(*ListPendingIssuesRequest)(nil),  // 17: ermite.ListPendingIssuesRequest
-	(*ListPendingIssuesResponse)(nil), // 18: ermite.ListPendingIssuesResponse
-	(*ApproveIssueRequest)(nil),       // 19: ermite.ApproveIssueRequest
-	(*ApproveIssueResponse)(nil),      // 20: ermite.ApproveIssueResponse
-	(*RejectIssueRequest)(nil),        // 21: ermite.RejectIssueRequest
-	(*RejectIssueResponse)(nil),       // 22: ermite.RejectIssueResponse
-	(*timestamppb.Timestamp)(nil),     // 23: google.protobuf.Timestamp
-	(MergeRequestState)(0),            // 24: ermite.MergeRequestState
+	(*ResolveIssueRequest)(nil),       // 14: ermite.ResolveIssueRequest
+	(*ResolveIssueResponse)(nil),      // 15: ermite.ResolveIssueResponse
+	(*ReopenIssueRequest)(nil),        // 16: ermite.ReopenIssueRequest
+	(*ReopenIssueResponse)(nil),       // 17: ermite.ReopenIssueResponse
+	(*PendingIssue)(nil),              // 18: ermite.PendingIssue
+	(*ListPendingIssuesRequest)(nil),  // 19: ermite.ListPendingIssuesRequest
+	(*ListPendingIssuesResponse)(nil), // 20: ermite.ListPendingIssuesResponse
+	(*ApproveIssueRequest)(nil),       // 21: ermite.ApproveIssueRequest
+	(*ApproveIssueResponse)(nil),      // 22: ermite.ApproveIssueResponse
+	(*RejectIssueRequest)(nil),        // 23: ermite.RejectIssueRequest
+	(*RejectIssueResponse)(nil),       // 24: ermite.RejectIssueResponse
+	(*timestamppb.Timestamp)(nil),     // 25: google.protobuf.Timestamp
+	(MergeRequestState)(0),            // 26: ermite.MergeRequestState
+	(*IssueEvent)(nil),                // 27: ermite.IssueEvent
 }
 var file_ermite_issue_proto_depIdxs = []int32{
 	0,  // 0: ermite.Issue.state:type_name -> ermite.IssueState
-	23, // 1: ermite.Issue.created_at:type_name -> google.protobuf.Timestamp
-	23, // 2: ermite.Issue.updated_at:type_name -> google.protobuf.Timestamp
-	24, // 3: ermite.IssueReference.state:type_name -> ermite.MergeRequestState
-	23, // 4: ermite.IssueComment.created_at:type_name -> google.protobuf.Timestamp
+	25, // 1: ermite.Issue.created_at:type_name -> google.protobuf.Timestamp
+	25, // 2: ermite.Issue.updated_at:type_name -> google.protobuf.Timestamp
+	26, // 3: ermite.IssueReference.state:type_name -> ermite.MergeRequestState
+	25, // 4: ermite.IssueComment.created_at:type_name -> google.protobuf.Timestamp
 	1,  // 5: ermite.CreateIssueResponse.issue:type_name -> ermite.Issue
 	0,  // 6: ermite.ListIssuesRequest.state:type_name -> ermite.IssueState
 	1,  // 7: ermite.ListIssuesResponse.issues:type_name -> ermite.Issue
 	1,  // 8: ermite.GetIssueResponse.issue:type_name -> ermite.Issue
 	3,  // 9: ermite.GetIssueResponse.comments:type_name -> ermite.IssueComment
 	2,  // 10: ermite.GetIssueResponse.references:type_name -> ermite.IssueReference
-	3,  // 11: ermite.AddIssueCommentResponse.comment:type_name -> ermite.IssueComment
-	1,  // 12: ermite.CloseIssueResponse.issue:type_name -> ermite.Issue
-	1,  // 13: ermite.ReopenIssueResponse.issue:type_name -> ermite.Issue
-	23, // 14: ermite.PendingIssue.created_at:type_name -> google.protobuf.Timestamp
-	16, // 15: ermite.ListPendingIssuesResponse.issues:type_name -> ermite.PendingIssue
-	1,  // 16: ermite.ApproveIssueResponse.issue:type_name -> ermite.Issue
-	4,  // 17: ermite.IssueService.CreateIssue:input_type -> ermite.CreateIssueRequest
-	6,  // 18: ermite.IssueService.ListIssues:input_type -> ermite.ListIssuesRequest
-	8,  // 19: ermite.IssueService.GetIssue:input_type -> ermite.GetIssueRequest
-	10, // 20: ermite.IssueService.AddIssueComment:input_type -> ermite.AddIssueCommentRequest
-	12, // 21: ermite.IssueService.CloseIssue:input_type -> ermite.CloseIssueRequest
-	14, // 22: ermite.IssueService.ReopenIssue:input_type -> ermite.ReopenIssueRequest
-	17, // 23: ermite.IssueService.ListPendingIssues:input_type -> ermite.ListPendingIssuesRequest
-	19, // 24: ermite.IssueService.ApproveIssue:input_type -> ermite.ApproveIssueRequest
-	21, // 25: ermite.IssueService.RejectIssue:input_type -> ermite.RejectIssueRequest
-	5,  // 26: ermite.IssueService.CreateIssue:output_type -> ermite.CreateIssueResponse
-	7,  // 27: ermite.IssueService.ListIssues:output_type -> ermite.ListIssuesResponse
-	9,  // 28: ermite.IssueService.GetIssue:output_type -> ermite.GetIssueResponse
-	11, // 29: ermite.IssueService.AddIssueComment:output_type -> ermite.AddIssueCommentResponse
-	13, // 30: ermite.IssueService.CloseIssue:output_type -> ermite.CloseIssueResponse
-	15, // 31: ermite.IssueService.ReopenIssue:output_type -> ermite.ReopenIssueResponse
-	18, // 32: ermite.IssueService.ListPendingIssues:output_type -> ermite.ListPendingIssuesResponse
-	20, // 33: ermite.IssueService.ApproveIssue:output_type -> ermite.ApproveIssueResponse
-	22, // 34: ermite.IssueService.RejectIssue:output_type -> ermite.RejectIssueResponse
-	26, // [26:35] is the sub-list for method output_type
-	17, // [17:26] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	27, // 11: ermite.GetIssueResponse.events:type_name -> ermite.IssueEvent
+	3,  // 12: ermite.AddIssueCommentResponse.comment:type_name -> ermite.IssueComment
+	1,  // 13: ermite.CloseIssueResponse.issue:type_name -> ermite.Issue
+	1,  // 14: ermite.ResolveIssueResponse.issue:type_name -> ermite.Issue
+	1,  // 15: ermite.ReopenIssueResponse.issue:type_name -> ermite.Issue
+	25, // 16: ermite.PendingIssue.created_at:type_name -> google.protobuf.Timestamp
+	18, // 17: ermite.ListPendingIssuesResponse.issues:type_name -> ermite.PendingIssue
+	1,  // 18: ermite.ApproveIssueResponse.issue:type_name -> ermite.Issue
+	4,  // 19: ermite.IssueService.CreateIssue:input_type -> ermite.CreateIssueRequest
+	6,  // 20: ermite.IssueService.ListIssues:input_type -> ermite.ListIssuesRequest
+	8,  // 21: ermite.IssueService.GetIssue:input_type -> ermite.GetIssueRequest
+	10, // 22: ermite.IssueService.AddIssueComment:input_type -> ermite.AddIssueCommentRequest
+	12, // 23: ermite.IssueService.CloseIssue:input_type -> ermite.CloseIssueRequest
+	14, // 24: ermite.IssueService.ResolveIssue:input_type -> ermite.ResolveIssueRequest
+	16, // 25: ermite.IssueService.ReopenIssue:input_type -> ermite.ReopenIssueRequest
+	19, // 26: ermite.IssueService.ListPendingIssues:input_type -> ermite.ListPendingIssuesRequest
+	21, // 27: ermite.IssueService.ApproveIssue:input_type -> ermite.ApproveIssueRequest
+	23, // 28: ermite.IssueService.RejectIssue:input_type -> ermite.RejectIssueRequest
+	5,  // 29: ermite.IssueService.CreateIssue:output_type -> ermite.CreateIssueResponse
+	7,  // 30: ermite.IssueService.ListIssues:output_type -> ermite.ListIssuesResponse
+	9,  // 31: ermite.IssueService.GetIssue:output_type -> ermite.GetIssueResponse
+	11, // 32: ermite.IssueService.AddIssueComment:output_type -> ermite.AddIssueCommentResponse
+	13, // 33: ermite.IssueService.CloseIssue:output_type -> ermite.CloseIssueResponse
+	15, // 34: ermite.IssueService.ResolveIssue:output_type -> ermite.ResolveIssueResponse
+	17, // 35: ermite.IssueService.ReopenIssue:output_type -> ermite.ReopenIssueResponse
+	20, // 36: ermite.IssueService.ListPendingIssues:output_type -> ermite.ListPendingIssuesResponse
+	22, // 37: ermite.IssueService.ApproveIssue:output_type -> ermite.ApproveIssueResponse
+	24, // 38: ermite.IssueService.RejectIssue:output_type -> ermite.RejectIssueResponse
+	29, // [29:39] is the sub-list for method output_type
+	19, // [19:29] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_ermite_issue_proto_init() }
@@ -1670,7 +1803,7 @@ func file_ermite_issue_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_issue_proto_rawDesc), len(file_ermite_issue_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   22,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

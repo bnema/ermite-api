@@ -47,6 +47,9 @@ const (
 	IssueServiceAddIssueCommentProcedure = "/ermite.IssueService/AddIssueComment"
 	// IssueServiceCloseIssueProcedure is the fully-qualified name of the IssueService's CloseIssue RPC.
 	IssueServiceCloseIssueProcedure = "/ermite.IssueService/CloseIssue"
+	// IssueServiceResolveIssueProcedure is the fully-qualified name of the IssueService's ResolveIssue
+	// RPC.
+	IssueServiceResolveIssueProcedure = "/ermite.IssueService/ResolveIssue"
 	// IssueServiceReopenIssueProcedure is the fully-qualified name of the IssueService's ReopenIssue
 	// RPC.
 	IssueServiceReopenIssueProcedure = "/ermite.IssueService/ReopenIssue"
@@ -73,7 +76,10 @@ type IssueServiceClient interface {
 	AddIssueComment(context.Context, *connect.Request[ermite.AddIssueCommentRequest]) (*connect.Response[ermite.AddIssueCommentResponse], error)
 	// CloseIssue closes an issue. Needs the issue:write scope.
 	CloseIssue(context.Context, *connect.Request[ermite.CloseIssueRequest]) (*connect.Response[ermite.CloseIssueResponse], error)
-	// ReopenIssue reopens an issue. Needs the issue:write scope.
+	// ResolveIssue marks an open issue as resolved. Needs the issue:write scope.
+	ResolveIssue(context.Context, *connect.Request[ermite.ResolveIssueRequest]) (*connect.Response[ermite.ResolveIssueResponse], error)
+	// ReopenIssue reopens a closed or resolved issue. Needs the issue:write
+	// scope.
 	ReopenIssue(context.Context, *connect.Request[ermite.ReopenIssueRequest]) (*connect.Response[ermite.ReopenIssueResponse], error)
 	// ListPendingIssues lists issues awaiting moderation, oldest first. Owner
 	// rights only; anyone else gets NOT_FOUND.
@@ -127,6 +133,12 @@ func NewIssueServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(issueServiceMethods.ByName("CloseIssue")),
 			connect.WithClientOptions(opts...),
 		),
+		resolveIssue: connect.NewClient[ermite.ResolveIssueRequest, ermite.ResolveIssueResponse](
+			httpClient,
+			baseURL+IssueServiceResolveIssueProcedure,
+			connect.WithSchema(issueServiceMethods.ByName("ResolveIssue")),
+			connect.WithClientOptions(opts...),
+		),
 		reopenIssue: connect.NewClient[ermite.ReopenIssueRequest, ermite.ReopenIssueResponse](
 			httpClient,
 			baseURL+IssueServiceReopenIssueProcedure,
@@ -161,6 +173,7 @@ type issueServiceClient struct {
 	getIssue          *connect.Client[ermite.GetIssueRequest, ermite.GetIssueResponse]
 	addIssueComment   *connect.Client[ermite.AddIssueCommentRequest, ermite.AddIssueCommentResponse]
 	closeIssue        *connect.Client[ermite.CloseIssueRequest, ermite.CloseIssueResponse]
+	resolveIssue      *connect.Client[ermite.ResolveIssueRequest, ermite.ResolveIssueResponse]
 	reopenIssue       *connect.Client[ermite.ReopenIssueRequest, ermite.ReopenIssueResponse]
 	listPendingIssues *connect.Client[ermite.ListPendingIssuesRequest, ermite.ListPendingIssuesResponse]
 	approveIssue      *connect.Client[ermite.ApproveIssueRequest, ermite.ApproveIssueResponse]
@@ -190,6 +203,11 @@ func (c *issueServiceClient) AddIssueComment(ctx context.Context, req *connect.R
 // CloseIssue calls ermite.IssueService.CloseIssue.
 func (c *issueServiceClient) CloseIssue(ctx context.Context, req *connect.Request[ermite.CloseIssueRequest]) (*connect.Response[ermite.CloseIssueResponse], error) {
 	return c.closeIssue.CallUnary(ctx, req)
+}
+
+// ResolveIssue calls ermite.IssueService.ResolveIssue.
+func (c *issueServiceClient) ResolveIssue(ctx context.Context, req *connect.Request[ermite.ResolveIssueRequest]) (*connect.Response[ermite.ResolveIssueResponse], error) {
+	return c.resolveIssue.CallUnary(ctx, req)
 }
 
 // ReopenIssue calls ermite.IssueService.ReopenIssue.
@@ -224,7 +242,10 @@ type IssueServiceHandler interface {
 	AddIssueComment(context.Context, *connect.Request[ermite.AddIssueCommentRequest]) (*connect.Response[ermite.AddIssueCommentResponse], error)
 	// CloseIssue closes an issue. Needs the issue:write scope.
 	CloseIssue(context.Context, *connect.Request[ermite.CloseIssueRequest]) (*connect.Response[ermite.CloseIssueResponse], error)
-	// ReopenIssue reopens an issue. Needs the issue:write scope.
+	// ResolveIssue marks an open issue as resolved. Needs the issue:write scope.
+	ResolveIssue(context.Context, *connect.Request[ermite.ResolveIssueRequest]) (*connect.Response[ermite.ResolveIssueResponse], error)
+	// ReopenIssue reopens a closed or resolved issue. Needs the issue:write
+	// scope.
 	ReopenIssue(context.Context, *connect.Request[ermite.ReopenIssueRequest]) (*connect.Response[ermite.ReopenIssueResponse], error)
 	// ListPendingIssues lists issues awaiting moderation, oldest first. Owner
 	// rights only; anyone else gets NOT_FOUND.
@@ -274,6 +295,12 @@ func NewIssueServiceHandler(svc IssueServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(issueServiceMethods.ByName("CloseIssue")),
 		connect.WithHandlerOptions(opts...),
 	)
+	issueServiceResolveIssueHandler := connect.NewUnaryHandler(
+		IssueServiceResolveIssueProcedure,
+		svc.ResolveIssue,
+		connect.WithSchema(issueServiceMethods.ByName("ResolveIssue")),
+		connect.WithHandlerOptions(opts...),
+	)
 	issueServiceReopenIssueHandler := connect.NewUnaryHandler(
 		IssueServiceReopenIssueProcedure,
 		svc.ReopenIssue,
@@ -310,6 +337,8 @@ func NewIssueServiceHandler(svc IssueServiceHandler, opts ...connect.HandlerOpti
 			issueServiceAddIssueCommentHandler.ServeHTTP(w, r)
 		case IssueServiceCloseIssueProcedure:
 			issueServiceCloseIssueHandler.ServeHTTP(w, r)
+		case IssueServiceResolveIssueProcedure:
+			issueServiceResolveIssueHandler.ServeHTTP(w, r)
 		case IssueServiceReopenIssueProcedure:
 			issueServiceReopenIssueHandler.ServeHTTP(w, r)
 		case IssueServiceListPendingIssuesProcedure:
@@ -345,6 +374,10 @@ func (UnimplementedIssueServiceHandler) AddIssueComment(context.Context, *connec
 
 func (UnimplementedIssueServiceHandler) CloseIssue(context.Context, *connect.Request[ermite.CloseIssueRequest]) (*connect.Response[ermite.CloseIssueResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.CloseIssue is not implemented"))
+}
+
+func (UnimplementedIssueServiceHandler) ResolveIssue(context.Context, *connect.Request[ermite.ResolveIssueRequest]) (*connect.Response[ermite.ResolveIssueResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.ResolveIssue is not implemented"))
 }
 
 func (UnimplementedIssueServiceHandler) ReopenIssue(context.Context, *connect.Request[ermite.ReopenIssueRequest]) (*connect.Response[ermite.ReopenIssueResponse], error) {

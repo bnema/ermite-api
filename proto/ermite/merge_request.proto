@@ -402,6 +402,75 @@ message ListMergeRequestsResponse {
   string next_page_token = 2;
 }
 
+// MergeRequestIssueState is where an issue named by a merge request is in its
+// life. Values share their numbers with IssueState (3, awaiting moderation,
+// is never shown here). It exists because issue.proto imports this file and
+// cannot be imported back.
+enum MergeRequestIssueState {
+  // Not set. Never returned by the server.
+  MERGE_REQUEST_ISSUE_STATE_UNSPECIFIED = 0;
+  // The issue is open.
+  MERGE_REQUEST_ISSUE_STATE_OPEN = 1;
+  // The issue is closed without being resolved.
+  MERGE_REQUEST_ISSUE_STATE_CLOSED = 2;
+  // The issue was resolved, by a merge or by hand.
+  MERGE_REQUEST_ISSUE_STATE_RESOLVED = 4;
+}
+
+// MergeRequestIssue is an issue of the same repository that a merge request
+// names ("#N").
+message MergeRequestIssue {
+  // Number is the number of the issue.
+  int64 number = 1;
+  // Title is the title of the issue.
+  string title = 2;
+  // State is where the issue is in its life.
+  MergeRequestIssueState state = 3;
+  // Closes says that a closing reference names the issue: merging the request
+  // resolves it.
+  bool closes = 4;
+}
+
+// IssueEventKind is what happened in an IssueEvent.
+enum IssueEventKind {
+  // Not set. Never returned by the server.
+  ISSUE_EVENT_KIND_UNSPECIFIED = 0;
+  // A merge request started naming the issue; closes says whether with a
+  // closing reference.
+  ISSUE_EVENT_KIND_REFERENCED = 1;
+  // The issue was closed without being resolved.
+  ISSUE_EVENT_KIND_CLOSED = 2;
+  // The issue was reopened.
+  ISSUE_EVENT_KIND_REOPENED = 3;
+  // The issue was resolved; merge_request is set when a merge resolved it.
+  ISSUE_EVENT_KIND_RESOLVED = 4;
+}
+
+// IssueEvent is one entry in the history of an issue. Events are append-only:
+// a reference that later disappears does not remove its event.
+message IssueEvent {
+  // Id identifies the event. Opaque.
+  string id = 1;
+  // Kind is what happened.
+  IssueEventKind kind = 2;
+  // Issue is the number of the issue.
+  int64 issue = 3;
+  // MergeRequest is the number of the merge request involved; 0 if none.
+  int64 merge_request = 4;
+  // MergeRequestTitle is the title of that merge request at read time; empty
+  // if none.
+  string merge_request_title = 5;
+  // Closes says that the reference was a closing one. Only set for
+  // ISSUE_EVENT_KIND_REFERENCED.
+  bool closes = 6;
+  // Actor names who caused the event, like Issue.author: the label of the
+  // token or session. For events triggered by a merge, the label of who
+  // merged.
+  string actor = 7;
+  // CreatedAt is when the event happened.
+  google.protobuf.Timestamp created_at = 8;
+}
+
 // GetMergeRequestRequest selects a merge request.
 message GetMergeRequestRequest {
   // Repo is the repository name.
@@ -452,6 +521,13 @@ message GetMergeRequestResponse {
   // Verdicts are the current verdicts, one per author who gave one, ordered
   // by the comment that carries them, oldest first.
   repeated AuthorVerdict verdicts = 10;
+  // Issues are the issues of the same repository that the merge request names,
+  // ascending by number, at most 100. Empty when issues are off.
+  repeated MergeRequestIssue issues = 11;
+  // IssueEvents are the history entries that involve this merge request: the
+  // REFERENCED and RESOLVED events of the issues it names, oldest first, at
+  // most 500.
+  repeated IssueEvent issue_events = 12;
 }
 
 // AddCommentRequest describes the comment to add.

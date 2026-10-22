@@ -19,6 +19,7 @@ func TestIssueProcedures(t *testing.T) {
 		ermiteconnect.IssueServiceAddIssueCommentProcedure:   "AddIssueComment",
 		ermiteconnect.IssueServiceCloseIssueProcedure:        "CloseIssue",
 		ermiteconnect.IssueServiceReopenIssueProcedure:       "ReopenIssue",
+		ermiteconnect.IssueServiceResolveIssueProcedure:      "ResolveIssue",
 		ermiteconnect.IssueServiceListPendingIssuesProcedure: "ListPendingIssues",
 		ermiteconnect.IssueServiceApproveIssueProcedure:      "ApproveIssue",
 		ermiteconnect.IssueServiceRejectIssueProcedure:       "RejectIssue",
@@ -58,7 +59,7 @@ func TestIssueContract(t *testing.T) {
 	if ermite.Scope_SCOPE_ISSUE_WRITE != 11 {
 		t.Fatal("issue:write scope number changed")
 	}
-	for name, want := range map[string]int32{"ISSUE_STATE_UNSPECIFIED": 0, "ISSUE_STATE_OPEN": 1, "ISSUE_STATE_CLOSED": 2, "ISSUE_STATE_PENDING": 3} {
+	for name, want := range map[string]int32{"ISSUE_STATE_UNSPECIFIED": 0, "ISSUE_STATE_OPEN": 1, "ISSUE_STATE_CLOSED": 2, "ISSUE_STATE_PENDING": 3, "ISSUE_STATE_RESOLVED": 4} {
 		if got := ermite.IssueState_value[name]; got != want {
 			t.Errorf("%s = %d, want %d", name, got, want)
 		}

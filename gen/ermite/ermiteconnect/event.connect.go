@@ -49,7 +49,7 @@ type EventServiceClient interface {
 	// for merge requests, merge_request_opened, merge_request_merged,
 	// merge_request_closed, comment_added, comment_edited, comment_deleted and
 	// comment_resolved (a thread resolved or reopened); for issues, issue_opened,
-	// issue_closed, issue_reopened and issue_commented, and issue_submitted. Each
+	// issue_closed, issue_resolved, issue_reopened and issue_commented, and issue_submitted. Each
 	// one is delivered on the "repo:<name>" topic of its repository and on
 	// "home", subject to the visibility of the repository, except
 	// issue_submitted: it is delivered only on the "owner" topic, never on
@@ -125,7 +125,7 @@ type EventServiceHandler interface {
 	// for merge requests, merge_request_opened, merge_request_merged,
 	// merge_request_closed, comment_added, comment_edited, comment_deleted and
 	// comment_resolved (a thread resolved or reopened); for issues, issue_opened,
-	// issue_closed, issue_reopened and issue_commented, and issue_submitted. Each
+	// issue_closed, issue_resolved, issue_reopened and issue_commented, and issue_submitted. Each
 	// one is delivered on the "repo:<name>" topic of its repository and on
 	// "home", subject to the visibility of the repository, except
 	// issue_submitted: it is delivered only on the "owner" topic, never on
