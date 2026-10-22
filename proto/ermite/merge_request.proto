@@ -449,7 +449,8 @@ enum IssueEventKind {
 // IssueEvent is one entry in the history of an issue. Events are append-only:
 // a reference that later disappears does not remove its event.
 message IssueEvent {
-  // Id identifies the event. Opaque.
+  // Id identifies the event within its issue. Opaque. Events of different
+  // issues can share an id: key them by (issue, id).
   string id = 1;
   // Kind is what happened.
   IssueEventKind kind = 2;
@@ -525,8 +526,9 @@ message GetMergeRequestResponse {
   // ascending by number, at most 100. Empty when issues are off.
   repeated MergeRequestIssue issues = 11;
   // IssueEvents are the history entries that involve this merge request: the
-  // REFERENCED and RESOLVED events of the issues it names, oldest first, at
-  // most 500.
+  // REFERENCED and RESOLVED events of the issues it names or once named,
+  // oldest first, at most 500. An event can name an issue that is no longer
+  // in issues. Empty when issues are off.
   repeated IssueEvent issue_events = 12;
 }
 

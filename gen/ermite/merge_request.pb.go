@@ -1386,7 +1386,8 @@ func (x *MergeRequestIssue) GetCloses() bool {
 // a reference that later disappears does not remove its event.
 type IssueEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Id identifies the event. Opaque.
+	// Id identifies the event within its issue. Opaque. Events of different
+	// issues can share an id: key them by (issue, id).
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Kind is what happened.
 	Kind IssueEventKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ermite.IssueEventKind" json:"kind,omitempty"`
@@ -1605,8 +1606,9 @@ type GetMergeRequestResponse struct {
 	// ascending by number, at most 100. Empty when issues are off.
 	Issues []*MergeRequestIssue `protobuf:"bytes,11,rep,name=issues,proto3" json:"issues,omitempty"`
 	// IssueEvents are the history entries that involve this merge request: the
-	// REFERENCED and RESOLVED events of the issues it names, oldest first, at
-	// most 500.
+	// REFERENCED and RESOLVED events of the issues it names or once named,
+	// oldest first, at most 500. An event can name an issue that is no longer
+	// in issues. Empty when issues are off.
 	IssueEvents   []*IssueEvent `protobuf:"bytes,12,rep,name=issue_events,json=issueEvents,proto3" json:"issue_events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
