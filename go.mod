@@ -1,6 +1,6 @@
 module bnema.dev/ermite-api
 
-go 1.27.1
+go 1.27
 
 tool (
 	connectrpc.com/connect/cmd/protoc-gen-connect-go
