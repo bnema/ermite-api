@@ -253,6 +253,12 @@ service MergeRequestService {
   // or if source and target are the same branch, and with already_exists if an
   // open merge request already has the same source and target.
   rpc CreateMergeRequest(CreateMergeRequestRequest) returns (CreateMergeRequestResponse);
+  // EditMergeRequest updates only present fields. Needs the mr:write scope.
+  // Title and description follow the CreateMergeRequest text rules. Neither
+  // field present gives invalid_argument. Merged requests give
+  // failed_precondition. Open and closed requests can be edited.
+  // Identical values succeed without changing updated_at or emitting events.
+  rpc EditMergeRequest(EditMergeRequestRequest) returns (EditMergeRequestResponse);
   // ListMergeRequests lists the merge requests of a repository, highest
   // number (newest) first, optionally restricted to one state. The listed
   // merge requests carry no diff or comments; head_id is set. Fails with
@@ -378,6 +384,25 @@ message CreateMergeRequestResponse {
   MergeRequest merge_request = 1;
 }
 
+// EditMergeRequestRequest describes the fields to change.
+message EditMergeRequestRequest {
+  // Repo is the repository name.
+  string repo = 1;
+  // Number is the merge request number.
+  int64 number = 2;
+  // Title replaces the title when present. One line, 1 to 120 code points.
+  optional string title = 3;
+  // Description replaces the description when present, including empty text.
+  // At most 8,000 code points; follows the CreateMergeRequest text rules.
+  optional string description = 4;
+}
+
+// EditMergeRequestResponse holds the updated merge request.
+message EditMergeRequestResponse {
+  // MergeRequest is the updated merge request.
+  MergeRequest merge_request = 1;
+}
+
 // ListMergeRequestsRequest selects a page of merge requests.
 message ListMergeRequestsRequest {
   // Repo is the repository name.
@@ -444,6 +469,8 @@ enum IssueEventKind {
   ISSUE_EVENT_KIND_REOPENED = 3;
   // The issue was resolved; merge_request is set when a merge resolved it.
   ISSUE_EVENT_KIND_RESOLVED = 4;
+  // The issue title and/or body changed.
+  ISSUE_EVENT_KIND_EDITED = 5;
 }
 
 // IssueEvent is one entry in the history of an issue. Events are append-only:
@@ -470,6 +497,8 @@ message IssueEvent {
   string actor = 7;
   // CreatedAt is when the event happened.
   google.protobuf.Timestamp created_at = 8;
+  // ChangedFields names the edited fields: title and/or body.
+  repeated string changed_fields = 9;
 }
 
 // GetMergeRequestRequest selects a merge request.

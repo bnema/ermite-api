@@ -37,7 +37,7 @@ type WatchRequest struct {
 	// gets the same invalid_argument as for an unknown topic, so the topic is
 	// not revealed. It carries the merge request and issue events of every
 	// repository (merge_request_opened, merge_request_merged,
-	// merge_request_closed, comment_added, and the issue events), repo_updated
+	// merge_request_closed, merge_request_edited, comment_added, and the issue events), repo_updated
 	// and repo_deleted, plus issue_submitted, which is delivered nowhere else.
 	Topics []string `protobuf:"bytes,1,rep,name=topics,proto3" json:"topics,omitempty"`
 	// ResumeAfter is the Event.id of the last event the client has seen. Empty
@@ -180,6 +180,8 @@ type Event struct {
 	//	*Event_ReleaseDeleted
 	//	*Event_ReleaseUnpublished
 	//	*Event_IssueResolved
+	//	*Event_IssueEdited
+	//	*Event_MergeRequestEdited
 	Kind          isEvent_Kind `protobuf_oneof:"kind"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -497,6 +499,24 @@ func (x *Event) GetIssueResolved() *IssueResolved {
 	return nil
 }
 
+func (x *Event) GetIssueEdited() *IssueEdited {
+	if x != nil {
+		if x, ok := x.Kind.(*Event_IssueEdited); ok {
+			return x.IssueEdited
+		}
+	}
+	return nil
+}
+
+func (x *Event) GetMergeRequestEdited() *MergeRequestEdited {
+	if x != nil {
+		if x, ok := x.Kind.(*Event_MergeRequestEdited); ok {
+			return x.MergeRequestEdited
+		}
+	}
+	return nil
+}
+
 type isEvent_Kind interface {
 	isEvent_Kind()
 }
@@ -649,6 +669,16 @@ type Event_IssueResolved struct {
 	IssueResolved *IssueResolved `protobuf:"bytes,31,opt,name=issue_resolved,json=issueResolved,proto3,oneof"`
 }
 
+type Event_IssueEdited struct {
+	// IssueEdited: issue text changed.
+	IssueEdited *IssueEdited `protobuf:"bytes,32,opt,name=issue_edited,json=issueEdited,proto3,oneof"`
+}
+
+type Event_MergeRequestEdited struct {
+	// MergeRequestEdited: merge request text changed.
+	MergeRequestEdited *MergeRequestEdited `protobuf:"bytes,33,opt,name=merge_request_edited,json=mergeRequestEdited,proto3,oneof"`
+}
+
 func (*Event_RepoCreated) isEvent_Kind() {}
 
 func (*Event_RepoUpdated) isEvent_Kind() {}
@@ -706,6 +736,10 @@ func (*Event_ReleaseDeleted) isEvent_Kind() {}
 func (*Event_ReleaseUnpublished) isEvent_Kind() {}
 
 func (*Event_IssueResolved) isEvent_Kind() {}
+
+func (*Event_IssueEdited) isEvent_Kind() {}
+
+func (*Event_MergeRequestEdited) isEvent_Kind() {}
 
 // RepoCreated reports a new repository.
 type RepoCreated struct {
@@ -2389,6 +2423,116 @@ func (x *ReleaseUnpublished) GetPrerelease() bool {
 	return false
 }
 
+// IssueEdited reports an issue text edit.
+type IssueEdited struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Issue is the updated issue.
+	Issue *Issue `protobuf:"bytes,1,opt,name=issue,proto3" json:"issue,omitempty"`
+	// ChangedFields names title and/or body.
+	ChangedFields []string `protobuf:"bytes,2,rep,name=changed_fields,json=changedFields,proto3" json:"changed_fields,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IssueEdited) Reset() {
+	*x = IssueEdited{}
+	mi := &file_ermite_event_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueEdited) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueEdited) ProtoMessage() {}
+
+func (x *IssueEdited) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_event_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueEdited.ProtoReflect.Descriptor instead.
+func (*IssueEdited) Descriptor() ([]byte, []int) {
+	return file_ermite_event_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *IssueEdited) GetIssue() *Issue {
+	if x != nil {
+		return x.Issue
+	}
+	return nil
+}
+
+func (x *IssueEdited) GetChangedFields() []string {
+	if x != nil {
+		return x.ChangedFields
+	}
+	return nil
+}
+
+// MergeRequestEdited reports a merge request text edit.
+type MergeRequestEdited struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// MergeRequest is the updated merge request.
+	MergeRequest *MergeRequest `protobuf:"bytes,1,opt,name=merge_request,json=mergeRequest,proto3" json:"merge_request,omitempty"`
+	// ChangedFields names title and/or description.
+	ChangedFields []string `protobuf:"bytes,2,rep,name=changed_fields,json=changedFields,proto3" json:"changed_fields,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MergeRequestEdited) Reset() {
+	*x = MergeRequestEdited{}
+	mi := &file_ermite_event_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergeRequestEdited) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergeRequestEdited) ProtoMessage() {}
+
+func (x *MergeRequestEdited) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_event_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MergeRequestEdited.ProtoReflect.Descriptor instead.
+func (*MergeRequestEdited) Descriptor() ([]byte, []int) {
+	return file_ermite_event_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *MergeRequestEdited) GetMergeRequest() *MergeRequest {
+	if x != nil {
+		return x.MergeRequest
+	}
+	return nil
+}
+
+func (x *MergeRequestEdited) GetChangedFields() []string {
+	if x != nil {
+		return x.ChangedFields
+	}
+	return nil
+}
+
 var File_ermite_event_proto protoreflect.FileDescriptor
 
 const file_ermite_event_proto_rawDesc = "" +
@@ -2398,7 +2542,7 @@ const file_ermite_event_proto_rawDesc = "" +
 	"\x06topics\x18\x01 \x03(\tR\x06topics\x12!\n" +
 	"\fresume_after\x18\x02 \x01(\tR\vresumeAfter\"4\n" +
 	"\rWatchResponse\x12#\n" +
-	"\x05event\x18\x01 \x01(\v2\r.ermite.EventR\x05event\"\x8f\x10\n" +
+	"\x05event\x18\x01 \x01(\v2\r.ermite.EventR\x05event\"\x99\x11\n" +
 	"\x05Event\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\x04time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x128\n" +
@@ -2433,7 +2577,9 @@ const file_ermite_event_proto_rawDesc = "" +
 	"\x0frelease_updated\x18\x1c \x01(\v2\x16.ermite.ReleaseUpdatedH\x00R\x0ereleaseUpdated\x12A\n" +
 	"\x0frelease_deleted\x18\x1d \x01(\v2\x16.ermite.ReleaseDeletedH\x00R\x0ereleaseDeleted\x12M\n" +
 	"\x13release_unpublished\x18\x1e \x01(\v2\x1a.ermite.ReleaseUnpublishedH\x00R\x12releaseUnpublished\x12>\n" +
-	"\x0eissue_resolved\x18\x1f \x01(\v2\x15.ermite.IssueResolvedH\x00R\rissueResolvedB\x06\n" +
+	"\x0eissue_resolved\x18\x1f \x01(\v2\x15.ermite.IssueResolvedH\x00R\rissueResolved\x128\n" +
+	"\fissue_edited\x18  \x01(\v2\x13.ermite.IssueEditedH\x00R\vissueEdited\x12N\n" +
+	"\x14merge_request_edited\x18! \x01(\v2\x1a.ermite.MergeRequestEditedH\x00R\x12mergeRequestEditedB\x06\n" +
 	"\x04kind\"/\n" +
 	"\vRepoCreated\x12 \n" +
 	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"/\n" +
@@ -2536,7 +2682,13 @@ const file_ermite_event_proto_rawDesc = "" +
 	"\x05draft\x18\x04 \x01(\bR\x05draft\x12\x1e\n" +
 	"\n" +
 	"prerelease\x18\x05 \x01(\bR\n" +
-	"prerelease2F\n" +
+	"prerelease\"Y\n" +
+	"\vIssueEdited\x12#\n" +
+	"\x05issue\x18\x01 \x01(\v2\r.ermite.IssueR\x05issue\x12%\n" +
+	"\x0echanged_fields\x18\x02 \x03(\tR\rchangedFields\"v\n" +
+	"\x12MergeRequestEdited\x129\n" +
+	"\rmerge_request\x18\x01 \x01(\v2\x14.ermite.MergeRequestR\fmergeRequest\x12%\n" +
+	"\x0echanged_fields\x18\x02 \x03(\tR\rchangedFields2F\n" +
 	"\fEventService\x126\n" +
 	"\x05Watch\x12\x14.ermite.WatchRequest\x1a\x15.ermite.WatchResponse0\x01Bq\n" +
 	"\n" +
@@ -2555,7 +2707,7 @@ func file_ermite_event_proto_rawDescGZIP() []byte {
 	return file_ermite_event_proto_rawDescData
 }
 
-var file_ermite_event_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_ermite_event_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_ermite_event_proto_goTypes = []any{
 	(*WatchRequest)(nil),                   // 0: ermite.WatchRequest
 	(*WatchResponse)(nil),                  // 1: ermite.WatchResponse
@@ -2590,20 +2742,22 @@ var file_ermite_event_proto_goTypes = []any{
 	(*ReleaseUpdated)(nil),                 // 30: ermite.ReleaseUpdated
 	(*ReleaseDeleted)(nil),                 // 31: ermite.ReleaseDeleted
 	(*ReleaseUnpublished)(nil),             // 32: ermite.ReleaseUnpublished
-	(*timestamppb.Timestamp)(nil),          // 33: google.protobuf.Timestamp
-	(*Repo)(nil),                           // 34: ermite.Repo
-	(*MergeRequest)(nil),                   // 35: ermite.MergeRequest
-	(*Mergeability)(nil),                   // 36: ermite.Mergeability
-	(*Comment)(nil),                        // 37: ermite.Comment
-	(*Issue)(nil),                          // 38: ermite.Issue
-	(*IssueComment)(nil),                   // 39: ermite.IssueComment
-	(*Run)(nil),                            // 40: ermite.Run
-	(*RunJob)(nil),                         // 41: ermite.RunJob
-	(MirrorState)(0),                       // 42: ermite.MirrorState
+	(*IssueEdited)(nil),                    // 33: ermite.IssueEdited
+	(*MergeRequestEdited)(nil),             // 34: ermite.MergeRequestEdited
+	(*timestamppb.Timestamp)(nil),          // 35: google.protobuf.Timestamp
+	(*Repo)(nil),                           // 36: ermite.Repo
+	(*MergeRequest)(nil),                   // 37: ermite.MergeRequest
+	(*Mergeability)(nil),                   // 38: ermite.Mergeability
+	(*Comment)(nil),                        // 39: ermite.Comment
+	(*Issue)(nil),                          // 40: ermite.Issue
+	(*IssueComment)(nil),                   // 41: ermite.IssueComment
+	(*Run)(nil),                            // 42: ermite.Run
+	(*RunJob)(nil),                         // 43: ermite.RunJob
+	(MirrorState)(0),                       // 44: ermite.MirrorState
 }
 var file_ermite_event_proto_depIdxs = []int32{
 	2,  // 0: ermite.WatchResponse.event:type_name -> ermite.Event
-	33, // 1: ermite.Event.time:type_name -> google.protobuf.Timestamp
+	35, // 1: ermite.Event.time:type_name -> google.protobuf.Timestamp
 	3,  // 2: ermite.Event.repo_created:type_name -> ermite.RepoCreated
 	4,  // 3: ermite.Event.repo_updated:type_name -> ermite.RepoUpdated
 	5,  // 4: ermite.Event.repo_deleted:type_name -> ermite.RepoDeleted
@@ -2633,34 +2787,38 @@ var file_ermite_event_proto_depIdxs = []int32{
 	31, // 28: ermite.Event.release_deleted:type_name -> ermite.ReleaseDeleted
 	32, // 29: ermite.Event.release_unpublished:type_name -> ermite.ReleaseUnpublished
 	20, // 30: ermite.Event.issue_resolved:type_name -> ermite.IssueResolved
-	34, // 31: ermite.RepoCreated.repo:type_name -> ermite.Repo
-	34, // 32: ermite.RepoUpdated.repo:type_name -> ermite.Repo
-	7,  // 33: ermite.Pushed.ref_updates:type_name -> ermite.RefUpdate
-	35, // 34: ermite.MergeRequestOpened.merge_request:type_name -> ermite.MergeRequest
-	35, // 35: ermite.MergeRequestMerged.merge_request:type_name -> ermite.MergeRequest
-	35, // 36: ermite.MergeRequestAutoMergeEnabled.merge_request:type_name -> ermite.MergeRequest
-	35, // 37: ermite.MergeRequestAutoMergeCancelled.merge_request:type_name -> ermite.MergeRequest
-	36, // 38: ermite.MergeRequestMergeability.mergeability:type_name -> ermite.Mergeability
-	35, // 39: ermite.MergeRequestClosed.merge_request:type_name -> ermite.MergeRequest
-	37, // 40: ermite.CommentAdded.comment:type_name -> ermite.Comment
-	37, // 41: ermite.CommentEdited.comment:type_name -> ermite.Comment
-	37, // 42: ermite.CommentDeleted.comment:type_name -> ermite.Comment
-	37, // 43: ermite.CommentResolved.comment:type_name -> ermite.Comment
-	38, // 44: ermite.IssueOpened.issue:type_name -> ermite.Issue
-	38, // 45: ermite.IssueClosed.issue:type_name -> ermite.Issue
-	38, // 46: ermite.IssueResolved.issue:type_name -> ermite.Issue
-	38, // 47: ermite.IssueReopened.issue:type_name -> ermite.Issue
-	39, // 48: ermite.IssueCommented.comment:type_name -> ermite.IssueComment
-	40, // 49: ermite.RunUpdated.run:type_name -> ermite.Run
-	41, // 50: ermite.JobUpdated.job:type_name -> ermite.RunJob
-	42, // 51: ermite.MirrorFailed.state:type_name -> ermite.MirrorState
-	0,  // 52: ermite.EventService.Watch:input_type -> ermite.WatchRequest
-	1,  // 53: ermite.EventService.Watch:output_type -> ermite.WatchResponse
-	53, // [53:54] is the sub-list for method output_type
-	52, // [52:53] is the sub-list for method input_type
-	52, // [52:52] is the sub-list for extension type_name
-	52, // [52:52] is the sub-list for extension extendee
-	0,  // [0:52] is the sub-list for field type_name
+	33, // 31: ermite.Event.issue_edited:type_name -> ermite.IssueEdited
+	34, // 32: ermite.Event.merge_request_edited:type_name -> ermite.MergeRequestEdited
+	36, // 33: ermite.RepoCreated.repo:type_name -> ermite.Repo
+	36, // 34: ermite.RepoUpdated.repo:type_name -> ermite.Repo
+	7,  // 35: ermite.Pushed.ref_updates:type_name -> ermite.RefUpdate
+	37, // 36: ermite.MergeRequestOpened.merge_request:type_name -> ermite.MergeRequest
+	37, // 37: ermite.MergeRequestMerged.merge_request:type_name -> ermite.MergeRequest
+	37, // 38: ermite.MergeRequestAutoMergeEnabled.merge_request:type_name -> ermite.MergeRequest
+	37, // 39: ermite.MergeRequestAutoMergeCancelled.merge_request:type_name -> ermite.MergeRequest
+	38, // 40: ermite.MergeRequestMergeability.mergeability:type_name -> ermite.Mergeability
+	37, // 41: ermite.MergeRequestClosed.merge_request:type_name -> ermite.MergeRequest
+	39, // 42: ermite.CommentAdded.comment:type_name -> ermite.Comment
+	39, // 43: ermite.CommentEdited.comment:type_name -> ermite.Comment
+	39, // 44: ermite.CommentDeleted.comment:type_name -> ermite.Comment
+	39, // 45: ermite.CommentResolved.comment:type_name -> ermite.Comment
+	40, // 46: ermite.IssueOpened.issue:type_name -> ermite.Issue
+	40, // 47: ermite.IssueClosed.issue:type_name -> ermite.Issue
+	40, // 48: ermite.IssueResolved.issue:type_name -> ermite.Issue
+	40, // 49: ermite.IssueReopened.issue:type_name -> ermite.Issue
+	41, // 50: ermite.IssueCommented.comment:type_name -> ermite.IssueComment
+	42, // 51: ermite.RunUpdated.run:type_name -> ermite.Run
+	43, // 52: ermite.JobUpdated.job:type_name -> ermite.RunJob
+	44, // 53: ermite.MirrorFailed.state:type_name -> ermite.MirrorState
+	40, // 54: ermite.IssueEdited.issue:type_name -> ermite.Issue
+	37, // 55: ermite.MergeRequestEdited.merge_request:type_name -> ermite.MergeRequest
+	0,  // 56: ermite.EventService.Watch:input_type -> ermite.WatchRequest
+	1,  // 57: ermite.EventService.Watch:output_type -> ermite.WatchResponse
+	57, // [57:58] is the sub-list for method output_type
+	56, // [56:57] is the sub-list for method input_type
+	56, // [56:56] is the sub-list for extension type_name
+	56, // [56:56] is the sub-list for extension extendee
+	0,  // [0:56] is the sub-list for field type_name
 }
 
 func init() { file_ermite_event_proto_init() }
@@ -2703,6 +2861,8 @@ func file_ermite_event_proto_init() {
 		(*Event_ReleaseDeleted)(nil),
 		(*Event_ReleaseUnpublished)(nil),
 		(*Event_IssueResolved)(nil),
+		(*Event_IssueEdited)(nil),
+		(*Event_MergeRequestEdited)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -2710,7 +2870,7 @@ func file_ermite_event_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_event_proto_rawDesc), len(file_ermite_event_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   33,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

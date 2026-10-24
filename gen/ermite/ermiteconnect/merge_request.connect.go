@@ -38,6 +38,9 @@ const (
 	// MergeRequestServiceCreateMergeRequestProcedure is the fully-qualified name of the
 	// MergeRequestService's CreateMergeRequest RPC.
 	MergeRequestServiceCreateMergeRequestProcedure = "/ermite.MergeRequestService/CreateMergeRequest"
+	// MergeRequestServiceEditMergeRequestProcedure is the fully-qualified name of the
+	// MergeRequestService's EditMergeRequest RPC.
+	MergeRequestServiceEditMergeRequestProcedure = "/ermite.MergeRequestService/EditMergeRequest"
 	// MergeRequestServiceListMergeRequestsProcedure is the fully-qualified name of the
 	// MergeRequestService's ListMergeRequests RPC.
 	MergeRequestServiceListMergeRequestsProcedure = "/ermite.MergeRequestService/ListMergeRequests"
@@ -83,6 +86,12 @@ type MergeRequestServiceClient interface {
 	// or if source and target are the same branch, and with already_exists if an
 	// open merge request already has the same source and target.
 	CreateMergeRequest(context.Context, *connect.Request[ermite.CreateMergeRequestRequest]) (*connect.Response[ermite.CreateMergeRequestResponse], error)
+	// EditMergeRequest updates only present fields. Needs the mr:write scope.
+	// Title and description follow the CreateMergeRequest text rules. Neither
+	// field present gives invalid_argument. Merged requests give
+	// failed_precondition. Open and closed requests can be edited.
+	// Identical values succeed without changing updated_at or emitting events.
+	EditMergeRequest(context.Context, *connect.Request[ermite.EditMergeRequestRequest]) (*connect.Response[ermite.EditMergeRequestResponse], error)
 	// ListMergeRequests lists the merge requests of a repository, highest
 	// number (newest) first, optionally restricted to one state. The listed
 	// merge requests carry no diff or comments; head_id is set. Fails with
@@ -202,6 +211,12 @@ func NewMergeRequestServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(mergeRequestServiceMethods.ByName("CreateMergeRequest")),
 			connect.WithClientOptions(opts...),
 		),
+		editMergeRequest: connect.NewClient[ermite.EditMergeRequestRequest, ermite.EditMergeRequestResponse](
+			httpClient,
+			baseURL+MergeRequestServiceEditMergeRequestProcedure,
+			connect.WithSchema(mergeRequestServiceMethods.ByName("EditMergeRequest")),
+			connect.WithClientOptions(opts...),
+		),
 		listMergeRequests: connect.NewClient[ermite.ListMergeRequestsRequest, ermite.ListMergeRequestsResponse](
 			httpClient,
 			baseURL+MergeRequestServiceListMergeRequestsProcedure,
@@ -280,6 +295,7 @@ func NewMergeRequestServiceClient(httpClient connect.HTTPClient, baseURL string,
 // mergeRequestServiceClient implements MergeRequestServiceClient.
 type mergeRequestServiceClient struct {
 	createMergeRequest *connect.Client[ermite.CreateMergeRequestRequest, ermite.CreateMergeRequestResponse]
+	editMergeRequest   *connect.Client[ermite.EditMergeRequestRequest, ermite.EditMergeRequestResponse]
 	listMergeRequests  *connect.Client[ermite.ListMergeRequestsRequest, ermite.ListMergeRequestsResponse]
 	getMergeRequest    *connect.Client[ermite.GetMergeRequestRequest, ermite.GetMergeRequestResponse]
 	addComment         *connect.Client[ermite.AddCommentRequest, ermite.AddCommentResponse]
@@ -297,6 +313,11 @@ type mergeRequestServiceClient struct {
 // CreateMergeRequest calls ermite.MergeRequestService.CreateMergeRequest.
 func (c *mergeRequestServiceClient) CreateMergeRequest(ctx context.Context, req *connect.Request[ermite.CreateMergeRequestRequest]) (*connect.Response[ermite.CreateMergeRequestResponse], error) {
 	return c.createMergeRequest.CallUnary(ctx, req)
+}
+
+// EditMergeRequest calls ermite.MergeRequestService.EditMergeRequest.
+func (c *mergeRequestServiceClient) EditMergeRequest(ctx context.Context, req *connect.Request[ermite.EditMergeRequestRequest]) (*connect.Response[ermite.EditMergeRequestResponse], error) {
+	return c.editMergeRequest.CallUnary(ctx, req)
 }
 
 // ListMergeRequests calls ermite.MergeRequestService.ListMergeRequests.
@@ -366,6 +387,12 @@ type MergeRequestServiceHandler interface {
 	// or if source and target are the same branch, and with already_exists if an
 	// open merge request already has the same source and target.
 	CreateMergeRequest(context.Context, *connect.Request[ermite.CreateMergeRequestRequest]) (*connect.Response[ermite.CreateMergeRequestResponse], error)
+	// EditMergeRequest updates only present fields. Needs the mr:write scope.
+	// Title and description follow the CreateMergeRequest text rules. Neither
+	// field present gives invalid_argument. Merged requests give
+	// failed_precondition. Open and closed requests can be edited.
+	// Identical values succeed without changing updated_at or emitting events.
+	EditMergeRequest(context.Context, *connect.Request[ermite.EditMergeRequestRequest]) (*connect.Response[ermite.EditMergeRequestResponse], error)
 	// ListMergeRequests lists the merge requests of a repository, highest
 	// number (newest) first, optionally restricted to one state. The listed
 	// merge requests carry no diff or comments; head_id is set. Fails with
@@ -481,6 +508,12 @@ func NewMergeRequestServiceHandler(svc MergeRequestServiceHandler, opts ...conne
 		connect.WithSchema(mergeRequestServiceMethods.ByName("CreateMergeRequest")),
 		connect.WithHandlerOptions(opts...),
 	)
+	mergeRequestServiceEditMergeRequestHandler := connect.NewUnaryHandler(
+		MergeRequestServiceEditMergeRequestProcedure,
+		svc.EditMergeRequest,
+		connect.WithSchema(mergeRequestServiceMethods.ByName("EditMergeRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
 	mergeRequestServiceListMergeRequestsHandler := connect.NewUnaryHandler(
 		MergeRequestServiceListMergeRequestsProcedure,
 		svc.ListMergeRequests,
@@ -557,6 +590,8 @@ func NewMergeRequestServiceHandler(svc MergeRequestServiceHandler, opts ...conne
 		switch r.URL.Path {
 		case MergeRequestServiceCreateMergeRequestProcedure:
 			mergeRequestServiceCreateMergeRequestHandler.ServeHTTP(w, r)
+		case MergeRequestServiceEditMergeRequestProcedure:
+			mergeRequestServiceEditMergeRequestHandler.ServeHTTP(w, r)
 		case MergeRequestServiceListMergeRequestsProcedure:
 			mergeRequestServiceListMergeRequestsHandler.ServeHTTP(w, r)
 		case MergeRequestServiceGetMergeRequestProcedure:
@@ -592,6 +627,10 @@ type UnimplementedMergeRequestServiceHandler struct{}
 
 func (UnimplementedMergeRequestServiceHandler) CreateMergeRequest(context.Context, *connect.Request[ermite.CreateMergeRequestRequest]) (*connect.Response[ermite.CreateMergeRequestResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.CreateMergeRequest is not implemented"))
+}
+
+func (UnimplementedMergeRequestServiceHandler) EditMergeRequest(context.Context, *connect.Request[ermite.EditMergeRequestRequest]) (*connect.Response[ermite.EditMergeRequestResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.EditMergeRequest is not implemented"))
 }
 
 func (UnimplementedMergeRequestServiceHandler) ListMergeRequests(context.Context, *connect.Request[ermite.ListMergeRequestsRequest]) (*connect.Response[ermite.ListMergeRequestsResponse], error) {

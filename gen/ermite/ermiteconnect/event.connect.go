@@ -47,9 +47,9 @@ type EventServiceClient interface {
 	//
 	// The events are repo_created, repo_updated, repo_deleted, pushed, gap and,
 	// for merge requests, merge_request_opened, merge_request_merged,
-	// merge_request_closed, comment_added, comment_edited, comment_deleted and
+	// merge_request_closed, merge_request_edited, comment_added, comment_edited, comment_deleted and
 	// comment_resolved (a thread resolved or reopened); for issues, issue_opened,
-	// issue_closed, issue_resolved, issue_reopened and issue_commented, and
+	// issue_closed, issue_resolved, issue_reopened, issue_edited and issue_commented, and
 	// issue_submitted. Each one is delivered on the "repo:<name>" topic of its
 	// repository and on "home", subject to the visibility of the repository,
 	// except
@@ -64,9 +64,8 @@ type EventServiceClient interface {
 	// line: follow a log with RunService.GetJobLog). The order of these events
 	// is not guaranteed, between jobs and runs or between two updates of the same
 	// one: a client keeps the copy with the higher Run.version or
-	// RunJob.version and drops the other. There is no event for a change of title or
-	// description: after a gap, or to see such changes, clients read the merge
-	// request again. A merge publishes
+	// RunJob.version and drops the other. Text edits publish issue_edited or merge_request_edited with
+	// the updated item and changed field names. After a gap, clients reload state. A merge publishes
 	// merge_request_merged, then pushed for the target branch.
 	//
 	// The server keeps a bounded buffer of recent events. With resume_after set,
@@ -124,9 +123,9 @@ type EventServiceHandler interface {
 	//
 	// The events are repo_created, repo_updated, repo_deleted, pushed, gap and,
 	// for merge requests, merge_request_opened, merge_request_merged,
-	// merge_request_closed, comment_added, comment_edited, comment_deleted and
+	// merge_request_closed, merge_request_edited, comment_added, comment_edited, comment_deleted and
 	// comment_resolved (a thread resolved or reopened); for issues, issue_opened,
-	// issue_closed, issue_resolved, issue_reopened and issue_commented, and
+	// issue_closed, issue_resolved, issue_reopened, issue_edited and issue_commented, and
 	// issue_submitted. Each one is delivered on the "repo:<name>" topic of its
 	// repository and on "home", subject to the visibility of the repository,
 	// except
@@ -141,9 +140,8 @@ type EventServiceHandler interface {
 	// line: follow a log with RunService.GetJobLog). The order of these events
 	// is not guaranteed, between jobs and runs or between two updates of the same
 	// one: a client keeps the copy with the higher Run.version or
-	// RunJob.version and drops the other. There is no event for a change of title or
-	// description: after a gap, or to see such changes, clients read the merge
-	// request again. A merge publishes
+	// RunJob.version and drops the other. Text edits publish issue_edited or merge_request_edited with
+	// the updated item and changed field names. After a gap, clients reload state. A merge publishes
 	// merge_request_merged, then pushed for the target branch.
 	//
 	// The server keeps a bounded buffer of recent events. With resume_after set,

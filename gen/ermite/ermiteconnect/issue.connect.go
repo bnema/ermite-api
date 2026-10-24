@@ -38,6 +38,8 @@ const (
 	// IssueServiceCreateIssueProcedure is the fully-qualified name of the IssueService's CreateIssue
 	// RPC.
 	IssueServiceCreateIssueProcedure = "/ermite.IssueService/CreateIssue"
+	// IssueServiceEditIssueProcedure is the fully-qualified name of the IssueService's EditIssue RPC.
+	IssueServiceEditIssueProcedure = "/ermite.IssueService/EditIssue"
 	// IssueServiceListIssuesProcedure is the fully-qualified name of the IssueService's ListIssues RPC.
 	IssueServiceListIssuesProcedure = "/ermite.IssueService/ListIssues"
 	// IssueServiceGetIssueProcedure is the fully-qualified name of the IssueService's GetIssue RPC.
@@ -68,6 +70,13 @@ const (
 type IssueServiceClient interface {
 	// CreateIssue opens an issue. Needs the issue:write scope.
 	CreateIssue(context.Context, *connect.Request[ermite.CreateIssueRequest]) (*connect.Response[ermite.CreateIssueResponse], error)
+	// EditIssue updates only present fields. Needs the issue:write scope.
+	// Title and body follow the CreateIssue text rules. Neither field present
+	// gives invalid_argument; a pending issue gives failed_precondition.
+	// Identical values succeed without changing updated_at or emitting events.
+	// History is capped at 500 entries: edits still persist and publish live
+	// events after the cap, but no further history entries are retained.
+	EditIssue(context.Context, *connect.Request[ermite.EditIssueRequest]) (*connect.Response[ermite.EditIssueResponse], error)
 	// ListIssues lists issues, highest number first, optionally in one state.
 	ListIssues(context.Context, *connect.Request[ermite.ListIssuesRequest]) (*connect.Response[ermite.ListIssuesResponse], error)
 	// GetIssue returns an issue with its comments.
@@ -107,6 +116,12 @@ func NewIssueServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+IssueServiceCreateIssueProcedure,
 			connect.WithSchema(issueServiceMethods.ByName("CreateIssue")),
+			connect.WithClientOptions(opts...),
+		),
+		editIssue: connect.NewClient[ermite.EditIssueRequest, ermite.EditIssueResponse](
+			httpClient,
+			baseURL+IssueServiceEditIssueProcedure,
+			connect.WithSchema(issueServiceMethods.ByName("EditIssue")),
 			connect.WithClientOptions(opts...),
 		),
 		listIssues: connect.NewClient[ermite.ListIssuesRequest, ermite.ListIssuesResponse](
@@ -169,6 +184,7 @@ func NewIssueServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 // issueServiceClient implements IssueServiceClient.
 type issueServiceClient struct {
 	createIssue       *connect.Client[ermite.CreateIssueRequest, ermite.CreateIssueResponse]
+	editIssue         *connect.Client[ermite.EditIssueRequest, ermite.EditIssueResponse]
 	listIssues        *connect.Client[ermite.ListIssuesRequest, ermite.ListIssuesResponse]
 	getIssue          *connect.Client[ermite.GetIssueRequest, ermite.GetIssueResponse]
 	addIssueComment   *connect.Client[ermite.AddIssueCommentRequest, ermite.AddIssueCommentResponse]
@@ -183,6 +199,11 @@ type issueServiceClient struct {
 // CreateIssue calls ermite.IssueService.CreateIssue.
 func (c *issueServiceClient) CreateIssue(ctx context.Context, req *connect.Request[ermite.CreateIssueRequest]) (*connect.Response[ermite.CreateIssueResponse], error) {
 	return c.createIssue.CallUnary(ctx, req)
+}
+
+// EditIssue calls ermite.IssueService.EditIssue.
+func (c *issueServiceClient) EditIssue(ctx context.Context, req *connect.Request[ermite.EditIssueRequest]) (*connect.Response[ermite.EditIssueResponse], error) {
+	return c.editIssue.CallUnary(ctx, req)
 }
 
 // ListIssues calls ermite.IssueService.ListIssues.
@@ -234,6 +255,13 @@ func (c *issueServiceClient) RejectIssue(ctx context.Context, req *connect.Reque
 type IssueServiceHandler interface {
 	// CreateIssue opens an issue. Needs the issue:write scope.
 	CreateIssue(context.Context, *connect.Request[ermite.CreateIssueRequest]) (*connect.Response[ermite.CreateIssueResponse], error)
+	// EditIssue updates only present fields. Needs the issue:write scope.
+	// Title and body follow the CreateIssue text rules. Neither field present
+	// gives invalid_argument; a pending issue gives failed_precondition.
+	// Identical values succeed without changing updated_at or emitting events.
+	// History is capped at 500 entries: edits still persist and publish live
+	// events after the cap, but no further history entries are retained.
+	EditIssue(context.Context, *connect.Request[ermite.EditIssueRequest]) (*connect.Response[ermite.EditIssueResponse], error)
 	// ListIssues lists issues, highest number first, optionally in one state.
 	ListIssues(context.Context, *connect.Request[ermite.ListIssuesRequest]) (*connect.Response[ermite.ListIssuesResponse], error)
 	// GetIssue returns an issue with its comments.
@@ -269,6 +297,12 @@ func NewIssueServiceHandler(svc IssueServiceHandler, opts ...connect.HandlerOpti
 		IssueServiceCreateIssueProcedure,
 		svc.CreateIssue,
 		connect.WithSchema(issueServiceMethods.ByName("CreateIssue")),
+		connect.WithHandlerOptions(opts...),
+	)
+	issueServiceEditIssueHandler := connect.NewUnaryHandler(
+		IssueServiceEditIssueProcedure,
+		svc.EditIssue,
+		connect.WithSchema(issueServiceMethods.ByName("EditIssue")),
 		connect.WithHandlerOptions(opts...),
 	)
 	issueServiceListIssuesHandler := connect.NewUnaryHandler(
@@ -329,6 +363,8 @@ func NewIssueServiceHandler(svc IssueServiceHandler, opts ...connect.HandlerOpti
 		switch r.URL.Path {
 		case IssueServiceCreateIssueProcedure:
 			issueServiceCreateIssueHandler.ServeHTTP(w, r)
+		case IssueServiceEditIssueProcedure:
+			issueServiceEditIssueHandler.ServeHTTP(w, r)
 		case IssueServiceListIssuesProcedure:
 			issueServiceListIssuesHandler.ServeHTTP(w, r)
 		case IssueServiceGetIssueProcedure:
@@ -358,6 +394,10 @@ type UnimplementedIssueServiceHandler struct{}
 
 func (UnimplementedIssueServiceHandler) CreateIssue(context.Context, *connect.Request[ermite.CreateIssueRequest]) (*connect.Response[ermite.CreateIssueResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.CreateIssue is not implemented"))
+}
+
+func (UnimplementedIssueServiceHandler) EditIssue(context.Context, *connect.Request[ermite.EditIssueRequest]) (*connect.Response[ermite.EditIssueResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.EditIssue is not implemented"))
 }
 
 func (UnimplementedIssueServiceHandler) ListIssues(context.Context, *connect.Request[ermite.ListIssuesRequest]) (*connect.Response[ermite.ListIssuesResponse], error) {

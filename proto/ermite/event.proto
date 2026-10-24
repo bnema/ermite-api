@@ -19,9 +19,9 @@ service EventService {
   //
   // The events are repo_created, repo_updated, repo_deleted, pushed, gap and,
   // for merge requests, merge_request_opened, merge_request_merged,
-  // merge_request_closed, comment_added, comment_edited, comment_deleted and
+  // merge_request_closed, merge_request_edited, comment_added, comment_edited, comment_deleted and
   // comment_resolved (a thread resolved or reopened); for issues, issue_opened,
-  // issue_closed, issue_resolved, issue_reopened and issue_commented, and
+  // issue_closed, issue_resolved, issue_reopened, issue_edited and issue_commented, and
   // issue_submitted. Each one is delivered on the "repo:<name>" topic of its
   // repository and on "home", subject to the visibility of the repository,
   // except
@@ -36,9 +36,8 @@ service EventService {
   // line: follow a log with RunService.GetJobLog). The order of these events
   // is not guaranteed, between jobs and runs or between two updates of the same
   // one: a client keeps the copy with the higher Run.version or
-  // RunJob.version and drops the other. There is no event for a change of title or
-  // description: after a gap, or to see such changes, clients read the merge
-  // request again. A merge publishes
+  // RunJob.version and drops the other. Text edits publish issue_edited or merge_request_edited with
+  // the updated item and changed field names. After a gap, clients reload state. A merge publishes
   // merge_request_merged, then pushed for the target branch.
   //
   // The server keeps a bounded buffer of recent events. With resume_after set,
@@ -70,7 +69,7 @@ message WatchRequest {
   // gets the same invalid_argument as for an unknown topic, so the topic is
   // not revealed. It carries the merge request and issue events of every
   // repository (merge_request_opened, merge_request_merged,
-  // merge_request_closed, comment_added, and the issue events), repo_updated
+  // merge_request_closed, merge_request_edited, comment_added, and the issue events), repo_updated
   // and repo_deleted, plus issue_submitted, which is delivered nowhere else.
   repeated string topics = 1;
   // ResumeAfter is the Event.id of the last event the client has seen. Empty
@@ -156,6 +155,10 @@ message Event {
     ReleaseUnpublished release_unpublished = 30;
     // IssueResolved: an issue was resolved.
     IssueResolved issue_resolved = 31;
+    // IssueEdited: issue text changed.
+    IssueEdited issue_edited = 32;
+    // MergeRequestEdited: merge request text changed.
+    MergeRequestEdited merge_request_edited = 33;
   }
 }
 
@@ -410,4 +413,20 @@ message ReleaseUnpublished {
   string tag = 3;
   bool draft = 4;
   bool prerelease = 5;
+}
+
+// IssueEdited reports an issue text edit.
+message IssueEdited {
+  // Issue is the updated issue.
+  Issue issue = 1;
+  // ChangedFields names title and/or body.
+  repeated string changed_fields = 2;
+}
+
+// MergeRequestEdited reports a merge request text edit.
+message MergeRequestEdited {
+  // MergeRequest is the updated merge request.
+  MergeRequest merge_request = 1;
+  // ChangedFields names title and/or description.
+  repeated string changed_fields = 2;
 }
