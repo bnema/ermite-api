@@ -659,7 +659,10 @@ type FetchJobRequest struct {
 	// as the runner's version (Runner.version in ListRunners), replacing the one
 	// given at registration, so that the list shows what runs now. Empty, from
 	// an older runner, leaves the stored version unchanged.
-	Version       string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	Version string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	// Kinds are accepted job kinds: "workflow" and/or "deps". Empty means
+	// ["workflow"], so older runners never receive deps jobs.
+	Kinds         []string `protobuf:"bytes,4,rep,name=kinds,proto3" json:"kinds,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -713,6 +716,13 @@ func (x *FetchJobRequest) GetVersion() string {
 		return x.Version
 	}
 	return ""
+}
+
+func (x *FetchJobRequest) GetKinds() []string {
+	if x != nil {
+		return x.Kinds
+	}
+	return nil
 }
 
 // FetchJobResponse holds the job given to the runner, if any.
@@ -913,8 +923,14 @@ type Job struct {
 	// gives it to the sandbox only with id_token_url. Empty when id_token_url
 	// is.
 	IdTokenRequestToken string `protobuf:"bytes,23,opt,name=id_token_request_token,json=idTokenRequestToken,proto3" json:"id_token_request_token,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Deps, when set, makes this a dependency job, with job_id prefixed "deps-".
+	// Workflow fields (run_id, attempt, workflow_path, workflow_yaml, job_key,
+	// matrix, contexts and ref) are empty. Repo and sha identify the source;
+	// github_token is read-only, trusted is false, and secrets, vars,
+	// environment, cache and OIDC fields are empty.
+	Deps          *DepsJob `protobuf:"bytes,24,opt,name=deps,proto3" json:"deps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Job) Reset() {
@@ -1106,6 +1122,13 @@ func (x *Job) GetIdTokenRequestToken() string {
 		return x.IdTokenRequestToken
 	}
 	return ""
+}
+
+func (x *Job) GetDeps() *DepsJob {
+	if x != nil {
+		return x.Deps
+	}
+	return nil
 }
 
 // JobPermissions are the permissions of the job repository token, with the
@@ -1488,7 +1511,10 @@ type CompleteJobRequest struct {
 	// the rules of UpdateJobRequest.annotations (all the annotations of each
 	// step named). The server ignores them without the feature
 	// "ci.annotations".
-	Annotations   []*Annotation `protobuf:"bytes,6,rep,name=annotations,proto3" json:"annotations,omitempty"`
+	Annotations []*Annotation `protobuf:"bytes,6,rep,name=annotations,proto3" json:"annotations,omitempty"`
+	// DepsReport is the result of a deps job (job_id prefixed "deps-").
+	// Unset for workflow jobs. The server validates the paths and content.
+	DepsReport    *DepsReport `protobuf:"bytes,7,opt,name=deps_report,json=depsReport,proto3" json:"deps_report,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1561,6 +1587,13 @@ func (x *CompleteJobRequest) GetSteps() []*StepUpdate {
 func (x *CompleteJobRequest) GetAnnotations() []*Annotation {
 	if x != nil {
 		return x.Annotations
+	}
+	return nil
+}
+
+func (x *CompleteJobRequest) GetDepsReport() *DepsReport {
+	if x != nil {
+		return x.DepsReport
 	}
 	return nil
 }
@@ -2744,6 +2777,241 @@ func (*UploadSummaryResponse) Descriptor() ([]byte, []int) {
 	return file_ermite_runner_proto_rawDescGZIP(), []int{28}
 }
 
+// DepsJob applies the requested Go module updates in the runner sandbox.
+type DepsJob struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Updates []*DepsJobUpdate       `protobuf:"bytes,1,rep,name=updates,proto3" json:"updates,omitempty"`
+	// GoVersion is the highest root go.mod go/toolchain version, without "go".
+	GoVersion     string `protobuf:"bytes,2,opt,name=go_version,json=goVersion,proto3" json:"go_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DepsJob) Reset() {
+	*x = DepsJob{}
+	mi := &file_ermite_runner_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DepsJob) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DepsJob) ProtoMessage() {}
+
+func (x *DepsJob) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DepsJob.ProtoReflect.Descriptor instead.
+func (*DepsJob) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *DepsJob) GetUpdates() []*DepsJobUpdate {
+	if x != nil {
+		return x.Updates
+	}
+	return nil
+}
+
+func (x *DepsJob) GetGoVersion() string {
+	if x != nil {
+		return x.GoVersion
+	}
+	return ""
+}
+
+// DepsJobUpdate identifies one exact version to apply.
+type DepsJobUpdate struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Ecosystem string                 `protobuf:"bytes,1,opt,name=ecosystem,proto3" json:"ecosystem,omitempty"`
+	// Directory is repository-relative; empty means the root module.
+	Directory     string `protobuf:"bytes,2,opt,name=directory,proto3" json:"directory,omitempty"`
+	Name          string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Version       string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DepsJobUpdate) Reset() {
+	*x = DepsJobUpdate{}
+	mi := &file_ermite_runner_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DepsJobUpdate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DepsJobUpdate) ProtoMessage() {}
+
+func (x *DepsJobUpdate) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DepsJobUpdate.ProtoReflect.Descriptor instead.
+func (*DepsJobUpdate) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *DepsJobUpdate) GetEcosystem() string {
+	if x != nil {
+		return x.Ecosystem
+	}
+	return ""
+}
+
+func (x *DepsJobUpdate) GetDirectory() string {
+	if x != nil {
+		return x.Directory
+	}
+	return ""
+}
+
+func (x *DepsJobUpdate) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *DepsJobUpdate) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+// DepsReport returns changed files or an application error. At most 64 files,
+// at most 2 MiB (2,097,152 bytes) per file, at most 8 MiB (8,388,608 bytes)
+// of content in total. The server rejects reports exceeding these limits.
+type DepsReport struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Files []*DepsFile            `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
+	// Error describes a failed application; empty on success.
+	Error         string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DepsReport) Reset() {
+	*x = DepsReport{}
+	mi := &file_ermite_runner_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DepsReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DepsReport) ProtoMessage() {}
+
+func (x *DepsReport) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DepsReport.ProtoReflect.Descriptor instead.
+func (*DepsReport) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *DepsReport) GetFiles() []*DepsFile {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *DepsReport) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+// DepsFile is a changed go.mod or go.sum in a requested module directory.
+type DepsFile struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Path is repository-relative, with no absolute path or traversal components.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// Content is the complete new file, limited to 2 MiB.
+	Content       []byte `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DepsFile) Reset() {
+	*x = DepsFile{}
+	mi := &file_ermite_runner_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DepsFile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DepsFile) ProtoMessage() {}
+
+func (x *DepsFile) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_runner_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DepsFile.ProtoReflect.Descriptor instead.
+func (*DepsFile) Descriptor() ([]byte, []int) {
+	return file_ermite_runner_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *DepsFile) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *DepsFile) GetContent() []byte {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
 var File_ermite_runner_proto protoreflect.FileDescriptor
 
 const file_ermite_runner_proto_rawDesc = "" +
@@ -2759,15 +3027,16 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\areplace\x18\a \x01(\bR\areplace\"X\n" +
 	"\x16RegisterRunnerResponse\x12\x1b\n" +
 	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12!\n" +
-	"\frunner_token\x18\x02 \x01(\tR\vrunnerToken\"\\\n" +
+	"\frunner_token\x18\x02 \x01(\tR\vrunnerToken\"r\n" +
 	"\x0fFetchJobRequest\x12\x16\n" +
 	"\x06labels\x18\x01 \x03(\tR\x06labels\x12\x17\n" +
 	"\apoll_id\x18\x02 \x01(\tR\x06pollId\x12\x18\n" +
-	"\aversion\x18\x03 \x01(\tR\aversion\"m\n" +
+	"\aversion\x18\x03 \x01(\tR\aversion\x12\x14\n" +
+	"\x05kinds\x18\x04 \x03(\tR\x05kinds\"m\n" +
 	"\x10FetchJobResponse\x12\x1d\n" +
 	"\x03job\x18\x01 \x01(\v2\v.ermite.JobR\x03job\x12:\n" +
 	"\vretry_after\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\n" +
-	"retryAfter\"\xe6\x06\n" +
+	"retryAfter\"\x8b\a\n" +
 	"\x03Job\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x18\n" +
@@ -2793,7 +3062,8 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\atrusted\x18\x15 \x01(\bR\atrusted\x12 \n" +
 	"\fid_token_url\x18\x16 \x01(\tR\n" +
 	"idTokenUrl\x123\n" +
-	"\x16id_token_request_token\x18\x17 \x01(\tR\x13idTokenRequestToken\x1a:\n" +
+	"\x16id_token_request_token\x18\x17 \x01(\tR\x13idTokenRequestToken\x12#\n" +
+	"\x04deps\x18\x18 \x01(\v2\x0f.ermite.DepsJobR\x04deps\x1a:\n" +
 	"\fSecretsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a7\n" +
@@ -2827,7 +3097,7 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"started_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
 	"\fcompleted_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12.\n" +
 	"\aoutcome\x18\a \x01(\x0e2\x14.ermite.CiConclusionR\aoutcome\"\x13\n" +
-	"\x11UpdateJobResponse\"\xe9\x02\n" +
+	"\x11UpdateJobResponse\"\x9e\x03\n" +
 	"\x12CompleteJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x124\n" +
 	"\n" +
@@ -2836,7 +3106,9 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\aoutputs\x18\x03 \x03(\v2'.ermite.CompleteJobRequest.OutputsEntryR\aoutputs\x12'\n" +
 	"\x0frunner_shutdown\x18\x04 \x01(\bR\x0erunnerShutdown\x12(\n" +
 	"\x05steps\x18\x05 \x03(\v2\x12.ermite.StepUpdateR\x05steps\x124\n" +
-	"\vannotations\x18\x06 \x03(\v2\x12.ermite.AnnotationR\vannotations\x1a:\n" +
+	"\vannotations\x18\x06 \x03(\v2\x12.ermite.AnnotationR\vannotations\x123\n" +
+	"\vdeps_report\x18\a \x01(\v2\x12.ermite.DepsReportR\n" +
+	"depsReport\x1a:\n" +
 	"\fOutputsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"{\n" +
@@ -2914,7 +3186,23 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\vstep_number\x18\x02 \x01(\x05R\n" +
 	"stepNumber\x12\x1a\n" +
 	"\bmarkdown\x18\x03 \x01(\tR\bmarkdown\"\x17\n" +
-	"\x15UploadSummaryResponse*\x86\x01\n" +
+	"\x15UploadSummaryResponse\"Y\n" +
+	"\aDepsJob\x12/\n" +
+	"\aupdates\x18\x01 \x03(\v2\x15.ermite.DepsJobUpdateR\aupdates\x12\x1d\n" +
+	"\n" +
+	"go_version\x18\x02 \x01(\tR\tgoVersion\"y\n" +
+	"\rDepsJobUpdate\x12\x1c\n" +
+	"\tecosystem\x18\x01 \x01(\tR\tecosystem\x12\x1c\n" +
+	"\tdirectory\x18\x02 \x01(\tR\tdirectory\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x18\n" +
+	"\aversion\x18\x04 \x01(\tR\aversion\"J\n" +
+	"\n" +
+	"DepsReport\x12&\n" +
+	"\x05files\x18\x01 \x03(\v2\x10.ermite.DepsFileR\x05files\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"8\n" +
+	"\bDepsFile\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\fR\acontent*\x86\x01\n" +
 	"\bCiStatus\x12\x19\n" +
 	"\x15CI_STATUS_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10CI_STATUS_QUEUED\x10\x01\x12\x19\n" +
@@ -2980,7 +3268,7 @@ func file_ermite_runner_proto_rawDescGZIP() []byte {
 }
 
 var file_ermite_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_ermite_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_ermite_runner_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_ermite_runner_proto_goTypes = []any{
 	(CiStatus)(0),                  // 0: ermite.CiStatus
 	(CiConclusion)(0),              // 1: ermite.CiConclusion
@@ -3018,69 +3306,77 @@ var file_ermite_runner_proto_goTypes = []any{
 	(*ResolvedAction)(nil),         // 33: ermite.ResolvedAction
 	(*UploadSummaryRequest)(nil),   // 34: ermite.UploadSummaryRequest
 	(*UploadSummaryResponse)(nil),  // 35: ermite.UploadSummaryResponse
-	nil,                            // 36: ermite.Job.SecretsEntry
-	nil,                            // 37: ermite.Job.VarsEntry
-	nil,                            // 38: ermite.JobPermissions.LevelsEntry
-	nil,                            // 39: ermite.CompleteJobRequest.OutputsEntry
-	(*durationpb.Duration)(nil),    // 40: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),  // 41: google.protobuf.Timestamp
+	(*DepsJob)(nil),                // 36: ermite.DepsJob
+	(*DepsJobUpdate)(nil),          // 37: ermite.DepsJobUpdate
+	(*DepsReport)(nil),             // 38: ermite.DepsReport
+	(*DepsFile)(nil),               // 39: ermite.DepsFile
+	nil,                            // 40: ermite.Job.SecretsEntry
+	nil,                            // 41: ermite.Job.VarsEntry
+	nil,                            // 42: ermite.JobPermissions.LevelsEntry
+	nil,                            // 43: ermite.CompleteJobRequest.OutputsEntry
+	(*durationpb.Duration)(nil),    // 44: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),  // 45: google.protobuf.Timestamp
 }
 var file_ermite_runner_proto_depIdxs = []int32{
 	3,  // 0: ermite.RegisterRunnerRequest.isolation:type_name -> ermite.RunnerIsolation
 	11, // 1: ermite.FetchJobResponse.job:type_name -> ermite.Job
-	40, // 2: ermite.FetchJobResponse.retry_after:type_name -> google.protobuf.Duration
-	36, // 3: ermite.Job.secrets:type_name -> ermite.Job.SecretsEntry
-	37, // 4: ermite.Job.vars:type_name -> ermite.Job.VarsEntry
+	44, // 2: ermite.FetchJobResponse.retry_after:type_name -> google.protobuf.Duration
+	40, // 3: ermite.Job.secrets:type_name -> ermite.Job.SecretsEntry
+	41, // 4: ermite.Job.vars:type_name -> ermite.Job.VarsEntry
 	12, // 5: ermite.Job.permissions:type_name -> ermite.JobPermissions
 	13, // 6: ermite.Job.cache:type_name -> ermite.JobCache
-	38, // 7: ermite.JobPermissions.levels:type_name -> ermite.JobPermissions.LevelsEntry
-	15, // 8: ermite.UpdateJobRequest.steps:type_name -> ermite.StepUpdate
-	29, // 9: ermite.UpdateJobRequest.annotations:type_name -> ermite.Annotation
-	2,  // 10: ermite.StepUpdate.state:type_name -> ermite.StepState
-	1,  // 11: ermite.StepUpdate.conclusion:type_name -> ermite.CiConclusion
-	41, // 12: ermite.StepUpdate.started_at:type_name -> google.protobuf.Timestamp
-	41, // 13: ermite.StepUpdate.completed_at:type_name -> google.protobuf.Timestamp
-	1,  // 14: ermite.StepUpdate.outcome:type_name -> ermite.CiConclusion
-	1,  // 15: ermite.CompleteJobRequest.conclusion:type_name -> ermite.CiConclusion
-	39, // 16: ermite.CompleteJobRequest.outputs:type_name -> ermite.CompleteJobRequest.OutputsEntry
-	15, // 17: ermite.CompleteJobRequest.steps:type_name -> ermite.StepUpdate
-	29, // 18: ermite.CompleteJobRequest.annotations:type_name -> ermite.Annotation
-	1,  // 19: ermite.CompleteJobResponse.conclusion:type_name -> ermite.CiConclusion
-	1,  // 20: ermite.JobEnded.conclusion:type_name -> ermite.CiConclusion
-	21, // 21: ermite.AppendLogRequest.lines:type_name -> ermite.LogLine
-	41, // 22: ermite.LogLine.time:type_name -> google.protobuf.Timestamp
-	27, // 23: ermite.WatchJobResponse.keepalive:type_name -> ermite.Keepalive
-	28, // 24: ermite.WatchJobResponse.cancel:type_name -> ermite.CancelRequest
-	19, // 25: ermite.WatchJobResponse.ended:type_name -> ermite.JobEnded
-	4,  // 26: ermite.CancelRequest.reason:type_name -> ermite.CancelReason
-	41, // 27: ermite.CancelRequest.requested_at:type_name -> google.protobuf.Timestamp
-	5,  // 28: ermite.Annotation.level:type_name -> ermite.AnnotationLevel
-	30, // 29: ermite.ResolveActionsRequest.refs:type_name -> ermite.ActionRef
-	33, // 30: ermite.ResolveActionsResponse.actions:type_name -> ermite.ResolvedAction
-	6,  // 31: ermite.ResolvedAction.source:type_name -> ermite.ActionSource
-	7,  // 32: ermite.RunnerService.RegisterRunner:input_type -> ermite.RegisterRunnerRequest
-	9,  // 33: ermite.RunnerService.FetchJob:input_type -> ermite.FetchJobRequest
-	14, // 34: ermite.RunnerService.UpdateJob:input_type -> ermite.UpdateJobRequest
-	20, // 35: ermite.RunnerService.AppendLog:input_type -> ermite.AppendLogRequest
-	23, // 36: ermite.RunnerService.Heartbeat:input_type -> ermite.HeartbeatRequest
-	25, // 37: ermite.RunnerService.WatchJob:input_type -> ermite.WatchJobRequest
-	17, // 38: ermite.RunnerService.CompleteJob:input_type -> ermite.CompleteJobRequest
-	31, // 39: ermite.RunnerService.ResolveActions:input_type -> ermite.ResolveActionsRequest
-	34, // 40: ermite.RunnerService.UploadSummary:input_type -> ermite.UploadSummaryRequest
-	8,  // 41: ermite.RunnerService.RegisterRunner:output_type -> ermite.RegisterRunnerResponse
-	10, // 42: ermite.RunnerService.FetchJob:output_type -> ermite.FetchJobResponse
-	16, // 43: ermite.RunnerService.UpdateJob:output_type -> ermite.UpdateJobResponse
-	22, // 44: ermite.RunnerService.AppendLog:output_type -> ermite.AppendLogResponse
-	24, // 45: ermite.RunnerService.Heartbeat:output_type -> ermite.HeartbeatResponse
-	26, // 46: ermite.RunnerService.WatchJob:output_type -> ermite.WatchJobResponse
-	18, // 47: ermite.RunnerService.CompleteJob:output_type -> ermite.CompleteJobResponse
-	32, // 48: ermite.RunnerService.ResolveActions:output_type -> ermite.ResolveActionsResponse
-	35, // 49: ermite.RunnerService.UploadSummary:output_type -> ermite.UploadSummaryResponse
-	41, // [41:50] is the sub-list for method output_type
-	32, // [32:41] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	36, // 7: ermite.Job.deps:type_name -> ermite.DepsJob
+	42, // 8: ermite.JobPermissions.levels:type_name -> ermite.JobPermissions.LevelsEntry
+	15, // 9: ermite.UpdateJobRequest.steps:type_name -> ermite.StepUpdate
+	29, // 10: ermite.UpdateJobRequest.annotations:type_name -> ermite.Annotation
+	2,  // 11: ermite.StepUpdate.state:type_name -> ermite.StepState
+	1,  // 12: ermite.StepUpdate.conclusion:type_name -> ermite.CiConclusion
+	45, // 13: ermite.StepUpdate.started_at:type_name -> google.protobuf.Timestamp
+	45, // 14: ermite.StepUpdate.completed_at:type_name -> google.protobuf.Timestamp
+	1,  // 15: ermite.StepUpdate.outcome:type_name -> ermite.CiConclusion
+	1,  // 16: ermite.CompleteJobRequest.conclusion:type_name -> ermite.CiConclusion
+	43, // 17: ermite.CompleteJobRequest.outputs:type_name -> ermite.CompleteJobRequest.OutputsEntry
+	15, // 18: ermite.CompleteJobRequest.steps:type_name -> ermite.StepUpdate
+	29, // 19: ermite.CompleteJobRequest.annotations:type_name -> ermite.Annotation
+	38, // 20: ermite.CompleteJobRequest.deps_report:type_name -> ermite.DepsReport
+	1,  // 21: ermite.CompleteJobResponse.conclusion:type_name -> ermite.CiConclusion
+	1,  // 22: ermite.JobEnded.conclusion:type_name -> ermite.CiConclusion
+	21, // 23: ermite.AppendLogRequest.lines:type_name -> ermite.LogLine
+	45, // 24: ermite.LogLine.time:type_name -> google.protobuf.Timestamp
+	27, // 25: ermite.WatchJobResponse.keepalive:type_name -> ermite.Keepalive
+	28, // 26: ermite.WatchJobResponse.cancel:type_name -> ermite.CancelRequest
+	19, // 27: ermite.WatchJobResponse.ended:type_name -> ermite.JobEnded
+	4,  // 28: ermite.CancelRequest.reason:type_name -> ermite.CancelReason
+	45, // 29: ermite.CancelRequest.requested_at:type_name -> google.protobuf.Timestamp
+	5,  // 30: ermite.Annotation.level:type_name -> ermite.AnnotationLevel
+	30, // 31: ermite.ResolveActionsRequest.refs:type_name -> ermite.ActionRef
+	33, // 32: ermite.ResolveActionsResponse.actions:type_name -> ermite.ResolvedAction
+	6,  // 33: ermite.ResolvedAction.source:type_name -> ermite.ActionSource
+	37, // 34: ermite.DepsJob.updates:type_name -> ermite.DepsJobUpdate
+	39, // 35: ermite.DepsReport.files:type_name -> ermite.DepsFile
+	7,  // 36: ermite.RunnerService.RegisterRunner:input_type -> ermite.RegisterRunnerRequest
+	9,  // 37: ermite.RunnerService.FetchJob:input_type -> ermite.FetchJobRequest
+	14, // 38: ermite.RunnerService.UpdateJob:input_type -> ermite.UpdateJobRequest
+	20, // 39: ermite.RunnerService.AppendLog:input_type -> ermite.AppendLogRequest
+	23, // 40: ermite.RunnerService.Heartbeat:input_type -> ermite.HeartbeatRequest
+	25, // 41: ermite.RunnerService.WatchJob:input_type -> ermite.WatchJobRequest
+	17, // 42: ermite.RunnerService.CompleteJob:input_type -> ermite.CompleteJobRequest
+	31, // 43: ermite.RunnerService.ResolveActions:input_type -> ermite.ResolveActionsRequest
+	34, // 44: ermite.RunnerService.UploadSummary:input_type -> ermite.UploadSummaryRequest
+	8,  // 45: ermite.RunnerService.RegisterRunner:output_type -> ermite.RegisterRunnerResponse
+	10, // 46: ermite.RunnerService.FetchJob:output_type -> ermite.FetchJobResponse
+	16, // 47: ermite.RunnerService.UpdateJob:output_type -> ermite.UpdateJobResponse
+	22, // 48: ermite.RunnerService.AppendLog:output_type -> ermite.AppendLogResponse
+	24, // 49: ermite.RunnerService.Heartbeat:output_type -> ermite.HeartbeatResponse
+	26, // 50: ermite.RunnerService.WatchJob:output_type -> ermite.WatchJobResponse
+	18, // 51: ermite.RunnerService.CompleteJob:output_type -> ermite.CompleteJobResponse
+	32, // 52: ermite.RunnerService.ResolveActions:output_type -> ermite.ResolveActionsResponse
+	35, // 53: ermite.RunnerService.UploadSummary:output_type -> ermite.UploadSummaryResponse
+	45, // [45:54] is the sub-list for method output_type
+	36, // [36:45] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_ermite_runner_proto_init() }
@@ -3099,7 +3395,7 @@ func file_ermite_runner_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_runner_proto_rawDesc), len(file_ermite_runner_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   33,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

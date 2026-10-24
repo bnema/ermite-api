@@ -76,6 +76,9 @@ message Repo {
   // characters from [a-z0-9-], starting with a letter or a digit, sorted
   // and without duplicates.
   repeated string topics = 8;
+  // Archived makes the repository read-only. Reads and closing existing issues
+  // and merge requests remain allowed. Requires the "repos.archived" feature.
+  bool archived = 9;
 }
 
 // RepoService manages repositories and their metadata.
@@ -168,7 +171,7 @@ message UpdateRepoRequest {
   // the call fails with failed_precondition.
   string default_branch = 4;
   // UpdateMask lists the fields to change: "description", "visibility",
-  // "default_branch", "topics", "settings.allowed_merge_modes" and/or
+  // "default_branch", "topics", "archived", "settings.allowed_merge_modes" and/or
   // "settings.allow_auto_merge". "settings" stands for the two merge settings
   // paths. It must not be empty unless issues is set. Other paths are
   // invalid_argument, including "settings.issues" and "issues": the issues
@@ -189,6 +192,10 @@ message UpdateRepoRequest {
   // ISSUES_MODE_UNSPECIFIED: that is invalid_argument. Changing it needs the
   // repo:admin scope and a token with no branch limit, like any other field.
   optional IssuesMode issues = 8;
+  // Archived is the new read-only state. Used only if update_mask contains
+  // "archived". An archived repository rejects other edits unless this call
+  // also sets archived to false.
+  optional bool archived = 9;
 }
 
 // UpdateRepoResponse holds the repository after the update.

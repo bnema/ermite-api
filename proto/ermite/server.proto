@@ -66,6 +66,8 @@ message GetVersionResponse {
   // MergeRequestAutoMergeEnabled and MergeRequestAutoMergeCancelled events
   // and MergeRequestMerged.auto. "releases" covers ReleaseService and the
   // release_published, release_updated, release_deleted and release_unpublished events.
+  // "repos.archived" covers Repo.archived and UpdateRepoRequest.archived.
+  // "deps" covers DepsService, dependency_updates_found and runner deps jobs.
   repeated string features = 2;
 }
 

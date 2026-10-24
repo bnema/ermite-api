@@ -70,7 +70,7 @@ message WatchRequest {
   // not revealed. It carries the merge request and issue events of every
   // repository (merge_request_opened, merge_request_merged,
   // merge_request_closed, merge_request_edited, comment_added, and the issue events), repo_updated
-  // and repo_deleted, plus issue_submitted, which is delivered nowhere else.
+  // and repo_deleted, plus issue_submitted and dependency_updates_found, delivered nowhere else.
   repeated string topics = 1;
   // ResumeAfter is the Event.id of the last event the client has seen. Empty
   // to receive only new events.
@@ -159,6 +159,8 @@ message Event {
     IssueEdited issue_edited = 32;
     // MergeRequestEdited: merge request text changed.
     MergeRequestEdited merge_request_edited = 33;
+    // DependencyUpdatesFound: new versions found, owner topic only.
+    DependencyUpdatesFound dependency_updates_found = 34;
   }
 }
 
@@ -429,4 +431,13 @@ message MergeRequestEdited {
   MergeRequest merge_request = 1;
   // ChangedFields names title and/or description.
   repeated string changed_fields = 2;
+}
+
+// DependencyUpdatesFound reports newly found dependency updates. Owner-only:
+// delivered only on "owner", never on "home" or "repo:<name>".
+message DependencyUpdatesFound {
+  // Repo is the repository name.
+  string repo = 1;
+  // Count is the number of newly found updates.
+  int32 count = 2;
 }

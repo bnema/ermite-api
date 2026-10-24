@@ -78,3 +78,22 @@ id and tag; all except deletion also carry draft and prerelease flags. Tag
 deletion turns a release into a draft without deleting its assets.
 
 Text edits publish `issue_edited` (event 32) and `merge_request_edited` (event 33), carrying the updated item and `changed_fields`. Clients ignore unknown event kinds. Issue history retains at most 500 entries; edits after the cap still persist and publish live events.
+
+## DepsService
+
+All methods are owner-only. Requires feature `deps`.
+
+| RPC | Purpose |
+|---|---|
+| `ListDependencyUpdates` | Pending updates, optionally for one repository |
+| `CheckDependencies` | Check one non-archived repository synchronously |
+| `OpenDependencyUpdates` | Open or update the Bernard MR; refuses stale expected versions |
+| `IgnoreDependencyUpdates` | Ignore the exact expected versions; refuses stale versions |
+| `SnoozeDependencyUpdates` | Hide the card for seven days |
+
+New versions publish `dependency_updates_found` on the owner topic only.
+
+Runners opt into dependency jobs with `FetchJobRequest.kinds = ["workflow", "deps"]`;
+an empty list means workflow jobs only. A dependency job has `Job.deps` set and
+an ID prefixed `deps-`. Complete it with `CompleteJobRequest.deps_report`:
+no more than 64 files, 2 MiB per file, 8 MiB of content total.

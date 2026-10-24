@@ -29,6 +29,7 @@ Status: early development.
 
 | Service | Purpose |
 |---|---|
+| `DepsService` | dependency updates (owner only) |
 | `RepoService` | repositories and their settings |
 | `GitService` | refs, trees, blobs, commits and diffs |
 | `TokenService` | API tokens |

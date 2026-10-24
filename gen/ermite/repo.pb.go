@@ -245,7 +245,10 @@ type Repo struct {
 	// Topics classify the repository, as on GitHub: at most 20, each 1-50
 	// characters from [a-z0-9-], starting with a letter or a digit, sorted
 	// and without duplicates.
-	Topics        []string `protobuf:"bytes,8,rep,name=topics,proto3" json:"topics,omitempty"`
+	Topics []string `protobuf:"bytes,8,rep,name=topics,proto3" json:"topics,omitempty"`
+	// Archived makes the repository read-only. Reads and closing existing issues
+	// and merge requests remain allowed. Requires the "repos.archived" feature.
+	Archived      bool `protobuf:"varint,9,opt,name=archived,proto3" json:"archived,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -334,6 +337,13 @@ func (x *Repo) GetTopics() []string {
 		return x.Topics
 	}
 	return nil
+}
+
+func (x *Repo) GetArchived() bool {
+	if x != nil {
+		return x.Archived
+	}
+	return false
 }
 
 // ListReposRequest selects a page of repositories.
@@ -679,7 +689,7 @@ type UpdateRepoRequest struct {
 	// the call fails with failed_precondition.
 	DefaultBranch string `protobuf:"bytes,4,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
 	// UpdateMask lists the fields to change: "description", "visibility",
-	// "default_branch", "topics", "settings.allowed_merge_modes" and/or
+	// "default_branch", "topics", "archived", "settings.allowed_merge_modes" and/or
 	// "settings.allow_auto_merge". "settings" stands for the two merge settings
 	// paths. It must not be empty unless issues is set. Other paths are
 	// invalid_argument, including "settings.issues" and "issues": the issues
@@ -699,7 +709,11 @@ type UpdateRepoRequest struct {
 	// (an empty update_mask is then valid). When present it must not be
 	// ISSUES_MODE_UNSPECIFIED: that is invalid_argument. Changing it needs the
 	// repo:admin scope and a token with no branch limit, like any other field.
-	Issues        *IssuesMode `protobuf:"varint,8,opt,name=issues,proto3,enum=ermite.IssuesMode,oneof" json:"issues,omitempty"`
+	Issues *IssuesMode `protobuf:"varint,8,opt,name=issues,proto3,enum=ermite.IssuesMode,oneof" json:"issues,omitempty"`
+	// Archived is the new read-only state. Used only if update_mask contains
+	// "archived". An archived repository rejects other edits unless this call
+	// also sets archived to false.
+	Archived      *bool `protobuf:"varint,9,opt,name=archived,proto3,oneof" json:"archived,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -788,6 +802,13 @@ func (x *UpdateRepoRequest) GetIssues() IssuesMode {
 		return *x.Issues
 	}
 	return IssuesMode_ISSUES_MODE_UNSPECIFIED
+}
+
+func (x *UpdateRepoRequest) GetArchived() bool {
+	if x != nil && x.Archived != nil {
+		return *x.Archived
+	}
+	return false
 }
 
 // UpdateRepoResponse holds the repository after the update.
@@ -928,7 +949,7 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"\x13allowed_merge_modes\x18\x01 \x03(\x0e2\x11.ermite.MergeModeR\x11allowedMergeModes\x124\n" +
 	"\x14failing_checks_block\x18\x02 \x01(\bB\x02\x18\x01R\x12failingChecksBlock\x12*\n" +
 	"\x06issues\x18\x03 \x01(\x0e2\x12.ermite.IssuesModeR\x06issues\x12(\n" +
-	"\x10allow_auto_merge\x18\x04 \x01(\bR\x0eallowAutoMerge\"\xd5\x02\n" +
+	"\x10allow_auto_merge\x18\x04 \x01(\bR\x0eallowAutoMerge\"\xf1\x02\n" +
 	"\x04Repo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -940,7 +961,8 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x127\n" +
 	"\tpushed_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\bpushedAt\x120\n" +
 	"\bsettings\x18\a \x01(\v2\x14.ermite.RepoSettingsR\bsettings\x12\x16\n" +
-	"\x06topics\x18\b \x03(\tR\x06topics\"N\n" +
+	"\x06topics\x18\b \x03(\tR\x06topics\x12\x1a\n" +
+	"\barchived\x18\t \x01(\bR\barchived\"N\n" +
 	"\x10ListReposRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -960,7 +982,7 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"visibility\x12\x16\n" +
 	"\x06topics\x18\x04 \x03(\tR\x06topics\"6\n" +
 	"\x12CreateRepoResponse\x12 \n" +
-	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\xe7\x02\n" +
+	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\x95\x03\n" +
 	"\x11UpdateRepoRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -972,8 +994,10 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"updateMask\x120\n" +
 	"\bsettings\x18\x06 \x01(\v2\x14.ermite.RepoSettingsR\bsettings\x12\x16\n" +
 	"\x06topics\x18\a \x03(\tR\x06topics\x12/\n" +
-	"\x06issues\x18\b \x01(\x0e2\x12.ermite.IssuesModeH\x00R\x06issues\x88\x01\x01B\t\n" +
-	"\a_issues\"6\n" +
+	"\x06issues\x18\b \x01(\x0e2\x12.ermite.IssuesModeH\x00R\x06issues\x88\x01\x01\x12\x1f\n" +
+	"\barchived\x18\t \x01(\bH\x01R\barchived\x88\x01\x01B\t\n" +
+	"\a_issuesB\v\n" +
+	"\t_archived\"6\n" +
 	"\x12UpdateRepoResponse\x12 \n" +
 	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"'\n" +
 	"\x11DeleteRepoRequest\x12\x12\n" +

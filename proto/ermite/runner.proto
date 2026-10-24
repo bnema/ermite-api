@@ -469,6 +469,9 @@ message FetchJobRequest {
   // given at registration, so that the list shows what runs now. Empty, from
   // an older runner, leaves the stored version unchanged.
   string version = 3;
+  // Kinds are accepted job kinds: "workflow" and/or "deps". Empty means
+  // ["workflow"], so older runners never receive deps jobs.
+  repeated string kinds = 4;
 }
 
 // FetchJobResponse holds the job given to the runner, if any.
@@ -621,6 +624,12 @@ message Job {
   // gives it to the sandbox only with id_token_url. Empty when id_token_url
   // is.
   string id_token_request_token = 23;
+  // Deps, when set, makes this a dependency job, with job_id prefixed "deps-".
+  // Workflow fields (run_id, attempt, workflow_path, workflow_yaml, job_key,
+  // matrix, contexts and ref) are empty. Repo and sha identify the source;
+  // github_token is read-only, trusted is false, and secrets, vars,
+  // environment, cache and OIDC fields are empty.
+  DepsJob deps = 24;
 }
 
 // JobPermissions are the permissions of the job repository token, with the
@@ -739,6 +748,9 @@ message CompleteJobRequest {
   // step named). The server ignores them without the feature
   // "ci.annotations".
   repeated Annotation annotations = 6;
+  // DepsReport is the result of a deps job (job_id prefixed "deps-").
+  // Unset for workflow jobs. The server validates the paths and content.
+  DepsReport deps_report = 7;
 }
 
 // CompleteJobResponse is the stored result of a job.
@@ -970,3 +982,36 @@ message UploadSummaryRequest {
 
 // UploadSummaryResponse is empty.
 message UploadSummaryResponse {}
+
+// DepsJob applies the requested Go module updates in the runner sandbox.
+message DepsJob {
+  repeated DepsJobUpdate updates = 1;
+  // GoVersion is the highest root go.mod go/toolchain version, without "go".
+  string go_version = 2;
+}
+
+// DepsJobUpdate identifies one exact version to apply.
+message DepsJobUpdate {
+  string ecosystem = 1;
+  // Directory is repository-relative; empty means the root module.
+  string directory = 2;
+  string name = 3;
+  string version = 4;
+}
+
+// DepsReport returns changed files or an application error. At most 64 files,
+// at most 2 MiB (2,097,152 bytes) per file, at most 8 MiB (8,388,608 bytes)
+// of content in total. The server rejects reports exceeding these limits.
+message DepsReport {
+  repeated DepsFile files = 1;
+  // Error describes a failed application; empty on success.
+  string error = 2;
+}
+
+// DepsFile is a changed go.mod or go.sum in a requested module directory.
+message DepsFile {
+  // Path is repository-relative, with no absolute path or traversal components.
+  string path = 1;
+  // Content is the complete new file, limited to 2 MiB.
+  bytes content = 2;
+}

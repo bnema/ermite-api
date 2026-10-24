@@ -1,0 +1,115 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/timestamp.proto";
+
+// DependencyUpdate is one proposed dependency version change.
+message DependencyUpdate {
+  // Kind classifies the version change.
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_PATCH = 1;
+    KIND_MINOR = 2;
+    KIND_MAJOR = 3;
+  }
+  // Ecosystem is "gomod" or "github-actions".
+  string ecosystem = 1;
+  // Name is the module path or action owner/repository.
+  string name = 2;
+  // Directory is the repository-relative module directory; empty means root.
+  string directory = 3;
+  // Current is the version in the repository.
+  string current = 4;
+  // Latest is the proposed version after cooldown and safety checks.
+  string latest = 5;
+  // Kind is the magnitude of the change.
+  Kind kind = 6;
+  // New says this version was absent from the previous check.
+  bool new = 7;
+}
+
+// DependencyVersion identifies exactly one proposed version in one directory.
+message DependencyVersion {
+  string ecosystem = 1;
+  string directory = 2;
+  string name = 3;
+  string version = 4;
+}
+
+// RepoDependencyUpdates is the pending dependency state of one repository.
+message RepoDependencyUpdates {
+  // State describes application of the pending updates.
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_IDLE = 1;
+    STATE_APPLYING = 2;
+    STATE_FAILED = 3;
+  }
+  string repo = 1;
+  repeated DependencyUpdate updates = 2;
+  google.protobuf.Timestamp checked_at = 3;
+  google.protobuf.Timestamp snoozed_until = 4;
+  // MergeRequestNumber is zero when there is no Bernard merge request.
+  int64 merge_request_number = 5;
+  State state = 6;
+  // Error is the reason for FAILED, empty otherwise.
+  string error = 7;
+}
+
+// DepsService manages Bernard dependency updates. Every RPC is owner-only:
+// the admin token, the owner's session, or a token with every scope and no
+// repository or branch limits. Requires the "deps" feature.
+service DepsService {
+  // ListDependencyUpdates reads pending repository states.
+  rpc ListDependencyUpdates(ListDependencyUpdatesRequest) returns (ListDependencyUpdatesResponse);
+  // CheckDependencies synchronously checks one non-archived repository.
+  rpc CheckDependencies(CheckDependenciesRequest) returns (CheckDependenciesResponse);
+  // OpenDependencyUpdates opens or updates the Bernard merge request. A stale
+  // expected_versions set or APPLYING state fails with failed_precondition.
+  rpc OpenDependencyUpdates(OpenDependencyUpdatesRequest) returns (OpenDependencyUpdatesResponse);
+  // IgnoreDependencyUpdates ignores exactly the listed versions. A stale
+  // expected_versions set or APPLYING state fails with failed_precondition.
+  rpc IgnoreDependencyUpdates(IgnoreDependencyUpdatesRequest) returns (IgnoreDependencyUpdatesResponse);
+  // SnoozeDependencyUpdates hides the card for the server's snooze duration
+  // (seven days by default).
+  rpc SnoozeDependencyUpdates(SnoozeDependencyUpdatesRequest) returns (SnoozeDependencyUpdatesResponse);
+}
+
+message ListDependencyUpdatesRequest {
+  // Repo optionally restricts the result to one repository. Absent means all.
+  optional string repo = 1;
+}
+message ListDependencyUpdatesResponse {
+  repeated RepoDependencyUpdates repos = 1;
+}
+message CheckDependenciesRequest {
+  string repo = 1;
+}
+message CheckDependenciesResponse {
+  RepoDependencyUpdates updates = 1;
+}
+message OpenDependencyUpdatesRequest {
+  string repo = 1;
+  // ExpectedVersions is the complete set of proposed versions the owner saw.
+  repeated DependencyVersion expected_versions = 2;
+}
+message OpenDependencyUpdatesResponse {
+  RepoDependencyUpdates updates = 1;
+}
+message IgnoreDependencyUpdatesRequest {
+  string repo = 1;
+  // ExpectedVersions is the complete set of proposed versions the owner saw.
+  repeated DependencyVersion expected_versions = 2;
+}
+message IgnoreDependencyUpdatesResponse {
+  RepoDependencyUpdates updates = 1;
+}
+message SnoozeDependencyUpdatesRequest {
+  string repo = 1;
+}
+message SnoozeDependencyUpdatesResponse {
+  RepoDependencyUpdates updates = 1;
+}
