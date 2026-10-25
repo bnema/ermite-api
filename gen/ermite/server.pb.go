@@ -96,6 +96,8 @@ type GetVersionResponse struct {
 	// release_published, release_updated, release_deleted and release_unpublished events.
 	// "repos.archived" covers Repo.archived and UpdateRepoRequest.archived.
 	// "deps" covers DepsService, dependency_updates_found and runner deps jobs.
+	// "deps.runs" covers deps jobs that are jobs of a run (Job.job_token and
+	// Job.run_id set, WatchJob cancel) and RepoDependencyUpdates.run_id.
 	Features      []string `protobuf:"bytes,2,rep,name=features,proto3" json:"features,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

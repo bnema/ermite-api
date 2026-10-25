@@ -835,7 +835,8 @@ type Job struct {
 	// from the moment of the assignment and adds 60 seconds of slack, so the
 	// runner's own timeout always comes first: when the server's deadline
 	// passes it announces CANCEL_REASON_TIMEOUT, and ends the job itself after
-	// 60 more seconds without a conclusion (see WatchJob).
+	// 60 more seconds without a conclusion (see WatchJob). For a deps job
+	// (Job.deps), the server's dependency job timeout.
 	TimeoutMinutes int32 `protobuf:"varint,11,opt,name=timeout_minutes,json=timeoutMinutes,proto3" json:"timeout_minutes,omitempty"`
 	// Repo is the name of the repository.
 	Repo string `protobuf:"bytes,12,opt,name=repo,proto3" json:"repo,omitempty"`
@@ -923,11 +924,16 @@ type Job struct {
 	// gives it to the sandbox only with id_token_url. Empty when id_token_url
 	// is.
 	IdTokenRequestToken string `protobuf:"bytes,23,opt,name=id_token_request_token,json=idTokenRequestToken,proto3" json:"id_token_request_token,omitempty"`
-	// Deps, when set, makes this a dependency job, with job_id prefixed "deps-".
-	// Workflow fields (run_id, attempt, workflow_path, workflow_yaml, job_key,
-	// matrix, contexts and ref) are empty. Repo and sha identify the source;
-	// github_token is read-only, trusted is false, and secrets, vars,
-	// environment, cache and OIDC fields are empty.
+	// Deps, when set, makes this a dependency job. From servers with the
+	// feature "deps.runs", the job is a job of a run like any other: job_id,
+	// run_id, attempt, job_token, timeout_minutes, labels and ref are set, the
+	// job calls (UpdateJob, AppendLog, Heartbeat, WatchJob, CompleteJob) take
+	// the job token, and WatchJob carries the cancel request. Older servers
+	// send it with an empty job_token, run_id 0, timeout_minutes 0 (the runner
+	// uses 360) and a "deps-" prefixed job_id: the runner then authenticates the
+	// job calls with its runner token and has no WatchJob. workflow_path, workflow_yaml, job_key, matrix and
+	// contexts are empty; github_token is read-only, trusted is false, and
+	// secrets, vars, environment, cache and OIDC fields are empty.
 	Deps          *DepsJob `protobuf:"bytes,24,opt,name=deps,proto3" json:"deps,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1512,8 +1518,8 @@ type CompleteJobRequest struct {
 	// step named). The server ignores them without the feature
 	// "ci.annotations".
 	Annotations []*Annotation `protobuf:"bytes,6,rep,name=annotations,proto3" json:"annotations,omitempty"`
-	// DepsReport is the result of a deps job (job_id prefixed "deps-").
-	// Unset for workflow jobs. The server validates the paths and content.
+	// DepsReport is the result of a deps job (Job.deps set). Unset for
+	// workflow jobs. The server validates the paths and content.
 	DepsReport    *DepsReport `protobuf:"bytes,7,opt,name=deps_report,json=depsReport,proto3" json:"deps_report,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

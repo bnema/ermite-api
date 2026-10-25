@@ -309,8 +309,13 @@ type RepoDependencyUpdates struct {
 	// MergeRequestNumber is zero when there is no Bernard merge request.
 	MergeRequestNumber int64                       `protobuf:"varint,5,opt,name=merge_request_number,json=mergeRequestNumber,proto3" json:"merge_request_number,omitempty"`
 	State              RepoDependencyUpdates_State `protobuf:"varint,6,opt,name=state,proto3,enum=ermite.RepoDependencyUpdates_State" json:"state,omitempty"`
-	// Error is the reason for FAILED, empty otherwise.
-	Error         string `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
+	// Error is a short reason for FAILED, empty otherwise. The log is on the
+	// run.
+	Error string `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
+	// RunId is the run applying the updates (APPLYING) or the last one that
+	// tried (FAILED, or IDLE after a success); 0 for none. Set from servers
+	// with the feature "deps.runs".
+	RunId         int64 `protobuf:"varint,8,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -392,6 +397,13 @@ func (x *RepoDependencyUpdates) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *RepoDependencyUpdates) GetRunId() int64 {
+	if x != nil {
+		return x.RunId
+	}
+	return 0
 }
 
 type ListDependencyUpdatesRequest struct {
@@ -878,7 +890,7 @@ const file_ermite_deps_proto_rawDesc = "" +
 	"\tecosystem\x18\x01 \x01(\tR\tecosystem\x12\x1c\n" +
 	"\tdirectory\x18\x02 \x01(\tR\tdirectory\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x18\n" +
-	"\aversion\x18\x04 \x01(\tR\aversion\"\xb4\x03\n" +
+	"\aversion\x18\x04 \x01(\tR\aversion\"\xcb\x03\n" +
 	"\x15RepoDependencyUpdates\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x122\n" +
 	"\aupdates\x18\x02 \x03(\v2\x18.ermite.DependencyUpdateR\aupdates\x129\n" +
@@ -887,7 +899,8 @@ const file_ermite_deps_proto_rawDesc = "" +
 	"\rsnoozed_until\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\fsnoozedUntil\x120\n" +
 	"\x14merge_request_number\x18\x05 \x01(\x03R\x12mergeRequestNumber\x129\n" +
 	"\x05state\x18\x06 \x01(\x0e2#.ermite.RepoDependencyUpdates.StateR\x05state\x12\x14\n" +
-	"\x05error\x18\a \x01(\tR\x05error\"T\n" +
+	"\x05error\x18\a \x01(\tR\x05error\x12\x15\n" +
+	"\x06run_id\x18\b \x01(\x03R\x05runId\"T\n" +
 	"\x05State\x12\x15\n" +
 	"\x11STATE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +

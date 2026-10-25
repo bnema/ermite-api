@@ -94,6 +94,10 @@ All methods are owner-only. Requires feature `deps`.
 New versions publish `dependency_updates_found` on the owner topic only.
 
 Runners opt into dependency jobs with `FetchJobRequest.kinds = ["workflow", "deps"]`;
-an empty list means workflow jobs only. A dependency job has `Job.deps` set and
-an ID prefixed `deps-`. Complete it with `CompleteJobRequest.deps_report`:
-no more than 64 files, 2 MiB per file, 8 MiB of content total.
+an empty list means workflow jobs only. A dependency job has `Job.deps` set.
+With feature `deps.runs` it is a job of a run (`run_id`, `job_token`, `WatchJob`
+cancel) and the job calls take the job token; older servers send an empty
+`job_token`, run 0 and an ID prefixed `deps-`, and the runner token
+authenticates the job calls. Complete the job with
+`CompleteJobRequest.deps_report`: no more than 64 files, 2 MiB per file, 8 MiB
+of content total. `RepoDependencyUpdates.run_id` names the run.

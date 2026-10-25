@@ -55,8 +55,13 @@ message RepoDependencyUpdates {
   // MergeRequestNumber is zero when there is no Bernard merge request.
   int64 merge_request_number = 5;
   State state = 6;
-  // Error is the reason for FAILED, empty otherwise.
+  // Error is a short reason for FAILED, empty otherwise. The log is on the
+  // run.
   string error = 7;
+  // RunId is the run applying the updates (APPLYING) or the last one that
+  // tried (FAILED, or IDLE after a success); 0 for none. Set from servers
+  // with the feature "deps.runs".
+  int64 run_id = 8;
 }
 
 // DepsService manages Bernard dependency updates. Every RPC is owner-only:

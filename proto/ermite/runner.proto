@@ -141,6 +141,12 @@ enum ActionSource {
 //     (32 random bytes, no padding). The job_id of the request must be the
 //     one of the token.
 //
+// Dependency jobs (Job.deps) from servers with the feature "deps.runs" use the
+// job token like any other job. Older servers send them with an empty
+// Job.job_token: the runner then calls UpdateJob, AppendLog, Heartbeat and
+// CompleteJob with its runner token, which those servers accept for "deps-"
+// job ids, and has no WatchJob.
+//
 // Errors. unauthenticated means only that the credential is bad: missing,
 // unknown, expired, revoked, of the wrong kind for the RPC, or a job token
 // that was replaced (the job was given again, see FetchJob) or is older than
@@ -178,9 +184,11 @@ enum ActionSource {
 // "ci.annotations", and those that implement UploadSummary list
 // "ci.summaries". Those that send Job.secrets, Job.vars, Job.environment,
 // Job.permissions and Job.trusted list "ci.secrets", and those that send
-// Job.cache list "ci.cache". A server without a feature ignores the fields of that
-// feature (protobuf drops unknown fields) and answers unimplemented to its
-// RPCs; a runner that needs one checks GetVersion first.
+// Job.cache list "ci.cache", and those that run dependency jobs as jobs of a
+// run (Job.deps with a job token) list "deps.runs". A server without a
+// feature ignores the fields of that feature (protobuf drops unknown fields)
+// and answers unimplemented to its RPCs; a runner that needs one checks
+// GetVersion first.
 service RunnerService {
   // RegisterRunner registers a runner and returns its runner token, which is
   // shown only in this response; the runner keeps it. The caller needs the
@@ -536,7 +544,8 @@ message Job {
   // from the moment of the assignment and adds 60 seconds of slack, so the
   // runner's own timeout always comes first: when the server's deadline
   // passes it announces CANCEL_REASON_TIMEOUT, and ends the job itself after
-  // 60 more seconds without a conclusion (see WatchJob).
+  // 60 more seconds without a conclusion (see WatchJob). For a deps job
+  // (Job.deps), the server's dependency job timeout.
   int32 timeout_minutes = 11;
   // Repo is the name of the repository.
   string repo = 12;
@@ -624,11 +633,16 @@ message Job {
   // gives it to the sandbox only with id_token_url. Empty when id_token_url
   // is.
   string id_token_request_token = 23;
-  // Deps, when set, makes this a dependency job, with job_id prefixed "deps-".
-  // Workflow fields (run_id, attempt, workflow_path, workflow_yaml, job_key,
-  // matrix, contexts and ref) are empty. Repo and sha identify the source;
-  // github_token is read-only, trusted is false, and secrets, vars,
-  // environment, cache and OIDC fields are empty.
+  // Deps, when set, makes this a dependency job. From servers with the
+  // feature "deps.runs", the job is a job of a run like any other: job_id,
+  // run_id, attempt, job_token, timeout_minutes, labels and ref are set, the
+  // job calls (UpdateJob, AppendLog, Heartbeat, WatchJob, CompleteJob) take
+  // the job token, and WatchJob carries the cancel request. Older servers
+  // send it with an empty job_token, run_id 0, timeout_minutes 0 (the runner
+  // uses 360) and a "deps-" prefixed job_id: the runner then authenticates the
+  // job calls with its runner token and has no WatchJob. workflow_path, workflow_yaml, job_key, matrix and
+  // contexts are empty; github_token is read-only, trusted is false, and
+  // secrets, vars, environment, cache and OIDC fields are empty.
   DepsJob deps = 24;
 }
 
@@ -748,8 +762,8 @@ message CompleteJobRequest {
   // step named). The server ignores them without the feature
   // "ci.annotations".
   repeated Annotation annotations = 6;
-  // DepsReport is the result of a deps job (job_id prefixed "deps-").
-  // Unset for workflow jobs. The server validates the paths and content.
+  // DepsReport is the result of a deps job (Job.deps set). Unset for
+  // workflow jobs. The server validates the paths and content.
   DepsReport deps_report = 7;
 }
 
