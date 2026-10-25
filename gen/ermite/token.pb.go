@@ -72,6 +72,11 @@ const (
 	// SCOPE_RELEASE_WRITE allows creating, editing and deleting releases and their assets.
 	// Wire name: release:write.
 	Scope_SCOPE_RELEASE_WRITE Scope = 13
+	// SCOPE_JOURNAL_READ allows reading the activity journal and the unreleased
+	// commits of every repository, private ones included, within the token's
+	// repository list (JournalService, ReleaseService.ListUnreleased). Wire
+	// name: journal:read.
+	Scope_SCOPE_JOURNAL_READ Scope = 14
 )
 
 // Enum value maps for Scope.
@@ -91,6 +96,7 @@ var (
 		11: "SCOPE_ISSUE_WRITE",
 		12: "SCOPE_MR_FORCE_MERGE",
 		13: "SCOPE_RELEASE_WRITE",
+		14: "SCOPE_JOURNAL_READ",
 	}
 	Scope_value = map[string]int32{
 		"SCOPE_UNSPECIFIED":     0,
@@ -107,6 +113,7 @@ var (
 		"SCOPE_ISSUE_WRITE":     11,
 		"SCOPE_MR_FORCE_MERGE":  12,
 		"SCOPE_RELEASE_WRITE":   13,
+		"SCOPE_JOURNAL_READ":    14,
 	}
 )
 
@@ -631,7 +638,7 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"$\n" +
 	"\x12RevokeTokenRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x15\n" +
-	"\x13RevokeTokenResponse*\xc5\x02\n" +
+	"\x13RevokeTokenResponse*\xdd\x02\n" +
 	"\x05Scope\x12\x15\n" +
 	"\x11SCOPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSCOPE_REPO_READ\x10\x01\x12\x14\n" +
@@ -647,7 +654,8 @@ const file_ermite_token_proto_rawDesc = "" +
 	"\x12\x15\n" +
 	"\x11SCOPE_ISSUE_WRITE\x10\v\x12\x18\n" +
 	"\x14SCOPE_MR_FORCE_MERGE\x10\f\x12\x17\n" +
-	"\x13SCOPE_RELEASE_WRITE\x10\r2\xe3\x01\n" +
+	"\x13SCOPE_RELEASE_WRITE\x10\r\x12\x16\n" +
+	"\x12SCOPE_JOURNAL_READ\x10\x0e2\xe3\x01\n" +
 	"\fTokenService\x12F\n" +
 	"\vCreateToken\x12\x1a.ermite.CreateTokenRequest\x1a\x1b.ermite.CreateTokenResponse\x12C\n" +
 	"\n" +

@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package ermite;
+
+import "google/protobuf/timestamp.proto";
+
+// ActivityKind is what an entry of the activity journal records. Clients
+// ignore kinds they do not know.
+enum ActivityKind {
+  ACTIVITY_KIND_UNSPECIFIED = 0;
+  ACTIVITY_KIND_MR_OPENED = 1;
+  ACTIVITY_KIND_MR_MERGED = 2;
+  ACTIVITY_KIND_MR_CLOSED = 3;
+  ACTIVITY_KIND_ISSUE_OPENED = 4;
+  // ACTIVITY_KIND_ISSUE_CLOSED is an issue closed by hand or resolved by a merge.
+  ACTIVITY_KIND_ISSUE_CLOSED = 5;
+  ACTIVITY_KIND_TAG_CREATED = 6;
+  ACTIVITY_KIND_TAG_DELETED = 7;
+  ACTIVITY_KIND_RELEASE_PUBLISHED = 8;
+  // ACTIVITY_KIND_PUSH is a push that moved the default branch.
+  ACTIVITY_KIND_PUSH = 9;
+}
+
+// ActivityEntry is one thing that happened in a repository.
+message ActivityEntry {
+  // Id identifies the entry; it is opaque and sorts like the entries.
+  string id = 1;
+  ActivityKind kind = 2;
+  string repo = 3;
+  google.protobuf.Timestamp at = 4;
+  // Actor is who did it ("owner", "root", a token label); empty when unknown.
+  string actor = 5;
+  // Number is the merge request or issue; 0 for the other kinds.
+  int64 number = 6;
+  // Ref is the tag of a tag or release entry, the branch of a push, or the
+  // target branch of a merge request.
+  string ref = 7;
+  // Title is the title of the merge request, issue or release.
+  string title = 8;
+  // CommitCount counts the commits a push brought, at most 100;
+  // commits_capped tells that there were more.
+  int32 commit_count = 9;
+  bool commits_capped = 10;
+  // Commit is the new head of a push; empty when unknown or for other kinds.
+  string commit = 11;
+  // Summary is the subject of the newest commit of a push.
+  string summary = 12;
+}
+
+// JournalService reads the activity journal of the forge: merge requests and
+// issues opened, merged or closed, tags, releases and pushes to default
+// branches, kept 30 days. Servers list "journal" in
+// GetVersionResponse.features. Callers need owner rights or the journal:read
+// scope; a token limited to repositories sees only theirs. Anonymous callers
+// get unauthenticated, other callers permission_denied. Issue entries of
+// repositories whose issues are off, and entries of deleted repositories, are
+// left out.
+service JournalService {
+  // ListActivity lists the entries at or after since, newest first. since is
+  // required and must not be in the future (invalid_argument); an older since
+  // than the retention returns what is kept. An unknown or invisible repo is
+  // not_found.
+  rpc ListActivity(ListActivityRequest) returns (ListActivityResponse);
+}
+
+// ListActivityRequest selects a page of journal entries.
+message ListActivityRequest {
+  google.protobuf.Timestamp since = 1;
+  // Repo restricts the entries to one repository. Absent means all.
+  optional string repo = 2;
+  // Kinds restricts the entries to these kinds. Empty means every kind;
+  // ACTIVITY_KIND_UNSPECIFIED is invalid_argument.
+  repeated ActivityKind kinds = 3;
+  // PageSize is the maximum number of entries. 0 means 100; values above 500
+  // are lowered to 500.
+  int32 page_size = 4;
+  // PageToken is the next_page_token of a previous response, to continue the
+  // same listing. Empty for the first page. Other fields must be unchanged.
+  string page_token = 5;
+}
+
+// ListActivityResponse is one page of journal entries.
+message ListActivityResponse {
+  // Entries are newest first.
+  repeated ActivityEntry entries = 1;
+  // NextPageToken is passed as page_token to get older entries. Empty when
+  // there are no more.
+  string next_page_token = 2;
+}

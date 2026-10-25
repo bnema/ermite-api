@@ -62,6 +62,7 @@ Servers advertise `releases` in `GetVersionResponse.features`.
 | `UpdateReleaseAsset`, `DeleteReleaseAsset`, `ListReleaseAssets` | Rename/relabel with a field mask, delete, or list uploaded assets by name |
 | `DownloadReleaseAsset` | Select by asset id, tag/name or latest/name; metadata first, then chunks of at most 1 MiB. Resume with a byte offset |
 | `GetReleaseUsage` | Repository usage including reserved uploads, quota, asset size and count limits |
+| `ListUnreleased` | Non-archived repositories whose default branch has commits after its nearest tag (count capped at 500, `commits_capped`). Access as `JournalService`; feature `journal` |
 
 Published releases follow repository read access; drafts are visible only to
 writers. Writes require `release:write` (`SCOPE_RELEASE_WRITE = 13`) or a job
@@ -78,6 +79,20 @@ id and tag; all except deletion also carry draft and prerelease flags. Tag
 deletion turns a release into a draft without deleting its assets.
 
 Text edits publish `issue_edited` (event 32) and `merge_request_edited` (event 33), carrying the updated item and `changed_fields`. Clients ignore unknown event kinds. Issue history retains at most 500 entries; edits after the cap still persist and publish live events.
+
+## JournalService
+
+Owner rights or a token with `journal:read` (`SCOPE_JOURNAL_READ = 14`).
+A token limited to repositories sees only theirs. Requires feature `journal`.
+
+| RPC | Purpose |
+|---|---|
+| `ListActivity` | Journal entries at or after `since` (required, not in the future), newest first, optionally for one repository and some kinds. Paginated: `page_size` 100 by default, 500 at most |
+
+Entries cover merge requests and issues opened, merged or closed, tags created
+or deleted, releases published and pushes to default branches. They are kept
+30 days; an older `since` returns what is kept. Issue entries of repositories
+with issues off and entries of deleted repositories are left out.
 
 ## DepsService
 

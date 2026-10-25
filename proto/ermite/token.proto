@@ -52,6 +52,11 @@ enum Scope {
   // SCOPE_RELEASE_WRITE allows creating, editing and deleting releases and their assets.
   // Wire name: release:write.
   SCOPE_RELEASE_WRITE = 13;
+  // SCOPE_JOURNAL_READ allows reading the activity journal and the unreleased
+  // commits of every repository, private ones included, within the token's
+  // repository list (JournalService, ReleaseService.ListUnreleased). Wire
+  // name: journal:read.
+  SCOPE_JOURNAL_READ = 14;
 }
 
 // Token describes a stored token. It never contains the secret nor its hash.

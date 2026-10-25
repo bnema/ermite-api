@@ -30,6 +30,8 @@ func TestProcedures(t *testing.T) {
 		{ermiteconnect.ReleaseServiceDownloadReleaseAssetProcedure, "/ermite.ReleaseService/DownloadReleaseAsset"},
 		{ermiteconnect.ReleaseServiceListReleaseAssetsProcedure, "/ermite.ReleaseService/ListReleaseAssets"},
 		{ermiteconnect.ReleaseServiceGetReleaseUsageProcedure, "/ermite.ReleaseService/GetReleaseUsage"},
+		{ermiteconnect.ReleaseServiceListUnreleasedProcedure, "/ermite.ReleaseService/ListUnreleased"},
+		{ermiteconnect.JournalServiceListActivityProcedure, "/ermite.JournalService/ListActivity"},
 
 		{ermiteconnect.MirrorServiceGetMirrorKeyProcedure, "/ermite.MirrorService/GetMirrorKey"},
 		{ermiteconnect.MirrorServiceRotateMirrorKeyProcedure, "/ermite.MirrorService/RotateMirrorKey"},
@@ -188,6 +190,17 @@ func TestEnumNumbers(t *testing.T) {
 		{"ACTION_SOURCE_UNSPECIFIED", int32(ermite.ActionSource_ACTION_SOURCE_UNSPECIFIED), 0},
 		{"ACTION_SOURCE_GITHUB", int32(ermite.ActionSource_ACTION_SOURCE_GITHUB), 1},
 		{"ACTION_SOURCE_ERMITE", int32(ermite.ActionSource_ACTION_SOURCE_ERMITE), 2},
+		{"SCOPE_JOURNAL_READ", int32(ermite.Scope_SCOPE_JOURNAL_READ), 14},
+		{"ACTIVITY_KIND_UNSPECIFIED", int32(ermite.ActivityKind_ACTIVITY_KIND_UNSPECIFIED), 0},
+		{"ACTIVITY_KIND_MR_OPENED", int32(ermite.ActivityKind_ACTIVITY_KIND_MR_OPENED), 1},
+		{"ACTIVITY_KIND_MR_MERGED", int32(ermite.ActivityKind_ACTIVITY_KIND_MR_MERGED), 2},
+		{"ACTIVITY_KIND_MR_CLOSED", int32(ermite.ActivityKind_ACTIVITY_KIND_MR_CLOSED), 3},
+		{"ACTIVITY_KIND_ISSUE_OPENED", int32(ermite.ActivityKind_ACTIVITY_KIND_ISSUE_OPENED), 4},
+		{"ACTIVITY_KIND_ISSUE_CLOSED", int32(ermite.ActivityKind_ACTIVITY_KIND_ISSUE_CLOSED), 5},
+		{"ACTIVITY_KIND_TAG_CREATED", int32(ermite.ActivityKind_ACTIVITY_KIND_TAG_CREATED), 6},
+		{"ACTIVITY_KIND_TAG_DELETED", int32(ermite.ActivityKind_ACTIVITY_KIND_TAG_DELETED), 7},
+		{"ACTIVITY_KIND_RELEASE_PUBLISHED", int32(ermite.ActivityKind_ACTIVITY_KIND_RELEASE_PUBLISHED), 8},
+		{"ACTIVITY_KIND_PUSH", int32(ermite.ActivityKind_ACTIVITY_KIND_PUSH), 9},
 	}
 	for _, e := range enums {
 		if e.got != e.want {

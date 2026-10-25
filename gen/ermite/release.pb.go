@@ -298,6 +298,187 @@ func (x *ReleaseAsset) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// ListUnreleasedRequest is the request of ReleaseService.ListUnreleased.
+type ListUnreleasedRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Repo restricts the result to one repository. Absent means all.
+	Repo          *string `protobuf:"bytes,1,opt,name=repo,proto3,oneof" json:"repo,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUnreleasedRequest) Reset() {
+	*x = ListUnreleasedRequest{}
+	mi := &file_ermite_release_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUnreleasedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUnreleasedRequest) ProtoMessage() {}
+
+func (x *ListUnreleasedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_release_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUnreleasedRequest.ProtoReflect.Descriptor instead.
+func (*ListUnreleasedRequest) Descriptor() ([]byte, []int) {
+	return file_ermite_release_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ListUnreleasedRequest) GetRepo() string {
+	if x != nil && x.Repo != nil {
+		return *x.Repo
+	}
+	return ""
+}
+
+// ListUnreleasedResponse is the response of ReleaseService.ListUnreleased.
+type ListUnreleasedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Repos         []*UnreleasedRepo      `protobuf:"bytes,1,rep,name=repos,proto3" json:"repos,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUnreleasedResponse) Reset() {
+	*x = ListUnreleasedResponse{}
+	mi := &file_ermite_release_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUnreleasedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUnreleasedResponse) ProtoMessage() {}
+
+func (x *ListUnreleasedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_release_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUnreleasedResponse.ProtoReflect.Descriptor instead.
+func (*ListUnreleasedResponse) Descriptor() ([]byte, []int) {
+	return file_ermite_release_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ListUnreleasedResponse) GetRepos() []*UnreleasedRepo {
+	if x != nil {
+		return x.Repos
+	}
+	return nil
+}
+
+// UnreleasedRepo is a repository whose default branch is ahead of its nearest tag.
+type UnreleasedRepo struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Repo  string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	// LatestTag is the nearest tag reachable from the head of the default
+	// branch; empty when commits_capped and no tag was met within the limit.
+	LatestTag string `protobuf:"bytes,2,opt,name=latest_tag,json=latestTag,proto3" json:"latest_tag,omitempty"`
+	// LatestTagAt is the date of that tag; unset when unknown.
+	LatestTagAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=latest_tag_at,json=latestTagAt,proto3" json:"latest_tag_at,omitempty"`
+	// CommitsSince counts the commits after the tag, at most 500.
+	CommitsSince int32 `protobuf:"varint,4,opt,name=commits_since,json=commitsSince,proto3" json:"commits_since,omitempty"`
+	// CommitsCapped tells that the count reached the limit ("500+").
+	CommitsCapped bool   `protobuf:"varint,5,opt,name=commits_capped,json=commitsCapped,proto3" json:"commits_capped,omitempty"`
+	DefaultBranch string `protobuf:"bytes,6,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnreleasedRepo) Reset() {
+	*x = UnreleasedRepo{}
+	mi := &file_ermite_release_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnreleasedRepo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnreleasedRepo) ProtoMessage() {}
+
+func (x *UnreleasedRepo) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_release_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnreleasedRepo.ProtoReflect.Descriptor instead.
+func (*UnreleasedRepo) Descriptor() ([]byte, []int) {
+	return file_ermite_release_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UnreleasedRepo) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *UnreleasedRepo) GetLatestTag() string {
+	if x != nil {
+		return x.LatestTag
+	}
+	return ""
+}
+
+func (x *UnreleasedRepo) GetLatestTagAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LatestTagAt
+	}
+	return nil
+}
+
+func (x *UnreleasedRepo) GetCommitsSince() int32 {
+	if x != nil {
+		return x.CommitsSince
+	}
+	return 0
+}
+
+func (x *UnreleasedRepo) GetCommitsCapped() bool {
+	if x != nil {
+		return x.CommitsCapped
+	}
+	return false
+}
+
+func (x *UnreleasedRepo) GetDefaultBranch() string {
+	if x != nil {
+		return x.DefaultBranch
+	}
+	return ""
+}
+
 // CreateReleaseRequest is the request of ReleaseService.CreateRelease.
 type CreateReleaseRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
@@ -316,7 +497,7 @@ type CreateReleaseRequest struct {
 
 func (x *CreateReleaseRequest) Reset() {
 	*x = CreateReleaseRequest{}
-	mi := &file_ermite_release_proto_msgTypes[2]
+	mi := &file_ermite_release_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -328,7 +509,7 @@ func (x *CreateReleaseRequest) String() string {
 func (*CreateReleaseRequest) ProtoMessage() {}
 
 func (x *CreateReleaseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[2]
+	mi := &file_ermite_release_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -341,7 +522,7 @@ func (x *CreateReleaseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateReleaseRequest.ProtoReflect.Descriptor instead.
 func (*CreateReleaseRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{2}
+	return file_ermite_release_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CreateReleaseRequest) GetRepo() string {
@@ -410,7 +591,7 @@ type CreateReleaseResponse struct {
 
 func (x *CreateReleaseResponse) Reset() {
 	*x = CreateReleaseResponse{}
-	mi := &file_ermite_release_proto_msgTypes[3]
+	mi := &file_ermite_release_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -422,7 +603,7 @@ func (x *CreateReleaseResponse) String() string {
 func (*CreateReleaseResponse) ProtoMessage() {}
 
 func (x *CreateReleaseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[3]
+	mi := &file_ermite_release_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -435,7 +616,7 @@ func (x *CreateReleaseResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateReleaseResponse.ProtoReflect.Descriptor instead.
 func (*CreateReleaseResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{3}
+	return file_ermite_release_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CreateReleaseResponse) GetRelease() *Release {
@@ -459,7 +640,7 @@ type ListReleasesRequest struct {
 
 func (x *ListReleasesRequest) Reset() {
 	*x = ListReleasesRequest{}
-	mi := &file_ermite_release_proto_msgTypes[4]
+	mi := &file_ermite_release_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -471,7 +652,7 @@ func (x *ListReleasesRequest) String() string {
 func (*ListReleasesRequest) ProtoMessage() {}
 
 func (x *ListReleasesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[4]
+	mi := &file_ermite_release_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -484,7 +665,7 @@ func (x *ListReleasesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReleasesRequest.ProtoReflect.Descriptor instead.
 func (*ListReleasesRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{4}
+	return file_ermite_release_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListReleasesRequest) GetRepo() string {
@@ -519,7 +700,7 @@ type ListReleasesResponse struct {
 
 func (x *ListReleasesResponse) Reset() {
 	*x = ListReleasesResponse{}
-	mi := &file_ermite_release_proto_msgTypes[5]
+	mi := &file_ermite_release_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -531,7 +712,7 @@ func (x *ListReleasesResponse) String() string {
 func (*ListReleasesResponse) ProtoMessage() {}
 
 func (x *ListReleasesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[5]
+	mi := &file_ermite_release_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -544,7 +725,7 @@ func (x *ListReleasesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReleasesResponse.ProtoReflect.Descriptor instead.
 func (*ListReleasesResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{5}
+	return file_ermite_release_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListReleasesResponse) GetReleases() []*Release {
@@ -582,7 +763,7 @@ type UpdateReleaseRequest struct {
 
 func (x *UpdateReleaseRequest) Reset() {
 	*x = UpdateReleaseRequest{}
-	mi := &file_ermite_release_proto_msgTypes[6]
+	mi := &file_ermite_release_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -594,7 +775,7 @@ func (x *UpdateReleaseRequest) String() string {
 func (*UpdateReleaseRequest) ProtoMessage() {}
 
 func (x *UpdateReleaseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[6]
+	mi := &file_ermite_release_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -607,7 +788,7 @@ func (x *UpdateReleaseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateReleaseRequest.ProtoReflect.Descriptor instead.
 func (*UpdateReleaseRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{6}
+	return file_ermite_release_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateReleaseRequest) GetRepo() string {
@@ -690,7 +871,7 @@ type UpdateReleaseResponse struct {
 
 func (x *UpdateReleaseResponse) Reset() {
 	*x = UpdateReleaseResponse{}
-	mi := &file_ermite_release_proto_msgTypes[7]
+	mi := &file_ermite_release_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -702,7 +883,7 @@ func (x *UpdateReleaseResponse) String() string {
 func (*UpdateReleaseResponse) ProtoMessage() {}
 
 func (x *UpdateReleaseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[7]
+	mi := &file_ermite_release_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -715,7 +896,7 @@ func (x *UpdateReleaseResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateReleaseResponse.ProtoReflect.Descriptor instead.
 func (*UpdateReleaseResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{7}
+	return file_ermite_release_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UpdateReleaseResponse) GetRelease() *Release {
@@ -736,7 +917,7 @@ type DeleteReleaseRequest struct {
 
 func (x *DeleteReleaseRequest) Reset() {
 	*x = DeleteReleaseRequest{}
-	mi := &file_ermite_release_proto_msgTypes[8]
+	mi := &file_ermite_release_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -748,7 +929,7 @@ func (x *DeleteReleaseRequest) String() string {
 func (*DeleteReleaseRequest) ProtoMessage() {}
 
 func (x *DeleteReleaseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[8]
+	mi := &file_ermite_release_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -761,7 +942,7 @@ func (x *DeleteReleaseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteReleaseRequest.ProtoReflect.Descriptor instead.
 func (*DeleteReleaseRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{8}
+	return file_ermite_release_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeleteReleaseRequest) GetRepo() string {
@@ -787,7 +968,7 @@ type DeleteReleaseResponse struct {
 
 func (x *DeleteReleaseResponse) Reset() {
 	*x = DeleteReleaseResponse{}
-	mi := &file_ermite_release_proto_msgTypes[9]
+	mi := &file_ermite_release_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -799,7 +980,7 @@ func (x *DeleteReleaseResponse) String() string {
 func (*DeleteReleaseResponse) ProtoMessage() {}
 
 func (x *DeleteReleaseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[9]
+	mi := &file_ermite_release_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -812,7 +993,7 @@ func (x *DeleteReleaseResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteReleaseResponse.ProtoReflect.Descriptor instead.
 func (*DeleteReleaseResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{9}
+	return file_ermite_release_proto_rawDescGZIP(), []int{12}
 }
 
 // UploadReleaseAssetRequest is the request of ReleaseService.UploadReleaseAsset.
@@ -832,7 +1013,7 @@ type UploadReleaseAssetRequest struct {
 
 func (x *UploadReleaseAssetRequest) Reset() {
 	*x = UploadReleaseAssetRequest{}
-	mi := &file_ermite_release_proto_msgTypes[10]
+	mi := &file_ermite_release_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -844,7 +1025,7 @@ func (x *UploadReleaseAssetRequest) String() string {
 func (*UploadReleaseAssetRequest) ProtoMessage() {}
 
 func (x *UploadReleaseAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[10]
+	mi := &file_ermite_release_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -857,7 +1038,7 @@ func (x *UploadReleaseAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadReleaseAssetRequest.ProtoReflect.Descriptor instead.
 func (*UploadReleaseAssetRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{10}
+	return file_ermite_release_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *UploadReleaseAssetRequest) GetRepo() string {
@@ -926,7 +1107,7 @@ type UploadReleaseAssetResponse struct {
 
 func (x *UploadReleaseAssetResponse) Reset() {
 	*x = UploadReleaseAssetResponse{}
-	mi := &file_ermite_release_proto_msgTypes[11]
+	mi := &file_ermite_release_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -938,7 +1119,7 @@ func (x *UploadReleaseAssetResponse) String() string {
 func (*UploadReleaseAssetResponse) ProtoMessage() {}
 
 func (x *UploadReleaseAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[11]
+	mi := &file_ermite_release_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -951,7 +1132,7 @@ func (x *UploadReleaseAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadReleaseAssetResponse.ProtoReflect.Descriptor instead.
 func (*UploadReleaseAssetResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{11}
+	return file_ermite_release_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UploadReleaseAssetResponse) GetAsset() *ReleaseAsset {
@@ -976,7 +1157,7 @@ type UpdateReleaseAssetRequest struct {
 
 func (x *UpdateReleaseAssetRequest) Reset() {
 	*x = UpdateReleaseAssetRequest{}
-	mi := &file_ermite_release_proto_msgTypes[12]
+	mi := &file_ermite_release_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -988,7 +1169,7 @@ func (x *UpdateReleaseAssetRequest) String() string {
 func (*UpdateReleaseAssetRequest) ProtoMessage() {}
 
 func (x *UpdateReleaseAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[12]
+	mi := &file_ermite_release_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1001,7 +1182,7 @@ func (x *UpdateReleaseAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateReleaseAssetRequest.ProtoReflect.Descriptor instead.
 func (*UpdateReleaseAssetRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{12}
+	return file_ermite_release_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UpdateReleaseAssetRequest) GetRepo() string {
@@ -1049,7 +1230,7 @@ type UpdateReleaseAssetResponse struct {
 
 func (x *UpdateReleaseAssetResponse) Reset() {
 	*x = UpdateReleaseAssetResponse{}
-	mi := &file_ermite_release_proto_msgTypes[13]
+	mi := &file_ermite_release_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1061,7 +1242,7 @@ func (x *UpdateReleaseAssetResponse) String() string {
 func (*UpdateReleaseAssetResponse) ProtoMessage() {}
 
 func (x *UpdateReleaseAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[13]
+	mi := &file_ermite_release_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1074,7 +1255,7 @@ func (x *UpdateReleaseAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateReleaseAssetResponse.ProtoReflect.Descriptor instead.
 func (*UpdateReleaseAssetResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{13}
+	return file_ermite_release_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *UpdateReleaseAssetResponse) GetAsset() *ReleaseAsset {
@@ -1095,7 +1276,7 @@ type DeleteReleaseAssetRequest struct {
 
 func (x *DeleteReleaseAssetRequest) Reset() {
 	*x = DeleteReleaseAssetRequest{}
-	mi := &file_ermite_release_proto_msgTypes[14]
+	mi := &file_ermite_release_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1107,7 +1288,7 @@ func (x *DeleteReleaseAssetRequest) String() string {
 func (*DeleteReleaseAssetRequest) ProtoMessage() {}
 
 func (x *DeleteReleaseAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[14]
+	mi := &file_ermite_release_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1120,7 +1301,7 @@ func (x *DeleteReleaseAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteReleaseAssetRequest.ProtoReflect.Descriptor instead.
 func (*DeleteReleaseAssetRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{14}
+	return file_ermite_release_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DeleteReleaseAssetRequest) GetRepo() string {
@@ -1146,7 +1327,7 @@ type DeleteReleaseAssetResponse struct {
 
 func (x *DeleteReleaseAssetResponse) Reset() {
 	*x = DeleteReleaseAssetResponse{}
-	mi := &file_ermite_release_proto_msgTypes[15]
+	mi := &file_ermite_release_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1158,7 +1339,7 @@ func (x *DeleteReleaseAssetResponse) String() string {
 func (*DeleteReleaseAssetResponse) ProtoMessage() {}
 
 func (x *DeleteReleaseAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[15]
+	mi := &file_ermite_release_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1171,7 +1352,7 @@ func (x *DeleteReleaseAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteReleaseAssetResponse.ProtoReflect.Descriptor instead.
 func (*DeleteReleaseAssetResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{15}
+	return file_ermite_release_proto_rawDescGZIP(), []int{18}
 }
 
 // DownloadReleaseAssetResponse is the response of ReleaseService.DownloadReleaseAsset.
@@ -1185,7 +1366,7 @@ type DownloadReleaseAssetResponse struct {
 
 func (x *DownloadReleaseAssetResponse) Reset() {
 	*x = DownloadReleaseAssetResponse{}
-	mi := &file_ermite_release_proto_msgTypes[16]
+	mi := &file_ermite_release_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1197,7 +1378,7 @@ func (x *DownloadReleaseAssetResponse) String() string {
 func (*DownloadReleaseAssetResponse) ProtoMessage() {}
 
 func (x *DownloadReleaseAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[16]
+	mi := &file_ermite_release_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1210,7 +1391,7 @@ func (x *DownloadReleaseAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadReleaseAssetResponse.ProtoReflect.Descriptor instead.
 func (*DownloadReleaseAssetResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{16}
+	return file_ermite_release_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *DownloadReleaseAssetResponse) GetAsset() *ReleaseAsset {
@@ -1238,7 +1419,7 @@ type ListReleaseAssetsRequest struct {
 
 func (x *ListReleaseAssetsRequest) Reset() {
 	*x = ListReleaseAssetsRequest{}
-	mi := &file_ermite_release_proto_msgTypes[17]
+	mi := &file_ermite_release_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1250,7 +1431,7 @@ func (x *ListReleaseAssetsRequest) String() string {
 func (*ListReleaseAssetsRequest) ProtoMessage() {}
 
 func (x *ListReleaseAssetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[17]
+	mi := &file_ermite_release_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1263,7 +1444,7 @@ func (x *ListReleaseAssetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReleaseAssetsRequest.ProtoReflect.Descriptor instead.
 func (*ListReleaseAssetsRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{17}
+	return file_ermite_release_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListReleaseAssetsRequest) GetRepo() string {
@@ -1290,7 +1471,7 @@ type ListReleaseAssetsResponse struct {
 
 func (x *ListReleaseAssetsResponse) Reset() {
 	*x = ListReleaseAssetsResponse{}
-	mi := &file_ermite_release_proto_msgTypes[18]
+	mi := &file_ermite_release_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1302,7 +1483,7 @@ func (x *ListReleaseAssetsResponse) String() string {
 func (*ListReleaseAssetsResponse) ProtoMessage() {}
 
 func (x *ListReleaseAssetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[18]
+	mi := &file_ermite_release_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1315,7 +1496,7 @@ func (x *ListReleaseAssetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReleaseAssetsResponse.ProtoReflect.Descriptor instead.
 func (*ListReleaseAssetsResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{18}
+	return file_ermite_release_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListReleaseAssetsResponse) GetAssets() []*ReleaseAsset {
@@ -1335,7 +1516,7 @@ type GetReleaseUsageRequest struct {
 
 func (x *GetReleaseUsageRequest) Reset() {
 	*x = GetReleaseUsageRequest{}
-	mi := &file_ermite_release_proto_msgTypes[19]
+	mi := &file_ermite_release_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1347,7 +1528,7 @@ func (x *GetReleaseUsageRequest) String() string {
 func (*GetReleaseUsageRequest) ProtoMessage() {}
 
 func (x *GetReleaseUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[19]
+	mi := &file_ermite_release_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1360,7 +1541,7 @@ func (x *GetReleaseUsageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReleaseUsageRequest.ProtoReflect.Descriptor instead.
 func (*GetReleaseUsageRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{19}
+	return file_ermite_release_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetReleaseUsageRequest) GetRepo() string {
@@ -1383,7 +1564,7 @@ type GetReleaseUsageResponse struct {
 
 func (x *GetReleaseUsageResponse) Reset() {
 	*x = GetReleaseUsageResponse{}
-	mi := &file_ermite_release_proto_msgTypes[20]
+	mi := &file_ermite_release_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1395,7 +1576,7 @@ func (x *GetReleaseUsageResponse) String() string {
 func (*GetReleaseUsageResponse) ProtoMessage() {}
 
 func (x *GetReleaseUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[20]
+	mi := &file_ermite_release_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1408,7 +1589,7 @@ func (x *GetReleaseUsageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReleaseUsageResponse.ProtoReflect.Descriptor instead.
 func (*GetReleaseUsageResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{20}
+	return file_ermite_release_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetReleaseUsageResponse) GetUsedBytes() int64 {
@@ -1455,7 +1636,7 @@ type GetReleaseRequest struct {
 
 func (x *GetReleaseRequest) Reset() {
 	*x = GetReleaseRequest{}
-	mi := &file_ermite_release_proto_msgTypes[21]
+	mi := &file_ermite_release_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1467,7 +1648,7 @@ func (x *GetReleaseRequest) String() string {
 func (*GetReleaseRequest) ProtoMessage() {}
 
 func (x *GetReleaseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[21]
+	mi := &file_ermite_release_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1480,7 +1661,7 @@ func (x *GetReleaseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReleaseRequest.ProtoReflect.Descriptor instead.
 func (*GetReleaseRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{21}
+	return file_ermite_release_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetReleaseRequest) GetRepo() string {
@@ -1557,7 +1738,7 @@ type ReleaseAssetTag struct {
 
 func (x *ReleaseAssetTag) Reset() {
 	*x = ReleaseAssetTag{}
-	mi := &file_ermite_release_proto_msgTypes[22]
+	mi := &file_ermite_release_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1569,7 +1750,7 @@ func (x *ReleaseAssetTag) String() string {
 func (*ReleaseAssetTag) ProtoMessage() {}
 
 func (x *ReleaseAssetTag) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[22]
+	mi := &file_ermite_release_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1582,7 +1763,7 @@ func (x *ReleaseAssetTag) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseAssetTag.ProtoReflect.Descriptor instead.
 func (*ReleaseAssetTag) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{22}
+	return file_ermite_release_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ReleaseAssetTag) GetTag() string {
@@ -1611,7 +1792,7 @@ type ReleaseAssetLatest struct {
 
 func (x *ReleaseAssetLatest) Reset() {
 	*x = ReleaseAssetLatest{}
-	mi := &file_ermite_release_proto_msgTypes[23]
+	mi := &file_ermite_release_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1623,7 +1804,7 @@ func (x *ReleaseAssetLatest) String() string {
 func (*ReleaseAssetLatest) ProtoMessage() {}
 
 func (x *ReleaseAssetLatest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[23]
+	mi := &file_ermite_release_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1636,7 +1817,7 @@ func (x *ReleaseAssetLatest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseAssetLatest.ProtoReflect.Descriptor instead.
 func (*ReleaseAssetLatest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{23}
+	return file_ermite_release_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ReleaseAssetLatest) GetLatest() bool {
@@ -1670,7 +1851,7 @@ type DownloadReleaseAssetRequest struct {
 
 func (x *DownloadReleaseAssetRequest) Reset() {
 	*x = DownloadReleaseAssetRequest{}
-	mi := &file_ermite_release_proto_msgTypes[24]
+	mi := &file_ermite_release_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1682,7 +1863,7 @@ func (x *DownloadReleaseAssetRequest) String() string {
 func (*DownloadReleaseAssetRequest) ProtoMessage() {}
 
 func (x *DownloadReleaseAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[24]
+	mi := &file_ermite_release_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1695,7 +1876,7 @@ func (x *DownloadReleaseAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadReleaseAssetRequest.ProtoReflect.Descriptor instead.
 func (*DownloadReleaseAssetRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{24}
+	return file_ermite_release_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *DownloadReleaseAssetRequest) GetRepo() string {
@@ -1778,7 +1959,7 @@ type GetReleaseResponse struct {
 
 func (x *GetReleaseResponse) Reset() {
 	*x = GetReleaseResponse{}
-	mi := &file_ermite_release_proto_msgTypes[25]
+	mi := &file_ermite_release_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1790,7 +1971,7 @@ func (x *GetReleaseResponse) String() string {
 func (*GetReleaseResponse) ProtoMessage() {}
 
 func (x *GetReleaseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_release_proto_msgTypes[25]
+	mi := &file_ermite_release_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1803,7 +1984,7 @@ func (x *GetReleaseResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReleaseResponse.ProtoReflect.Descriptor instead.
 func (*GetReleaseResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_release_proto_rawDescGZIP(), []int{25}
+	return file_ermite_release_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetReleaseResponse) GetRelease() *Release {
@@ -1852,7 +2033,20 @@ const file_ermite_release_proto_rawDesc = "" +
 	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xea\x01\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"9\n" +
+	"\x15ListUnreleasedRequest\x12\x17\n" +
+	"\x04repo\x18\x01 \x01(\tH\x00R\x04repo\x88\x01\x01B\a\n" +
+	"\x05_repo\"F\n" +
+	"\x16ListUnreleasedResponse\x12,\n" +
+	"\x05repos\x18\x01 \x03(\v2\x16.ermite.UnreleasedRepoR\x05repos\"\xf6\x01\n" +
+	"\x0eUnreleasedRepo\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x1d\n" +
+	"\n" +
+	"latest_tag\x18\x02 \x01(\tR\tlatestTag\x12>\n" +
+	"\rlatest_tag_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vlatestTagAt\x12#\n" +
+	"\rcommits_since\x18\x04 \x01(\x05R\fcommitsSince\x12%\n" +
+	"\x0ecommits_capped\x18\x05 \x01(\bR\rcommitsCapped\x12%\n" +
+	"\x0edefault_branch\x18\x06 \x01(\tR\rdefaultBranch\"\xea\x01\n" +
 	"\x14CreateReleaseRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x10\n" +
 	"\x03tag\x18\x02 \x01(\tR\x03tag\x12)\n" +
@@ -1963,7 +2157,7 @@ const file_ermite_release_proto_rawDesc = "" +
 	"\n" +
 	"\bselector\"?\n" +
 	"\x12GetReleaseResponse\x12)\n" +
-	"\arelease\x18\x01 \x01(\v2\x0f.ermite.ReleaseR\arelease2\xb6\a\n" +
+	"\arelease\x18\x01 \x01(\v2\x0f.ermite.ReleaseR\arelease2\x87\b\n" +
 	"\x0eReleaseService\x12L\n" +
 	"\rCreateRelease\x12\x1c.ermite.CreateReleaseRequest\x1a\x1d.ermite.CreateReleaseResponse\x12C\n" +
 	"\n" +
@@ -1976,7 +2170,8 @@ const file_ermite_release_proto_rawDesc = "" +
 	"\x12DeleteReleaseAsset\x12!.ermite.DeleteReleaseAssetRequest\x1a\".ermite.DeleteReleaseAssetResponse\x12c\n" +
 	"\x14DownloadReleaseAsset\x12#.ermite.DownloadReleaseAssetRequest\x1a$.ermite.DownloadReleaseAssetResponse0\x01\x12X\n" +
 	"\x11ListReleaseAssets\x12 .ermite.ListReleaseAssetsRequest\x1a!.ermite.ListReleaseAssetsResponse\x12R\n" +
-	"\x0fGetReleaseUsage\x12\x1e.ermite.GetReleaseUsageRequest\x1a\x1f.ermite.GetReleaseUsageResponseBs\n" +
+	"\x0fGetReleaseUsage\x12\x1e.ermite.GetReleaseUsageRequest\x1a\x1f.ermite.GetReleaseUsageResponse\x12O\n" +
+	"\x0eListUnreleased\x12\x1d.ermite.ListUnreleasedRequest\x1a\x1e.ermite.ListUnreleasedResponseBs\n" +
 	"\n" +
 	"com.ermiteB\fReleaseProtoP\x01Z\x1fbnema.dev/ermite-api/gen/ermite\xa2\x02\x03EXX\xaa\x02\x06Ermite\xca\x02\x06Ermite\xe2\x02\x12Ermite\\GPBMetadata\xea\x02\x06Ermiteb\x06proto3"
 
@@ -1992,83 +2187,90 @@ func file_ermite_release_proto_rawDescGZIP() []byte {
 	return file_ermite_release_proto_rawDescData
 }
 
-var file_ermite_release_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_ermite_release_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_ermite_release_proto_goTypes = []any{
 	(*Release)(nil),                      // 0: ermite.Release
 	(*ReleaseAsset)(nil),                 // 1: ermite.ReleaseAsset
-	(*CreateReleaseRequest)(nil),         // 2: ermite.CreateReleaseRequest
-	(*CreateReleaseResponse)(nil),        // 3: ermite.CreateReleaseResponse
-	(*ListReleasesRequest)(nil),          // 4: ermite.ListReleasesRequest
-	(*ListReleasesResponse)(nil),         // 5: ermite.ListReleasesResponse
-	(*UpdateReleaseRequest)(nil),         // 6: ermite.UpdateReleaseRequest
-	(*UpdateReleaseResponse)(nil),        // 7: ermite.UpdateReleaseResponse
-	(*DeleteReleaseRequest)(nil),         // 8: ermite.DeleteReleaseRequest
-	(*DeleteReleaseResponse)(nil),        // 9: ermite.DeleteReleaseResponse
-	(*UploadReleaseAssetRequest)(nil),    // 10: ermite.UploadReleaseAssetRequest
-	(*UploadReleaseAssetResponse)(nil),   // 11: ermite.UploadReleaseAssetResponse
-	(*UpdateReleaseAssetRequest)(nil),    // 12: ermite.UpdateReleaseAssetRequest
-	(*UpdateReleaseAssetResponse)(nil),   // 13: ermite.UpdateReleaseAssetResponse
-	(*DeleteReleaseAssetRequest)(nil),    // 14: ermite.DeleteReleaseAssetRequest
-	(*DeleteReleaseAssetResponse)(nil),   // 15: ermite.DeleteReleaseAssetResponse
-	(*DownloadReleaseAssetResponse)(nil), // 16: ermite.DownloadReleaseAssetResponse
-	(*ListReleaseAssetsRequest)(nil),     // 17: ermite.ListReleaseAssetsRequest
-	(*ListReleaseAssetsResponse)(nil),    // 18: ermite.ListReleaseAssetsResponse
-	(*GetReleaseUsageRequest)(nil),       // 19: ermite.GetReleaseUsageRequest
-	(*GetReleaseUsageResponse)(nil),      // 20: ermite.GetReleaseUsageResponse
-	(*GetReleaseRequest)(nil),            // 21: ermite.GetReleaseRequest
-	(*ReleaseAssetTag)(nil),              // 22: ermite.ReleaseAssetTag
-	(*ReleaseAssetLatest)(nil),           // 23: ermite.ReleaseAssetLatest
-	(*DownloadReleaseAssetRequest)(nil),  // 24: ermite.DownloadReleaseAssetRequest
-	(*GetReleaseResponse)(nil),           // 25: ermite.GetReleaseResponse
-	(*timestamppb.Timestamp)(nil),        // 26: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),        // 27: google.protobuf.FieldMask
+	(*ListUnreleasedRequest)(nil),        // 2: ermite.ListUnreleasedRequest
+	(*ListUnreleasedResponse)(nil),       // 3: ermite.ListUnreleasedResponse
+	(*UnreleasedRepo)(nil),               // 4: ermite.UnreleasedRepo
+	(*CreateReleaseRequest)(nil),         // 5: ermite.CreateReleaseRequest
+	(*CreateReleaseResponse)(nil),        // 6: ermite.CreateReleaseResponse
+	(*ListReleasesRequest)(nil),          // 7: ermite.ListReleasesRequest
+	(*ListReleasesResponse)(nil),         // 8: ermite.ListReleasesResponse
+	(*UpdateReleaseRequest)(nil),         // 9: ermite.UpdateReleaseRequest
+	(*UpdateReleaseResponse)(nil),        // 10: ermite.UpdateReleaseResponse
+	(*DeleteReleaseRequest)(nil),         // 11: ermite.DeleteReleaseRequest
+	(*DeleteReleaseResponse)(nil),        // 12: ermite.DeleteReleaseResponse
+	(*UploadReleaseAssetRequest)(nil),    // 13: ermite.UploadReleaseAssetRequest
+	(*UploadReleaseAssetResponse)(nil),   // 14: ermite.UploadReleaseAssetResponse
+	(*UpdateReleaseAssetRequest)(nil),    // 15: ermite.UpdateReleaseAssetRequest
+	(*UpdateReleaseAssetResponse)(nil),   // 16: ermite.UpdateReleaseAssetResponse
+	(*DeleteReleaseAssetRequest)(nil),    // 17: ermite.DeleteReleaseAssetRequest
+	(*DeleteReleaseAssetResponse)(nil),   // 18: ermite.DeleteReleaseAssetResponse
+	(*DownloadReleaseAssetResponse)(nil), // 19: ermite.DownloadReleaseAssetResponse
+	(*ListReleaseAssetsRequest)(nil),     // 20: ermite.ListReleaseAssetsRequest
+	(*ListReleaseAssetsResponse)(nil),    // 21: ermite.ListReleaseAssetsResponse
+	(*GetReleaseUsageRequest)(nil),       // 22: ermite.GetReleaseUsageRequest
+	(*GetReleaseUsageResponse)(nil),      // 23: ermite.GetReleaseUsageResponse
+	(*GetReleaseRequest)(nil),            // 24: ermite.GetReleaseRequest
+	(*ReleaseAssetTag)(nil),              // 25: ermite.ReleaseAssetTag
+	(*ReleaseAssetLatest)(nil),           // 26: ermite.ReleaseAssetLatest
+	(*DownloadReleaseAssetRequest)(nil),  // 27: ermite.DownloadReleaseAssetRequest
+	(*GetReleaseResponse)(nil),           // 28: ermite.GetReleaseResponse
+	(*timestamppb.Timestamp)(nil),        // 29: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),        // 30: google.protobuf.FieldMask
 }
 var file_ermite_release_proto_depIdxs = []int32{
-	26, // 0: ermite.Release.created_at:type_name -> google.protobuf.Timestamp
-	26, // 1: ermite.Release.published_at:type_name -> google.protobuf.Timestamp
-	26, // 2: ermite.Release.updated_at:type_name -> google.protobuf.Timestamp
+	29, // 0: ermite.Release.created_at:type_name -> google.protobuf.Timestamp
+	29, // 1: ermite.Release.published_at:type_name -> google.protobuf.Timestamp
+	29, // 2: ermite.Release.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 3: ermite.Release.assets:type_name -> ermite.ReleaseAsset
-	26, // 4: ermite.ReleaseAsset.created_at:type_name -> google.protobuf.Timestamp
-	26, // 5: ermite.ReleaseAsset.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 6: ermite.CreateReleaseResponse.release:type_name -> ermite.Release
-	0,  // 7: ermite.ListReleasesResponse.releases:type_name -> ermite.Release
-	27, // 8: ermite.UpdateReleaseRequest.update_mask:type_name -> google.protobuf.FieldMask
-	0,  // 9: ermite.UpdateReleaseResponse.release:type_name -> ermite.Release
-	1,  // 10: ermite.UploadReleaseAssetResponse.asset:type_name -> ermite.ReleaseAsset
-	27, // 11: ermite.UpdateReleaseAssetRequest.update_mask:type_name -> google.protobuf.FieldMask
-	1,  // 12: ermite.UpdateReleaseAssetResponse.asset:type_name -> ermite.ReleaseAsset
-	1,  // 13: ermite.DownloadReleaseAssetResponse.asset:type_name -> ermite.ReleaseAsset
-	1,  // 14: ermite.ListReleaseAssetsResponse.assets:type_name -> ermite.ReleaseAsset
-	22, // 15: ermite.DownloadReleaseAssetRequest.tag:type_name -> ermite.ReleaseAssetTag
-	23, // 16: ermite.DownloadReleaseAssetRequest.latest:type_name -> ermite.ReleaseAssetLatest
-	0,  // 17: ermite.GetReleaseResponse.release:type_name -> ermite.Release
-	2,  // 18: ermite.ReleaseService.CreateRelease:input_type -> ermite.CreateReleaseRequest
-	21, // 19: ermite.ReleaseService.GetRelease:input_type -> ermite.GetReleaseRequest
-	4,  // 20: ermite.ReleaseService.ListReleases:input_type -> ermite.ListReleasesRequest
-	6,  // 21: ermite.ReleaseService.UpdateRelease:input_type -> ermite.UpdateReleaseRequest
-	8,  // 22: ermite.ReleaseService.DeleteRelease:input_type -> ermite.DeleteReleaseRequest
-	10, // 23: ermite.ReleaseService.UploadReleaseAsset:input_type -> ermite.UploadReleaseAssetRequest
-	12, // 24: ermite.ReleaseService.UpdateReleaseAsset:input_type -> ermite.UpdateReleaseAssetRequest
-	14, // 25: ermite.ReleaseService.DeleteReleaseAsset:input_type -> ermite.DeleteReleaseAssetRequest
-	24, // 26: ermite.ReleaseService.DownloadReleaseAsset:input_type -> ermite.DownloadReleaseAssetRequest
-	17, // 27: ermite.ReleaseService.ListReleaseAssets:input_type -> ermite.ListReleaseAssetsRequest
-	19, // 28: ermite.ReleaseService.GetReleaseUsage:input_type -> ermite.GetReleaseUsageRequest
-	3,  // 29: ermite.ReleaseService.CreateRelease:output_type -> ermite.CreateReleaseResponse
-	25, // 30: ermite.ReleaseService.GetRelease:output_type -> ermite.GetReleaseResponse
-	5,  // 31: ermite.ReleaseService.ListReleases:output_type -> ermite.ListReleasesResponse
-	7,  // 32: ermite.ReleaseService.UpdateRelease:output_type -> ermite.UpdateReleaseResponse
-	9,  // 33: ermite.ReleaseService.DeleteRelease:output_type -> ermite.DeleteReleaseResponse
-	11, // 34: ermite.ReleaseService.UploadReleaseAsset:output_type -> ermite.UploadReleaseAssetResponse
-	13, // 35: ermite.ReleaseService.UpdateReleaseAsset:output_type -> ermite.UpdateReleaseAssetResponse
-	15, // 36: ermite.ReleaseService.DeleteReleaseAsset:output_type -> ermite.DeleteReleaseAssetResponse
-	16, // 37: ermite.ReleaseService.DownloadReleaseAsset:output_type -> ermite.DownloadReleaseAssetResponse
-	18, // 38: ermite.ReleaseService.ListReleaseAssets:output_type -> ermite.ListReleaseAssetsResponse
-	20, // 39: ermite.ReleaseService.GetReleaseUsage:output_type -> ermite.GetReleaseUsageResponse
-	29, // [29:40] is the sub-list for method output_type
-	18, // [18:29] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	29, // 4: ermite.ReleaseAsset.created_at:type_name -> google.protobuf.Timestamp
+	29, // 5: ermite.ReleaseAsset.updated_at:type_name -> google.protobuf.Timestamp
+	4,  // 6: ermite.ListUnreleasedResponse.repos:type_name -> ermite.UnreleasedRepo
+	29, // 7: ermite.UnreleasedRepo.latest_tag_at:type_name -> google.protobuf.Timestamp
+	0,  // 8: ermite.CreateReleaseResponse.release:type_name -> ermite.Release
+	0,  // 9: ermite.ListReleasesResponse.releases:type_name -> ermite.Release
+	30, // 10: ermite.UpdateReleaseRequest.update_mask:type_name -> google.protobuf.FieldMask
+	0,  // 11: ermite.UpdateReleaseResponse.release:type_name -> ermite.Release
+	1,  // 12: ermite.UploadReleaseAssetResponse.asset:type_name -> ermite.ReleaseAsset
+	30, // 13: ermite.UpdateReleaseAssetRequest.update_mask:type_name -> google.protobuf.FieldMask
+	1,  // 14: ermite.UpdateReleaseAssetResponse.asset:type_name -> ermite.ReleaseAsset
+	1,  // 15: ermite.DownloadReleaseAssetResponse.asset:type_name -> ermite.ReleaseAsset
+	1,  // 16: ermite.ListReleaseAssetsResponse.assets:type_name -> ermite.ReleaseAsset
+	25, // 17: ermite.DownloadReleaseAssetRequest.tag:type_name -> ermite.ReleaseAssetTag
+	26, // 18: ermite.DownloadReleaseAssetRequest.latest:type_name -> ermite.ReleaseAssetLatest
+	0,  // 19: ermite.GetReleaseResponse.release:type_name -> ermite.Release
+	5,  // 20: ermite.ReleaseService.CreateRelease:input_type -> ermite.CreateReleaseRequest
+	24, // 21: ermite.ReleaseService.GetRelease:input_type -> ermite.GetReleaseRequest
+	7,  // 22: ermite.ReleaseService.ListReleases:input_type -> ermite.ListReleasesRequest
+	9,  // 23: ermite.ReleaseService.UpdateRelease:input_type -> ermite.UpdateReleaseRequest
+	11, // 24: ermite.ReleaseService.DeleteRelease:input_type -> ermite.DeleteReleaseRequest
+	13, // 25: ermite.ReleaseService.UploadReleaseAsset:input_type -> ermite.UploadReleaseAssetRequest
+	15, // 26: ermite.ReleaseService.UpdateReleaseAsset:input_type -> ermite.UpdateReleaseAssetRequest
+	17, // 27: ermite.ReleaseService.DeleteReleaseAsset:input_type -> ermite.DeleteReleaseAssetRequest
+	27, // 28: ermite.ReleaseService.DownloadReleaseAsset:input_type -> ermite.DownloadReleaseAssetRequest
+	20, // 29: ermite.ReleaseService.ListReleaseAssets:input_type -> ermite.ListReleaseAssetsRequest
+	22, // 30: ermite.ReleaseService.GetReleaseUsage:input_type -> ermite.GetReleaseUsageRequest
+	2,  // 31: ermite.ReleaseService.ListUnreleased:input_type -> ermite.ListUnreleasedRequest
+	6,  // 32: ermite.ReleaseService.CreateRelease:output_type -> ermite.CreateReleaseResponse
+	28, // 33: ermite.ReleaseService.GetRelease:output_type -> ermite.GetReleaseResponse
+	8,  // 34: ermite.ReleaseService.ListReleases:output_type -> ermite.ListReleasesResponse
+	10, // 35: ermite.ReleaseService.UpdateRelease:output_type -> ermite.UpdateReleaseResponse
+	12, // 36: ermite.ReleaseService.DeleteRelease:output_type -> ermite.DeleteReleaseResponse
+	14, // 37: ermite.ReleaseService.UploadReleaseAsset:output_type -> ermite.UploadReleaseAssetResponse
+	16, // 38: ermite.ReleaseService.UpdateReleaseAsset:output_type -> ermite.UpdateReleaseAssetResponse
+	18, // 39: ermite.ReleaseService.DeleteReleaseAsset:output_type -> ermite.DeleteReleaseAssetResponse
+	19, // 40: ermite.ReleaseService.DownloadReleaseAsset:output_type -> ermite.DownloadReleaseAssetResponse
+	21, // 41: ermite.ReleaseService.ListReleaseAssets:output_type -> ermite.ListReleaseAssetsResponse
+	23, // 42: ermite.ReleaseService.GetReleaseUsage:output_type -> ermite.GetReleaseUsageResponse
+	3,  // 43: ermite.ReleaseService.ListUnreleased:output_type -> ermite.ListUnreleasedResponse
+	32, // [32:44] is the sub-list for method output_type
+	20, // [20:32] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_ermite_release_proto_init() }
@@ -2076,12 +2278,13 @@ func file_ermite_release_proto_init() {
 	if File_ermite_release_proto != nil {
 		return
 	}
-	file_ermite_release_proto_msgTypes[21].OneofWrappers = []any{
+	file_ermite_release_proto_msgTypes[2].OneofWrappers = []any{}
+	file_ermite_release_proto_msgTypes[24].OneofWrappers = []any{
 		(*GetReleaseRequest_Id)(nil),
 		(*GetReleaseRequest_Tag)(nil),
 		(*GetReleaseRequest_Latest)(nil),
 	}
-	file_ermite_release_proto_msgTypes[24].OneofWrappers = []any{
+	file_ermite_release_proto_msgTypes[27].OneofWrappers = []any{
 		(*DownloadReleaseAssetRequest_AssetId)(nil),
 		(*DownloadReleaseAssetRequest_Tag)(nil),
 		(*DownloadReleaseAssetRequest_Latest)(nil),
@@ -2092,7 +2295,7 @@ func file_ermite_release_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_release_proto_rawDesc), len(file_ermite_release_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

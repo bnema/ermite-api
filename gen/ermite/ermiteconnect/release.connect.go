@@ -68,6 +68,9 @@ const (
 	// ReleaseServiceGetReleaseUsageProcedure is the fully-qualified name of the ReleaseService's
 	// GetReleaseUsage RPC.
 	ReleaseServiceGetReleaseUsageProcedure = "/ermite.ReleaseService/GetReleaseUsage"
+	// ReleaseServiceListUnreleasedProcedure is the fully-qualified name of the ReleaseService's
+	// ListUnreleased RPC.
+	ReleaseServiceListUnreleasedProcedure = "/ermite.ReleaseService/ListUnreleased"
 )
 
 // ReleaseServiceClient is a client for the ermite.ReleaseService service.
@@ -103,6 +106,12 @@ type ReleaseServiceClient interface {
 	ListReleaseAssets(context.Context, *connect.Request[ermite.ListReleaseAssetsRequest]) (*connect.Response[ermite.ListReleaseAssetsResponse], error)
 	// GetReleaseUsage returns usage (including reserved uploads) and limits.
 	GetReleaseUsage(context.Context, *connect.Request[ermite.GetReleaseUsageRequest]) (*connect.Response[ermite.GetReleaseUsageResponse], error)
+	// ListUnreleased lists the non-archived repositories whose default branch
+	// has commits after its nearest tag, by name. Repositories without a tag
+	// are left out. It follows the access rule of JournalService (owner rights
+	// or journal:read, repository list respected) and needs the "journal"
+	// feature. An unknown or invisible repo is not_found.
+	ListUnreleased(context.Context, *connect.Request[ermite.ListUnreleasedRequest]) (*connect.Response[ermite.ListUnreleasedResponse], error)
 }
 
 // NewReleaseServiceClient constructs a client for the ermite.ReleaseService service. By default, it
@@ -182,6 +191,12 @@ func NewReleaseServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(releaseServiceMethods.ByName("GetReleaseUsage")),
 			connect.WithClientOptions(opts...),
 		),
+		listUnreleased: connect.NewClient[ermite.ListUnreleasedRequest, ermite.ListUnreleasedResponse](
+			httpClient,
+			baseURL+ReleaseServiceListUnreleasedProcedure,
+			connect.WithSchema(releaseServiceMethods.ByName("ListUnreleased")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -198,6 +213,7 @@ type releaseServiceClient struct {
 	downloadReleaseAsset *connect.Client[ermite.DownloadReleaseAssetRequest, ermite.DownloadReleaseAssetResponse]
 	listReleaseAssets    *connect.Client[ermite.ListReleaseAssetsRequest, ermite.ListReleaseAssetsResponse]
 	getReleaseUsage      *connect.Client[ermite.GetReleaseUsageRequest, ermite.GetReleaseUsageResponse]
+	listUnreleased       *connect.Client[ermite.ListUnreleasedRequest, ermite.ListUnreleasedResponse]
 }
 
 // CreateRelease calls ermite.ReleaseService.CreateRelease.
@@ -255,6 +271,11 @@ func (c *releaseServiceClient) GetReleaseUsage(ctx context.Context, req *connect
 	return c.getReleaseUsage.CallUnary(ctx, req)
 }
 
+// ListUnreleased calls ermite.ReleaseService.ListUnreleased.
+func (c *releaseServiceClient) ListUnreleased(ctx context.Context, req *connect.Request[ermite.ListUnreleasedRequest]) (*connect.Response[ermite.ListUnreleasedResponse], error) {
+	return c.listUnreleased.CallUnary(ctx, req)
+}
+
 // ReleaseServiceHandler is an implementation of the ermite.ReleaseService service.
 type ReleaseServiceHandler interface {
 	// CreateRelease creates one release per tag (already_exists on duplication).
@@ -288,6 +309,12 @@ type ReleaseServiceHandler interface {
 	ListReleaseAssets(context.Context, *connect.Request[ermite.ListReleaseAssetsRequest]) (*connect.Response[ermite.ListReleaseAssetsResponse], error)
 	// GetReleaseUsage returns usage (including reserved uploads) and limits.
 	GetReleaseUsage(context.Context, *connect.Request[ermite.GetReleaseUsageRequest]) (*connect.Response[ermite.GetReleaseUsageResponse], error)
+	// ListUnreleased lists the non-archived repositories whose default branch
+	// has commits after its nearest tag, by name. Repositories without a tag
+	// are left out. It follows the access rule of JournalService (owner rights
+	// or journal:read, repository list respected) and needs the "journal"
+	// feature. An unknown or invisible repo is not_found.
+	ListUnreleased(context.Context, *connect.Request[ermite.ListUnreleasedRequest]) (*connect.Response[ermite.ListUnreleasedResponse], error)
 }
 
 // NewReleaseServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -363,6 +390,12 @@ func NewReleaseServiceHandler(svc ReleaseServiceHandler, opts ...connect.Handler
 		connect.WithSchema(releaseServiceMethods.ByName("GetReleaseUsage")),
 		connect.WithHandlerOptions(opts...),
 	)
+	releaseServiceListUnreleasedHandler := connect.NewUnaryHandler(
+		ReleaseServiceListUnreleasedProcedure,
+		svc.ListUnreleased,
+		connect.WithSchema(releaseServiceMethods.ByName("ListUnreleased")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ermite.ReleaseService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ReleaseServiceCreateReleaseProcedure:
@@ -387,6 +420,8 @@ func NewReleaseServiceHandler(svc ReleaseServiceHandler, opts ...connect.Handler
 			releaseServiceListReleaseAssetsHandler.ServeHTTP(w, r)
 		case ReleaseServiceGetReleaseUsageProcedure:
 			releaseServiceGetReleaseUsageHandler.ServeHTTP(w, r)
+		case ReleaseServiceListUnreleasedProcedure:
+			releaseServiceListUnreleasedHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -438,4 +473,8 @@ func (UnimplementedReleaseServiceHandler) ListReleaseAssets(context.Context, *co
 
 func (UnimplementedReleaseServiceHandler) GetReleaseUsage(context.Context, *connect.Request[ermite.GetReleaseUsageRequest]) (*connect.Response[ermite.GetReleaseUsageResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.GetReleaseUsage is not implemented"))
+}
+
+func (UnimplementedReleaseServiceHandler) ListUnreleased(context.Context, *connect.Request[ermite.ListUnreleasedRequest]) (*connect.Response[ermite.ListUnreleasedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.ListUnreleased is not implemented"))
 }

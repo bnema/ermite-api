@@ -86,6 +86,38 @@ service ReleaseService {
   rpc ListReleaseAssets(ListReleaseAssetsRequest) returns (ListReleaseAssetsResponse);
   // GetReleaseUsage returns usage (including reserved uploads) and limits.
   rpc GetReleaseUsage(GetReleaseUsageRequest) returns (GetReleaseUsageResponse);
+  // ListUnreleased lists the non-archived repositories whose default branch
+  // has commits after its nearest tag, by name. Repositories without a tag
+  // are left out. It follows the access rule of JournalService (owner rights
+  // or journal:read, repository list respected) and needs the "journal"
+  // feature. An unknown or invisible repo is not_found.
+  rpc ListUnreleased(ListUnreleasedRequest) returns (ListUnreleasedResponse);
+}
+
+// ListUnreleasedRequest is the request of ReleaseService.ListUnreleased.
+message ListUnreleasedRequest {
+  // Repo restricts the result to one repository. Absent means all.
+  optional string repo = 1;
+}
+
+// ListUnreleasedResponse is the response of ReleaseService.ListUnreleased.
+message ListUnreleasedResponse {
+  repeated UnreleasedRepo repos = 1;
+}
+
+// UnreleasedRepo is a repository whose default branch is ahead of its nearest tag.
+message UnreleasedRepo {
+  string repo = 1;
+  // LatestTag is the nearest tag reachable from the head of the default
+  // branch; empty when commits_capped and no tag was met within the limit.
+  string latest_tag = 2;
+  // LatestTagAt is the date of that tag; unset when unknown.
+  google.protobuf.Timestamp latest_tag_at = 3;
+  // CommitsSince counts the commits after the tag, at most 500.
+  int32 commits_since = 4;
+  // CommitsCapped tells that the count reached the limit ("500+").
+  bool commits_capped = 5;
+  string default_branch = 6;
 }
 
 // CreateReleaseRequest is the request of ReleaseService.CreateRelease.
