@@ -24,6 +24,9 @@ func TestEditProcedures(t *testing.T) {
 // Empty replacement text must remain distinguishable from an omitted field.
 func TestEditOptionalTextRoundTrip(t *testing.T) {
 	for _, message := range []proto.Message{
+		&ermite.UpdateRepoRequest{Repo: "demo"},
+		&ermite.UpdateRepoRequest{Repo: "demo", CiAutoCancel: proto.Bool(false)},
+		&ermite.UpdateRepoRequest{Repo: "demo", CiAutoCancel: proto.Bool(true)},
 		&ermite.EditIssueRequest{Repo: "demo", Number: 1},
 		&ermite.EditIssueRequest{Repo: "demo", Number: 1, Title: proto.String(""), Body: proto.String("")},
 		&ermite.EditIssueRequest{Repo: "demo", Number: 1, Title: proto.String("new")},

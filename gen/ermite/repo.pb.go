@@ -138,7 +138,7 @@ func (IssuesMode) EnumDescriptor() ([]byte, []int) {
 }
 
 // RepoSettings are the settings of a repository that govern its merge
-// requests and issues.
+// requests, issues and CI.
 type RepoSettings struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// AllowedMergeModes are the modes with which a merge request of the
@@ -157,8 +157,12 @@ type RepoSettings struct {
 	// of the repository (see MergeRequestService.EnableAutoMerge). It is false by
 	// default. Set only by servers with the "merge_requests.auto_merge" feature.
 	AllowAutoMerge bool `protobuf:"varint,4,opt,name=allow_auto_merge,json=allowAutoMerge,proto3" json:"allow_auto_merge,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// CiAutoCancel cancels superseded branch-push and merge-request CI runs of
+	// the same workflow by default. Explicit workflow concurrency takes precedence.
+	// Enabled by default; schedules, tags and manual dispatches are unaffected.
+	CiAutoCancel  bool `protobuf:"varint,5,opt,name=ci_auto_cancel,json=ciAutoCancel,proto3" json:"ci_auto_cancel,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RepoSettings) Reset() {
@@ -216,6 +220,13 @@ func (x *RepoSettings) GetIssues() IssuesMode {
 func (x *RepoSettings) GetAllowAutoMerge() bool {
 	if x != nil {
 		return x.AllowAutoMerge
+	}
+	return false
+}
+
+func (x *RepoSettings) GetCiAutoCancel() bool {
+	if x != nil {
+		return x.CiAutoCancel
 	}
 	return false
 }
@@ -691,7 +702,7 @@ type UpdateRepoRequest struct {
 	// UpdateMask lists the fields to change: "description", "visibility",
 	// "default_branch", "topics", "archived", "settings.allowed_merge_modes" and/or
 	// "settings.allow_auto_merge". "settings" stands for the two merge settings
-	// paths. It must not be empty unless issues is set. Other paths are
+	// paths. It must not be empty unless issues or ci_auto_cancel is set. Other paths are
 	// invalid_argument, including "settings.issues" and "issues": the issues
 	// field is applied outside the mask.
 	UpdateMask *fieldmaskpb.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
@@ -713,7 +724,11 @@ type UpdateRepoRequest struct {
 	// Archived is the new read-only state. Used only if update_mask contains
 	// "archived". An archived repository rejects other edits unless this call
 	// also sets archived to false.
-	Archived      *bool `protobuf:"varint,9,opt,name=archived,proto3,oneof" json:"archived,omitempty"`
+	Archived *bool `protobuf:"varint,9,opt,name=archived,proto3,oneof" json:"archived,omitempty"`
+	// CiAutoCancel enables automatic cancellation of superseded CI runs. When
+	// absent it is unchanged. Like issues, it is applied outside update_mask
+	// and may be the only change. Changing it requires repo:admin.
+	CiAutoCancel  *bool `protobuf:"varint,10,opt,name=ci_auto_cancel,json=ciAutoCancel,proto3,oneof" json:"ci_auto_cancel,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -807,6 +822,13 @@ func (x *UpdateRepoRequest) GetIssues() IssuesMode {
 func (x *UpdateRepoRequest) GetArchived() bool {
 	if x != nil && x.Archived != nil {
 		return *x.Archived
+	}
+	return false
+}
+
+func (x *UpdateRepoRequest) GetCiAutoCancel() bool {
+	if x != nil && x.CiAutoCancel != nil {
+		return *x.CiAutoCancel
 	}
 	return false
 }
@@ -944,12 +966,13 @@ var File_ermite_repo_proto protoreflect.FileDescriptor
 
 const file_ermite_repo_proto_rawDesc = "" +
 	"\n" +
-	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdd\x01\n" +
+	"\x11ermite/repo.proto\x12\x06ermite\x1a google/protobuf/field_mask.proto\x1a\x12ermite/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x83\x02\n" +
 	"\fRepoSettings\x12A\n" +
 	"\x13allowed_merge_modes\x18\x01 \x03(\x0e2\x11.ermite.MergeModeR\x11allowedMergeModes\x124\n" +
 	"\x14failing_checks_block\x18\x02 \x01(\bB\x02\x18\x01R\x12failingChecksBlock\x12*\n" +
 	"\x06issues\x18\x03 \x01(\x0e2\x12.ermite.IssuesModeR\x06issues\x12(\n" +
-	"\x10allow_auto_merge\x18\x04 \x01(\bR\x0eallowAutoMerge\"\xf1\x02\n" +
+	"\x10allow_auto_merge\x18\x04 \x01(\bR\x0eallowAutoMerge\x12$\n" +
+	"\x0eci_auto_cancel\x18\x05 \x01(\bR\fciAutoCancel\"\xf1\x02\n" +
 	"\x04Repo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -982,7 +1005,7 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"visibility\x12\x16\n" +
 	"\x06topics\x18\x04 \x03(\tR\x06topics\"6\n" +
 	"\x12CreateRepoResponse\x12 \n" +
-	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\x95\x03\n" +
+	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"\xd3\x03\n" +
 	"\x11UpdateRepoRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -995,9 +1018,12 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"\bsettings\x18\x06 \x01(\v2\x14.ermite.RepoSettingsR\bsettings\x12\x16\n" +
 	"\x06topics\x18\a \x03(\tR\x06topics\x12/\n" +
 	"\x06issues\x18\b \x01(\x0e2\x12.ermite.IssuesModeH\x00R\x06issues\x88\x01\x01\x12\x1f\n" +
-	"\barchived\x18\t \x01(\bH\x01R\barchived\x88\x01\x01B\t\n" +
+	"\barchived\x18\t \x01(\bH\x01R\barchived\x88\x01\x01\x12)\n" +
+	"\x0eci_auto_cancel\x18\n" +
+	" \x01(\bH\x02R\fciAutoCancel\x88\x01\x01B\t\n" +
 	"\a_issuesB\v\n" +
-	"\t_archived\"6\n" +
+	"\t_archivedB\x11\n" +
+	"\x0f_ci_auto_cancel\"6\n" +
 	"\x12UpdateRepoResponse\x12 \n" +
 	"\x04repo\x18\x01 \x01(\v2\f.ermite.RepoR\x04repo\"'\n" +
 	"\x11DeleteRepoRequest\x12\x12\n" +

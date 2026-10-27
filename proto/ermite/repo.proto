@@ -33,7 +33,7 @@ enum IssuesMode {
 }
 
 // RepoSettings are the settings of a repository that govern its merge
-// requests and issues.
+// requests, issues and CI.
 message RepoSettings {
   // AllowedMergeModes are the modes with which a merge request of the
   // repository may be merged. It is never empty in a response and has no
@@ -49,6 +49,10 @@ message RepoSettings {
   // of the repository (see MergeRequestService.EnableAutoMerge). It is false by
   // default. Set only by servers with the "merge_requests.auto_merge" feature.
   bool allow_auto_merge = 4;
+  // CiAutoCancel cancels superseded branch-push and merge-request CI runs of
+  // the same workflow by default. Explicit workflow concurrency takes precedence.
+  // Enabled by default; schedules, tags and manual dispatches are unaffected.
+  bool ci_auto_cancel = 5;
 }
 
 // Repo is the metadata of a repository. Git-owned state (refs, trees, history)
@@ -173,7 +177,7 @@ message UpdateRepoRequest {
   // UpdateMask lists the fields to change: "description", "visibility",
   // "default_branch", "topics", "archived", "settings.allowed_merge_modes" and/or
   // "settings.allow_auto_merge". "settings" stands for the two merge settings
-  // paths. It must not be empty unless issues is set. Other paths are
+  // paths. It must not be empty unless issues or ci_auto_cancel is set. Other paths are
   // invalid_argument, including "settings.issues" and "issues": the issues
   // field is applied outside the mask.
   google.protobuf.FieldMask update_mask = 5;
@@ -196,6 +200,10 @@ message UpdateRepoRequest {
   // "archived". An archived repository rejects other edits unless this call
   // also sets archived to false.
   optional bool archived = 9;
+  // CiAutoCancel enables automatic cancellation of superseded CI runs. When
+  // absent it is unchanged. Like issues, it is applied outside update_mask
+  // and may be the only change. Changing it requires repo:admin.
+  optional bool ci_auto_cancel = 10;
 }
 
 // UpdateRepoResponse holds the repository after the update.
