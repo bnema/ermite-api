@@ -95,6 +95,7 @@ type GetVersionResponse struct {
 	// and MergeRequestMerged.auto. "releases" covers ReleaseService and the
 	// release_published, release_updated, release_deleted and release_unpublished events.
 	// "repos.archived" covers Repo.archived and UpdateRepoRequest.archived.
+	// "repos.languages" covers Repo.languages.
 	// "deps" covers DepsService, dependency_updates_found and runner deps jobs.
 	// "deps.runs" covers deps jobs that are jobs of a run (Job.job_token and
 	// Job.run_id set, WatchJob cancel) and RepoDependencyUpdates.run_id.

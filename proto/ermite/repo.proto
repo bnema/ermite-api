@@ -55,6 +55,13 @@ message RepoSettings {
   bool ci_auto_cancel = 5;
 }
 
+// RepoLanguage is the share of one language in the default branch.
+message RepoLanguage {
+  string name = 1;    // linguist-style name, e.g. "Go", "C++"
+  int64 bytes = 2;    // bytes of the files counted
+  double percent = 3; // 0-100 of the bytes counted
+}
+
 // Repo is the metadata of a repository. Git-owned state (refs, trees, history)
 // is read through GitService.
 message Repo {
@@ -83,6 +90,14 @@ message Repo {
   // Archived makes the repository read-only. Reads and closing existing issues
   // and merge requests remain allowed. Requires the "repos.archived" feature.
   bool archived = 9;
+  // Languages is the language breakdown of the default branch head, sorted by
+  // bytes descending then name. Computed in the background after a push to
+  // the default branch or a change of it; it may lag the head briefly and is
+  // empty when unknown (empty repository, not computed yet). Only programming
+  // and markup files count; vendored, generated and documentation paths do
+  // not; .gitattributes linguist-* attributes are ignored. Requires the
+  // "repos.languages" feature.
+  repeated RepoLanguage languages = 10;
 }
 
 // RepoService manages repositories and their metadata.
