@@ -328,9 +328,14 @@ type Repo struct {
 	// and markup files count; vendored, generated and documentation paths do
 	// not; .gitattributes linguist-* attributes are ignored. Requires the
 	// "repos.languages" feature.
-	Languages     []*RepoLanguage `protobuf:"bytes,10,rep,name=languages,proto3" json:"languages,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Languages []*RepoLanguage `protobuf:"bytes,10,rep,name=languages,proto3" json:"languages,omitempty"`
+	// LanguagesTruncated is true when the count is partial: only the first
+	// 100,000 files in tree order are read, and files over 1 MiB are skipped,
+	// so the percentages cover part of the tree. Requires the "repos.languages"
+	// feature.
+	LanguagesTruncated bool `protobuf:"varint,11,opt,name=languages_truncated,json=languagesTruncated,proto3" json:"languages_truncated,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Repo) Reset() {
@@ -431,6 +436,13 @@ func (x *Repo) GetLanguages() []*RepoLanguage {
 		return x.Languages
 	}
 	return nil
+}
+
+func (x *Repo) GetLanguagesTruncated() bool {
+	if x != nil {
+		return x.LanguagesTruncated
+	}
+	return false
 }
 
 // ListReposRequest selects a page of repositories.
@@ -1052,7 +1064,7 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"\fRepoLanguage\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05bytes\x18\x02 \x01(\x03R\x05bytes\x12\x18\n" +
-	"\apercent\x18\x03 \x01(\x01R\apercent\"\xa5\x03\n" +
+	"\apercent\x18\x03 \x01(\x01R\apercent\"\xd6\x03\n" +
 	"\x04Repo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x122\n" +
@@ -1067,7 +1079,8 @@ const file_ermite_repo_proto_rawDesc = "" +
 	"\x06topics\x18\b \x03(\tR\x06topics\x12\x1a\n" +
 	"\barchived\x18\t \x01(\bR\barchived\x122\n" +
 	"\tlanguages\x18\n" +
-	" \x03(\v2\x14.ermite.RepoLanguageR\tlanguages\"N\n" +
+	" \x03(\v2\x14.ermite.RepoLanguageR\tlanguages\x12/\n" +
+	"\x13languages_truncated\x18\v \x01(\bR\x12languagesTruncated\"N\n" +
 	"\x10ListReposRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +

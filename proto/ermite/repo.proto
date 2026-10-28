@@ -98,6 +98,11 @@ message Repo {
   // not; .gitattributes linguist-* attributes are ignored. Requires the
   // "repos.languages" feature.
   repeated RepoLanguage languages = 10;
+  // LanguagesTruncated is true when the count is partial: only the first
+  // 100,000 files in tree order are read, and files over 1 MiB are skipped,
+  // so the percentages cover part of the tree. Requires the "repos.languages"
+  // feature.
+  bool languages_truncated = 11;
 }
 
 // RepoService manages repositories and their metadata.
