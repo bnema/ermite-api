@@ -660,7 +660,8 @@ type FetchJobRequest struct {
 	// given at registration, so that the list shows what runs now. Empty, from
 	// an older runner, leaves the stored version unchanged.
 	Version string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	// Kinds are accepted job kinds: "workflow" and/or "deps". Empty means
+	// Kinds are accepted job kinds: "workflow" and "deps", with capabilities
+	// "deps.npm" and "deps.gomod-path-majors" for those updates. Empty means
 	// ["workflow"], so older runners never receive deps jobs.
 	Kinds         []string `protobuf:"bytes,4,rep,name=kinds,proto3" json:"kinds,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -2783,12 +2784,16 @@ func (*UploadSummaryResponse) Descriptor() ([]byte, []int) {
 	return file_ermite_runner_proto_rawDescGZIP(), []int{28}
 }
 
-// DepsJob applies the requested Go module updates in the runner sandbox.
+// DepsJob applies gomod and npm updates in the runner sandbox. Runners
+// advertise "deps" and the required "deps.npm" or "deps.gomod-path-majors"
+// capabilities in FetchJobRequest.kinds.
 type DepsJob struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Updates []*DepsJobUpdate       `protobuf:"bytes,1,rep,name=updates,proto3" json:"updates,omitempty"`
 	// GoVersion is the highest root go.mod go/toolchain version, without "go".
-	GoVersion     string `protobuf:"bytes,2,opt,name=go_version,json=goVersion,proto3" json:"go_version,omitempty"`
+	GoVersion string `protobuf:"bytes,2,opt,name=go_version,json=goVersion,proto3" json:"go_version,omitempty"`
+	// NodeVersion is the Node.js major version for npm ecosystem jobs.
+	NodeVersion   string `protobuf:"bytes,3,opt,name=node_version,json=nodeVersion,proto3" json:"node_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2837,14 +2842,31 @@ func (x *DepsJob) GetGoVersion() string {
 	return ""
 }
 
-// DepsJobUpdate identifies one exact version to apply.
+func (x *DepsJob) GetNodeVersion() string {
+	if x != nil {
+		return x.NodeVersion
+	}
+	return ""
+}
+
+// DepsJobUpdate identifies one exact gomod or npm version to apply.
 type DepsJobUpdate struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Ecosystem string                 `protobuf:"bytes,1,opt,name=ecosystem,proto3" json:"ecosystem,omitempty"`
-	// Directory is repository-relative; empty means the root module.
-	Directory     string `protobuf:"bytes,2,opt,name=directory,proto3" json:"directory,omitempty"`
-	Name          string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Version       string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
+	// Directory is repository-relative; empty means the repository root.
+	Directory string `protobuf:"bytes,2,opt,name=directory,proto3" json:"directory,omitempty"`
+	Name      string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Version   string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
+	// NewName is the new module path for a Go import-path major; empty otherwise.
+	NewName string `protobuf:"bytes,5,opt,name=new_name,json=newName,proto3" json:"new_name,omitempty"`
+	// Range is the new npm dependency specifier, including its operator.
+	Range string `protobuf:"bytes,6,opt,name=range,proto3" json:"range,omitempty"`
+	// Manager is the npm ecosystem package manager: npm, pnpm, yarn, or bun.
+	Manager string `protobuf:"bytes,7,opt,name=manager,proto3" json:"manager,omitempty"`
+	// ManagerVersion is the package manager version; empty uses the default.
+	ManagerVersion string `protobuf:"bytes,8,opt,name=manager_version,json=managerVersion,proto3" json:"manager_version,omitempty"`
+	// Root is the repository-relative install root; empty means repository root.
+	Root          string `protobuf:"bytes,9,opt,name=root,proto3" json:"root,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2907,6 +2929,41 @@ func (x *DepsJobUpdate) GetVersion() string {
 	return ""
 }
 
+func (x *DepsJobUpdate) GetNewName() string {
+	if x != nil {
+		return x.NewName
+	}
+	return ""
+}
+
+func (x *DepsJobUpdate) GetRange() string {
+	if x != nil {
+		return x.Range
+	}
+	return ""
+}
+
+func (x *DepsJobUpdate) GetManager() string {
+	if x != nil {
+		return x.Manager
+	}
+	return ""
+}
+
+func (x *DepsJobUpdate) GetManagerVersion() string {
+	if x != nil {
+		return x.ManagerVersion
+	}
+	return ""
+}
+
+func (x *DepsJobUpdate) GetRoot() string {
+	if x != nil {
+		return x.Root
+	}
+	return ""
+}
+
 // DepsReport returns changed files or an application error. At most 64 files,
 // at most 2 MiB (2,097,152 bytes) per file, at most 8 MiB (8,388,608 bytes)
 // of content in total. The server rejects reports exceeding these limits.
@@ -2963,7 +3020,8 @@ func (x *DepsReport) GetError() string {
 	return ""
 }
 
-// DepsFile is a changed go.mod or go.sum in a requested module directory.
+// DepsFile is a changed file allowed by the requested gomod or npm updates:
+// Go manifests and import-path-major source files, or npm manifests and lockfiles.
 type DepsFile struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Path is repository-relative, with no absolute path or traversal components.
@@ -3192,16 +3250,22 @@ const file_ermite_runner_proto_rawDesc = "" +
 	"\vstep_number\x18\x02 \x01(\x05R\n" +
 	"stepNumber\x12\x1a\n" +
 	"\bmarkdown\x18\x03 \x01(\tR\bmarkdown\"\x17\n" +
-	"\x15UploadSummaryResponse\"Y\n" +
+	"\x15UploadSummaryResponse\"|\n" +
 	"\aDepsJob\x12/\n" +
 	"\aupdates\x18\x01 \x03(\v2\x15.ermite.DepsJobUpdateR\aupdates\x12\x1d\n" +
 	"\n" +
-	"go_version\x18\x02 \x01(\tR\tgoVersion\"y\n" +
+	"go_version\x18\x02 \x01(\tR\tgoVersion\x12!\n" +
+	"\fnode_version\x18\x03 \x01(\tR\vnodeVersion\"\x81\x02\n" +
 	"\rDepsJobUpdate\x12\x1c\n" +
 	"\tecosystem\x18\x01 \x01(\tR\tecosystem\x12\x1c\n" +
 	"\tdirectory\x18\x02 \x01(\tR\tdirectory\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x18\n" +
-	"\aversion\x18\x04 \x01(\tR\aversion\"J\n" +
+	"\aversion\x18\x04 \x01(\tR\aversion\x12\x19\n" +
+	"\bnew_name\x18\x05 \x01(\tR\anewName\x12\x14\n" +
+	"\x05range\x18\x06 \x01(\tR\x05range\x12\x18\n" +
+	"\amanager\x18\a \x01(\tR\amanager\x12'\n" +
+	"\x0fmanager_version\x18\b \x01(\tR\x0emanagerVersion\x12\x12\n" +
+	"\x04root\x18\t \x01(\tR\x04root\"J\n" +
 	"\n" +
 	"DepsReport\x12&\n" +
 	"\x05files\x18\x01 \x03(\v2\x10.ermite.DepsFileR\x05files\x12\x14\n" +

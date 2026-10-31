@@ -133,9 +133,9 @@ func (RepoDependencyUpdates_State) EnumDescriptor() ([]byte, []int) {
 // DependencyUpdate is one proposed dependency version change.
 type DependencyUpdate struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Ecosystem is "gomod" or "github-actions".
+	// Ecosystem is "gomod", "github-actions", or "npm".
 	Ecosystem string `protobuf:"bytes,1,opt,name=ecosystem,proto3" json:"ecosystem,omitempty"`
-	// Name is the module path or action owner/repository.
+	// Name is the module path, action owner/repository, or npm package name.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// Directory is the repository-relative module directory; empty means root.
 	Directory string `protobuf:"bytes,3,opt,name=directory,proto3" json:"directory,omitempty"`
@@ -146,7 +146,9 @@ type DependencyUpdate struct {
 	// Kind is the magnitude of the change.
 	Kind DependencyUpdate_Kind `protobuf:"varint,6,opt,name=kind,proto3,enum=ermite.DependencyUpdate_Kind" json:"kind,omitempty"`
 	// New says this version was absent from the previous check.
-	New           bool `protobuf:"varint,7,opt,name=new,proto3" json:"new,omitempty"`
+	New bool `protobuf:"varint,7,opt,name=new,proto3" json:"new,omitempty"`
+	// NewName is the new module path for a Go import-path major; empty otherwise.
+	NewName       string `protobuf:"bytes,8,opt,name=new_name,json=newName,proto3" json:"new_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -230,6 +232,13 @@ func (x *DependencyUpdate) GetNew() bool {
 	return false
 }
 
+func (x *DependencyUpdate) GetNewName() string {
+	if x != nil {
+		return x.NewName
+	}
+	return ""
+}
+
 // DependencyVersion identifies exactly one proposed version in one directory.
 type DependencyVersion struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -301,21 +310,38 @@ func (x *DependencyVersion) GetVersion() string {
 
 // RepoDependencyUpdates is the pending dependency state of one repository.
 type RepoDependencyUpdates struct {
-	state        protoimpl.MessageState `protogen:"open.v1"`
-	Repo         string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Repo  string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	// base batch; use batches
+	//
+	// Deprecated: Marked as deprecated in ermite/deps.proto.
 	Updates      []*DependencyUpdate    `protobuf:"bytes,2,rep,name=updates,proto3" json:"updates,omitempty"`
 	CheckedAt    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=checked_at,json=checkedAt,proto3" json:"checked_at,omitempty"`
 	SnoozedUntil *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=snoozed_until,json=snoozedUntil,proto3" json:"snoozed_until,omitempty"`
 	// MergeRequestNumber is zero when there is no Bernard merge request.
-	MergeRequestNumber int64                       `protobuf:"varint,5,opt,name=merge_request_number,json=mergeRequestNumber,proto3" json:"merge_request_number,omitempty"`
-	State              RepoDependencyUpdates_State `protobuf:"varint,6,opt,name=state,proto3,enum=ermite.RepoDependencyUpdates_State" json:"state,omitempty"`
+	// base batch; use batches
+	//
+	// Deprecated: Marked as deprecated in ermite/deps.proto.
+	MergeRequestNumber int64 `protobuf:"varint,5,opt,name=merge_request_number,json=mergeRequestNumber,proto3" json:"merge_request_number,omitempty"`
+	// base batch; use batches
+	//
+	// Deprecated: Marked as deprecated in ermite/deps.proto.
+	State RepoDependencyUpdates_State `protobuf:"varint,6,opt,name=state,proto3,enum=ermite.RepoDependencyUpdates_State" json:"state,omitempty"`
 	// Error is a short reason for FAILED, empty otherwise. The log is on the
 	// run.
+	// base batch; use batches
+	//
+	// Deprecated: Marked as deprecated in ermite/deps.proto.
 	Error string `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
 	// RunId is the run applying the updates (APPLYING) or the last one that
 	// tried (FAILED, or IDLE after a success); 0 for none. Set from servers
 	// with the feature "deps.runs".
-	RunId         int64 `protobuf:"varint,8,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// base batch; use batches
+	//
+	// Deprecated: Marked as deprecated in ermite/deps.proto.
+	RunId int64 `protobuf:"varint,8,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// Batches contains the base batch and independent major-update batches.
+	Batches       []*DependencyBatch `protobuf:"bytes,9,rep,name=batches,proto3" json:"batches,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -357,6 +383,7 @@ func (x *RepoDependencyUpdates) GetRepo() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in ermite/deps.proto.
 func (x *RepoDependencyUpdates) GetUpdates() []*DependencyUpdate {
 	if x != nil {
 		return x.Updates
@@ -378,6 +405,7 @@ func (x *RepoDependencyUpdates) GetSnoozedUntil() *timestamppb.Timestamp {
 	return nil
 }
 
+// Deprecated: Marked as deprecated in ermite/deps.proto.
 func (x *RepoDependencyUpdates) GetMergeRequestNumber() int64 {
 	if x != nil {
 		return x.MergeRequestNumber
@@ -385,6 +413,7 @@ func (x *RepoDependencyUpdates) GetMergeRequestNumber() int64 {
 	return 0
 }
 
+// Deprecated: Marked as deprecated in ermite/deps.proto.
 func (x *RepoDependencyUpdates) GetState() RepoDependencyUpdates_State {
 	if x != nil {
 		return x.State
@@ -392,6 +421,7 @@ func (x *RepoDependencyUpdates) GetState() RepoDependencyUpdates_State {
 	return RepoDependencyUpdates_STATE_UNSPECIFIED
 }
 
+// Deprecated: Marked as deprecated in ermite/deps.proto.
 func (x *RepoDependencyUpdates) GetError() string {
 	if x != nil {
 		return x.Error
@@ -399,11 +429,117 @@ func (x *RepoDependencyUpdates) GetError() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in ermite/deps.proto.
 func (x *RepoDependencyUpdates) GetRunId() int64 {
 	if x != nil {
 		return x.RunId
 	}
 	return 0
+}
+
+func (x *RepoDependencyUpdates) GetBatches() []*DependencyBatch {
+	if x != nil {
+		return x.Batches
+	}
+	return nil
+}
+
+// DependencyBatch is one independently applied or ignored set of updates.
+type DependencyBatch struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Key is empty for the base batch.
+	Key     string                      `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Updates []*DependencyUpdate         `protobuf:"bytes,2,rep,name=updates,proto3" json:"updates,omitempty"`
+	State   RepoDependencyUpdates_State `protobuf:"varint,3,opt,name=state,proto3,enum=ermite.RepoDependencyUpdates_State" json:"state,omitempty"`
+	// Error is a short reason for FAILED, empty otherwise.
+	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	// RunId is the applying or last attempted run; zero for none.
+	RunId int64 `protobuf:"varint,5,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// MergeRequestNumber is zero when there is no Bernard merge request.
+	MergeRequestNumber int64 `protobuf:"varint,6,opt,name=merge_request_number,json=mergeRequestNumber,proto3" json:"merge_request_number,omitempty"`
+	// Outdated says the merge request no longer matches the proposed updates.
+	Outdated      bool `protobuf:"varint,7,opt,name=outdated,proto3" json:"outdated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DependencyBatch) Reset() {
+	*x = DependencyBatch{}
+	mi := &file_ermite_deps_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DependencyBatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DependencyBatch) ProtoMessage() {}
+
+func (x *DependencyBatch) ProtoReflect() protoreflect.Message {
+	mi := &file_ermite_deps_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DependencyBatch.ProtoReflect.Descriptor instead.
+func (*DependencyBatch) Descriptor() ([]byte, []int) {
+	return file_ermite_deps_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *DependencyBatch) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *DependencyBatch) GetUpdates() []*DependencyUpdate {
+	if x != nil {
+		return x.Updates
+	}
+	return nil
+}
+
+func (x *DependencyBatch) GetState() RepoDependencyUpdates_State {
+	if x != nil {
+		return x.State
+	}
+	return RepoDependencyUpdates_STATE_UNSPECIFIED
+}
+
+func (x *DependencyBatch) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *DependencyBatch) GetRunId() int64 {
+	if x != nil {
+		return x.RunId
+	}
+	return 0
+}
+
+func (x *DependencyBatch) GetMergeRequestNumber() int64 {
+	if x != nil {
+		return x.MergeRequestNumber
+	}
+	return 0
+}
+
+func (x *DependencyBatch) GetOutdated() bool {
+	if x != nil {
+		return x.Outdated
+	}
+	return false
 }
 
 type ListDependencyUpdatesRequest struct {
@@ -416,7 +552,7 @@ type ListDependencyUpdatesRequest struct {
 
 func (x *ListDependencyUpdatesRequest) Reset() {
 	*x = ListDependencyUpdatesRequest{}
-	mi := &file_ermite_deps_proto_msgTypes[3]
+	mi := &file_ermite_deps_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -428,7 +564,7 @@ func (x *ListDependencyUpdatesRequest) String() string {
 func (*ListDependencyUpdatesRequest) ProtoMessage() {}
 
 func (x *ListDependencyUpdatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_deps_proto_msgTypes[3]
+	mi := &file_ermite_deps_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -441,7 +577,7 @@ func (x *ListDependencyUpdatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDependencyUpdatesRequest.ProtoReflect.Descriptor instead.
 func (*ListDependencyUpdatesRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_deps_proto_rawDescGZIP(), []int{3}
+	return file_ermite_deps_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListDependencyUpdatesRequest) GetRepo() string {
@@ -460,7 +596,7 @@ type ListDependencyUpdatesResponse struct {
 
 func (x *ListDependencyUpdatesResponse) Reset() {
 	*x = ListDependencyUpdatesResponse{}
-	mi := &file_ermite_deps_proto_msgTypes[4]
+	mi := &file_ermite_deps_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -472,7 +608,7 @@ func (x *ListDependencyUpdatesResponse) String() string {
 func (*ListDependencyUpdatesResponse) ProtoMessage() {}
 
 func (x *ListDependencyUpdatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_deps_proto_msgTypes[4]
+	mi := &file_ermite_deps_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -485,7 +621,7 @@ func (x *ListDependencyUpdatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDependencyUpdatesResponse.ProtoReflect.Descriptor instead.
 func (*ListDependencyUpdatesResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_deps_proto_rawDescGZIP(), []int{4}
+	return file_ermite_deps_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListDependencyUpdatesResponse) GetRepos() []*RepoDependencyUpdates {
@@ -504,7 +640,7 @@ type CheckDependenciesRequest struct {
 
 func (x *CheckDependenciesRequest) Reset() {
 	*x = CheckDependenciesRequest{}
-	mi := &file_ermite_deps_proto_msgTypes[5]
+	mi := &file_ermite_deps_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -516,7 +652,7 @@ func (x *CheckDependenciesRequest) String() string {
 func (*CheckDependenciesRequest) ProtoMessage() {}
 
 func (x *CheckDependenciesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_deps_proto_msgTypes[5]
+	mi := &file_ermite_deps_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -529,7 +665,7 @@ func (x *CheckDependenciesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckDependenciesRequest.ProtoReflect.Descriptor instead.
 func (*CheckDependenciesRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_deps_proto_rawDescGZIP(), []int{5}
+	return file_ermite_deps_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CheckDependenciesRequest) GetRepo() string {
@@ -548,7 +684,7 @@ type CheckDependenciesResponse struct {
 
 func (x *CheckDependenciesResponse) Reset() {
 	*x = CheckDependenciesResponse{}
-	mi := &file_ermite_deps_proto_msgTypes[6]
+	mi := &file_ermite_deps_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -560,7 +696,7 @@ func (x *CheckDependenciesResponse) String() string {
 func (*CheckDependenciesResponse) ProtoMessage() {}
 
 func (x *CheckDependenciesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_deps_proto_msgTypes[6]
+	mi := &file_ermite_deps_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -573,7 +709,7 @@ func (x *CheckDependenciesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckDependenciesResponse.ProtoReflect.Descriptor instead.
 func (*CheckDependenciesResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_deps_proto_rawDescGZIP(), []int{6}
+	return file_ermite_deps_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CheckDependenciesResponse) GetUpdates() *RepoDependencyUpdates {
@@ -588,13 +724,15 @@ type OpenDependencyUpdatesRequest struct {
 	Repo  string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
 	// ExpectedVersions is the complete set of proposed versions the owner saw.
 	ExpectedVersions []*DependencyVersion `protobuf:"bytes,2,rep,name=expected_versions,json=expectedVersions,proto3" json:"expected_versions,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Batch selects the batch; empty means the base batch.
+	Batch         string `protobuf:"bytes,3,opt,name=batch,proto3" json:"batch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *OpenDependencyUpdatesRequest) Reset() {
 	*x = OpenDependencyUpdatesRequest{}
-	mi := &file_ermite_deps_proto_msgTypes[7]
+	mi := &file_ermite_deps_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -606,7 +744,7 @@ func (x *OpenDependencyUpdatesRequest) String() string {
 func (*OpenDependencyUpdatesRequest) ProtoMessage() {}
 
 func (x *OpenDependencyUpdatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_deps_proto_msgTypes[7]
+	mi := &file_ermite_deps_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -619,7 +757,7 @@ func (x *OpenDependencyUpdatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenDependencyUpdatesRequest.ProtoReflect.Descriptor instead.
 func (*OpenDependencyUpdatesRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_deps_proto_rawDescGZIP(), []int{7}
+	return file_ermite_deps_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *OpenDependencyUpdatesRequest) GetRepo() string {
@@ -636,6 +774,13 @@ func (x *OpenDependencyUpdatesRequest) GetExpectedVersions() []*DependencyVersio
 	return nil
 }
 
+func (x *OpenDependencyUpdatesRequest) GetBatch() string {
+	if x != nil {
+		return x.Batch
+	}
+	return ""
+}
+
 type OpenDependencyUpdatesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Updates       *RepoDependencyUpdates `protobuf:"bytes,1,opt,name=updates,proto3" json:"updates,omitempty"`
@@ -645,7 +790,7 @@ type OpenDependencyUpdatesResponse struct {
 
 func (x *OpenDependencyUpdatesResponse) Reset() {
 	*x = OpenDependencyUpdatesResponse{}
-	mi := &file_ermite_deps_proto_msgTypes[8]
+	mi := &file_ermite_deps_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -657,7 +802,7 @@ func (x *OpenDependencyUpdatesResponse) String() string {
 func (*OpenDependencyUpdatesResponse) ProtoMessage() {}
 
 func (x *OpenDependencyUpdatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_deps_proto_msgTypes[8]
+	mi := &file_ermite_deps_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -670,7 +815,7 @@ func (x *OpenDependencyUpdatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenDependencyUpdatesResponse.ProtoReflect.Descriptor instead.
 func (*OpenDependencyUpdatesResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_deps_proto_rawDescGZIP(), []int{8}
+	return file_ermite_deps_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *OpenDependencyUpdatesResponse) GetUpdates() *RepoDependencyUpdates {
@@ -685,13 +830,15 @@ type IgnoreDependencyUpdatesRequest struct {
 	Repo  string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
 	// ExpectedVersions is the complete set of proposed versions the owner saw.
 	ExpectedVersions []*DependencyVersion `protobuf:"bytes,2,rep,name=expected_versions,json=expectedVersions,proto3" json:"expected_versions,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Batch selects the batch; empty means the base batch.
+	Batch         string `protobuf:"bytes,3,opt,name=batch,proto3" json:"batch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *IgnoreDependencyUpdatesRequest) Reset() {
 	*x = IgnoreDependencyUpdatesRequest{}
-	mi := &file_ermite_deps_proto_msgTypes[9]
+	mi := &file_ermite_deps_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -703,7 +850,7 @@ func (x *IgnoreDependencyUpdatesRequest) String() string {
 func (*IgnoreDependencyUpdatesRequest) ProtoMessage() {}
 
 func (x *IgnoreDependencyUpdatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_deps_proto_msgTypes[9]
+	mi := &file_ermite_deps_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -716,7 +863,7 @@ func (x *IgnoreDependencyUpdatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IgnoreDependencyUpdatesRequest.ProtoReflect.Descriptor instead.
 func (*IgnoreDependencyUpdatesRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_deps_proto_rawDescGZIP(), []int{9}
+	return file_ermite_deps_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *IgnoreDependencyUpdatesRequest) GetRepo() string {
@@ -733,6 +880,13 @@ func (x *IgnoreDependencyUpdatesRequest) GetExpectedVersions() []*DependencyVers
 	return nil
 }
 
+func (x *IgnoreDependencyUpdatesRequest) GetBatch() string {
+	if x != nil {
+		return x.Batch
+	}
+	return ""
+}
+
 type IgnoreDependencyUpdatesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Updates       *RepoDependencyUpdates `protobuf:"bytes,1,opt,name=updates,proto3" json:"updates,omitempty"`
@@ -742,7 +896,7 @@ type IgnoreDependencyUpdatesResponse struct {
 
 func (x *IgnoreDependencyUpdatesResponse) Reset() {
 	*x = IgnoreDependencyUpdatesResponse{}
-	mi := &file_ermite_deps_proto_msgTypes[10]
+	mi := &file_ermite_deps_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -754,7 +908,7 @@ func (x *IgnoreDependencyUpdatesResponse) String() string {
 func (*IgnoreDependencyUpdatesResponse) ProtoMessage() {}
 
 func (x *IgnoreDependencyUpdatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_deps_proto_msgTypes[10]
+	mi := &file_ermite_deps_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -767,7 +921,7 @@ func (x *IgnoreDependencyUpdatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IgnoreDependencyUpdatesResponse.ProtoReflect.Descriptor instead.
 func (*IgnoreDependencyUpdatesResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_deps_proto_rawDescGZIP(), []int{10}
+	return file_ermite_deps_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *IgnoreDependencyUpdatesResponse) GetUpdates() *RepoDependencyUpdates {
@@ -786,7 +940,7 @@ type SnoozeDependencyUpdatesRequest struct {
 
 func (x *SnoozeDependencyUpdatesRequest) Reset() {
 	*x = SnoozeDependencyUpdatesRequest{}
-	mi := &file_ermite_deps_proto_msgTypes[11]
+	mi := &file_ermite_deps_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -798,7 +952,7 @@ func (x *SnoozeDependencyUpdatesRequest) String() string {
 func (*SnoozeDependencyUpdatesRequest) ProtoMessage() {}
 
 func (x *SnoozeDependencyUpdatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_deps_proto_msgTypes[11]
+	mi := &file_ermite_deps_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -811,7 +965,7 @@ func (x *SnoozeDependencyUpdatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SnoozeDependencyUpdatesRequest.ProtoReflect.Descriptor instead.
 func (*SnoozeDependencyUpdatesRequest) Descriptor() ([]byte, []int) {
-	return file_ermite_deps_proto_rawDescGZIP(), []int{11}
+	return file_ermite_deps_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SnoozeDependencyUpdatesRequest) GetRepo() string {
@@ -830,7 +984,7 @@ type SnoozeDependencyUpdatesResponse struct {
 
 func (x *SnoozeDependencyUpdatesResponse) Reset() {
 	*x = SnoozeDependencyUpdatesResponse{}
-	mi := &file_ermite_deps_proto_msgTypes[12]
+	mi := &file_ermite_deps_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -842,7 +996,7 @@ func (x *SnoozeDependencyUpdatesResponse) String() string {
 func (*SnoozeDependencyUpdatesResponse) ProtoMessage() {}
 
 func (x *SnoozeDependencyUpdatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ermite_deps_proto_msgTypes[12]
+	mi := &file_ermite_deps_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -855,7 +1009,7 @@ func (x *SnoozeDependencyUpdatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SnoozeDependencyUpdatesResponse.ProtoReflect.Descriptor instead.
 func (*SnoozeDependencyUpdatesResponse) Descriptor() ([]byte, []int) {
-	return file_ermite_deps_proto_rawDescGZIP(), []int{12}
+	return file_ermite_deps_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SnoozeDependencyUpdatesResponse) GetUpdates() *RepoDependencyUpdates {
@@ -869,7 +1023,7 @@ var File_ermite_deps_proto protoreflect.FileDescriptor
 
 const file_ermite_deps_proto_rawDesc = "" +
 	"\n" +
-	"\x11ermite/deps.proto\x12\x06ermite\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa7\x02\n" +
+	"\x11ermite/deps.proto\x12\x06ermite\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc2\x02\n" +
 	"\x10DependencyUpdate\x12\x1c\n" +
 	"\tecosystem\x18\x01 \x01(\tR\tecosystem\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
@@ -877,7 +1031,8 @@ const file_ermite_deps_proto_rawDesc = "" +
 	"\acurrent\x18\x04 \x01(\tR\acurrent\x12\x16\n" +
 	"\x06latest\x18\x05 \x01(\tR\x06latest\x121\n" +
 	"\x04kind\x18\x06 \x01(\x0e2\x1d.ermite.DependencyUpdate.KindR\x04kind\x12\x10\n" +
-	"\x03new\x18\a \x01(\bR\x03new\"L\n" +
+	"\x03new\x18\a \x01(\bR\x03new\x12\x19\n" +
+	"\bnew_name\x18\b \x01(\tR\anewName\"L\n" +
 	"\x04Kind\x12\x14\n" +
 	"\x10KIND_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -890,23 +1045,32 @@ const file_ermite_deps_proto_rawDesc = "" +
 	"\tecosystem\x18\x01 \x01(\tR\tecosystem\x12\x1c\n" +
 	"\tdirectory\x18\x02 \x01(\tR\tdirectory\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x18\n" +
-	"\aversion\x18\x04 \x01(\tR\aversion\"\xcb\x03\n" +
+	"\aversion\x18\x04 \x01(\tR\aversion\"\x92\x04\n" +
 	"\x15RepoDependencyUpdates\x12\x12\n" +
-	"\x04repo\x18\x01 \x01(\tR\x04repo\x122\n" +
-	"\aupdates\x18\x02 \x03(\v2\x18.ermite.DependencyUpdateR\aupdates\x129\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\x126\n" +
+	"\aupdates\x18\x02 \x03(\v2\x18.ermite.DependencyUpdateB\x02\x18\x01R\aupdates\x129\n" +
 	"\n" +
 	"checked_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAt\x12?\n" +
-	"\rsnoozed_until\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\fsnoozedUntil\x120\n" +
-	"\x14merge_request_number\x18\x05 \x01(\x03R\x12mergeRequestNumber\x129\n" +
-	"\x05state\x18\x06 \x01(\x0e2#.ermite.RepoDependencyUpdates.StateR\x05state\x12\x14\n" +
-	"\x05error\x18\a \x01(\tR\x05error\x12\x15\n" +
-	"\x06run_id\x18\b \x01(\x03R\x05runId\"T\n" +
+	"\rsnoozed_until\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\fsnoozedUntil\x124\n" +
+	"\x14merge_request_number\x18\x05 \x01(\x03B\x02\x18\x01R\x12mergeRequestNumber\x12=\n" +
+	"\x05state\x18\x06 \x01(\x0e2#.ermite.RepoDependencyUpdates.StateB\x02\x18\x01R\x05state\x12\x18\n" +
+	"\x05error\x18\a \x01(\tB\x02\x18\x01R\x05error\x12\x19\n" +
+	"\x06run_id\x18\b \x01(\x03B\x02\x18\x01R\x05runId\x121\n" +
+	"\abatches\x18\t \x03(\v2\x17.ermite.DependencyBatchR\abatches\"T\n" +
 	"\x05State\x12\x15\n" +
 	"\x11STATE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
 	"STATE_IDLE\x10\x01\x12\x12\n" +
 	"\x0eSTATE_APPLYING\x10\x02\x12\x10\n" +
-	"\fSTATE_FAILED\x10\x03\"@\n" +
+	"\fSTATE_FAILED\x10\x03\"\x8d\x02\n" +
+	"\x0fDependencyBatch\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x122\n" +
+	"\aupdates\x18\x02 \x03(\v2\x18.ermite.DependencyUpdateR\aupdates\x129\n" +
+	"\x05state\x18\x03 \x01(\x0e2#.ermite.RepoDependencyUpdates.StateR\x05state\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12\x15\n" +
+	"\x06run_id\x18\x05 \x01(\x03R\x05runId\x120\n" +
+	"\x14merge_request_number\x18\x06 \x01(\x03R\x12mergeRequestNumber\x12\x1a\n" +
+	"\boutdated\x18\a \x01(\bR\boutdated\"@\n" +
 	"\x1cListDependencyUpdatesRequest\x12\x17\n" +
 	"\x04repo\x18\x01 \x01(\tH\x00R\x04repo\x88\x01\x01B\a\n" +
 	"\x05_repo\"T\n" +
@@ -915,15 +1079,17 @@ const file_ermite_deps_proto_rawDesc = "" +
 	"\x18CheckDependenciesRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\"T\n" +
 	"\x19CheckDependenciesResponse\x127\n" +
-	"\aupdates\x18\x01 \x01(\v2\x1d.ermite.RepoDependencyUpdatesR\aupdates\"z\n" +
+	"\aupdates\x18\x01 \x01(\v2\x1d.ermite.RepoDependencyUpdatesR\aupdates\"\x90\x01\n" +
 	"\x1cOpenDependencyUpdatesRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12F\n" +
-	"\x11expected_versions\x18\x02 \x03(\v2\x19.ermite.DependencyVersionR\x10expectedVersions\"X\n" +
+	"\x11expected_versions\x18\x02 \x03(\v2\x19.ermite.DependencyVersionR\x10expectedVersions\x12\x14\n" +
+	"\x05batch\x18\x03 \x01(\tR\x05batch\"X\n" +
 	"\x1dOpenDependencyUpdatesResponse\x127\n" +
-	"\aupdates\x18\x01 \x01(\v2\x1d.ermite.RepoDependencyUpdatesR\aupdates\"|\n" +
+	"\aupdates\x18\x01 \x01(\v2\x1d.ermite.RepoDependencyUpdatesR\aupdates\"\x92\x01\n" +
 	"\x1eIgnoreDependencyUpdatesRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12F\n" +
-	"\x11expected_versions\x18\x02 \x03(\v2\x19.ermite.DependencyVersionR\x10expectedVersions\"Z\n" +
+	"\x11expected_versions\x18\x02 \x03(\v2\x19.ermite.DependencyVersionR\x10expectedVersions\x12\x14\n" +
+	"\x05batch\x18\x03 \x01(\tR\x05batch\"Z\n" +
 	"\x1fIgnoreDependencyUpdatesResponse\x127\n" +
 	"\aupdates\x18\x01 \x01(\v2\x1d.ermite.RepoDependencyUpdatesR\aupdates\"4\n" +
 	"\x1eSnoozeDependencyUpdatesRequest\x12\x12\n" +
@@ -952,53 +1118,57 @@ func file_ermite_deps_proto_rawDescGZIP() []byte {
 }
 
 var file_ermite_deps_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ermite_deps_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_ermite_deps_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_ermite_deps_proto_goTypes = []any{
 	(DependencyUpdate_Kind)(0),              // 0: ermite.DependencyUpdate.Kind
 	(RepoDependencyUpdates_State)(0),        // 1: ermite.RepoDependencyUpdates.State
 	(*DependencyUpdate)(nil),                // 2: ermite.DependencyUpdate
 	(*DependencyVersion)(nil),               // 3: ermite.DependencyVersion
 	(*RepoDependencyUpdates)(nil),           // 4: ermite.RepoDependencyUpdates
-	(*ListDependencyUpdatesRequest)(nil),    // 5: ermite.ListDependencyUpdatesRequest
-	(*ListDependencyUpdatesResponse)(nil),   // 6: ermite.ListDependencyUpdatesResponse
-	(*CheckDependenciesRequest)(nil),        // 7: ermite.CheckDependenciesRequest
-	(*CheckDependenciesResponse)(nil),       // 8: ermite.CheckDependenciesResponse
-	(*OpenDependencyUpdatesRequest)(nil),    // 9: ermite.OpenDependencyUpdatesRequest
-	(*OpenDependencyUpdatesResponse)(nil),   // 10: ermite.OpenDependencyUpdatesResponse
-	(*IgnoreDependencyUpdatesRequest)(nil),  // 11: ermite.IgnoreDependencyUpdatesRequest
-	(*IgnoreDependencyUpdatesResponse)(nil), // 12: ermite.IgnoreDependencyUpdatesResponse
-	(*SnoozeDependencyUpdatesRequest)(nil),  // 13: ermite.SnoozeDependencyUpdatesRequest
-	(*SnoozeDependencyUpdatesResponse)(nil), // 14: ermite.SnoozeDependencyUpdatesResponse
-	(*timestamppb.Timestamp)(nil),           // 15: google.protobuf.Timestamp
+	(*DependencyBatch)(nil),                 // 5: ermite.DependencyBatch
+	(*ListDependencyUpdatesRequest)(nil),    // 6: ermite.ListDependencyUpdatesRequest
+	(*ListDependencyUpdatesResponse)(nil),   // 7: ermite.ListDependencyUpdatesResponse
+	(*CheckDependenciesRequest)(nil),        // 8: ermite.CheckDependenciesRequest
+	(*CheckDependenciesResponse)(nil),       // 9: ermite.CheckDependenciesResponse
+	(*OpenDependencyUpdatesRequest)(nil),    // 10: ermite.OpenDependencyUpdatesRequest
+	(*OpenDependencyUpdatesResponse)(nil),   // 11: ermite.OpenDependencyUpdatesResponse
+	(*IgnoreDependencyUpdatesRequest)(nil),  // 12: ermite.IgnoreDependencyUpdatesRequest
+	(*IgnoreDependencyUpdatesResponse)(nil), // 13: ermite.IgnoreDependencyUpdatesResponse
+	(*SnoozeDependencyUpdatesRequest)(nil),  // 14: ermite.SnoozeDependencyUpdatesRequest
+	(*SnoozeDependencyUpdatesResponse)(nil), // 15: ermite.SnoozeDependencyUpdatesResponse
+	(*timestamppb.Timestamp)(nil),           // 16: google.protobuf.Timestamp
 }
 var file_ermite_deps_proto_depIdxs = []int32{
 	0,  // 0: ermite.DependencyUpdate.kind:type_name -> ermite.DependencyUpdate.Kind
 	2,  // 1: ermite.RepoDependencyUpdates.updates:type_name -> ermite.DependencyUpdate
-	15, // 2: ermite.RepoDependencyUpdates.checked_at:type_name -> google.protobuf.Timestamp
-	15, // 3: ermite.RepoDependencyUpdates.snoozed_until:type_name -> google.protobuf.Timestamp
+	16, // 2: ermite.RepoDependencyUpdates.checked_at:type_name -> google.protobuf.Timestamp
+	16, // 3: ermite.RepoDependencyUpdates.snoozed_until:type_name -> google.protobuf.Timestamp
 	1,  // 4: ermite.RepoDependencyUpdates.state:type_name -> ermite.RepoDependencyUpdates.State
-	4,  // 5: ermite.ListDependencyUpdatesResponse.repos:type_name -> ermite.RepoDependencyUpdates
-	4,  // 6: ermite.CheckDependenciesResponse.updates:type_name -> ermite.RepoDependencyUpdates
-	3,  // 7: ermite.OpenDependencyUpdatesRequest.expected_versions:type_name -> ermite.DependencyVersion
-	4,  // 8: ermite.OpenDependencyUpdatesResponse.updates:type_name -> ermite.RepoDependencyUpdates
-	3,  // 9: ermite.IgnoreDependencyUpdatesRequest.expected_versions:type_name -> ermite.DependencyVersion
-	4,  // 10: ermite.IgnoreDependencyUpdatesResponse.updates:type_name -> ermite.RepoDependencyUpdates
-	4,  // 11: ermite.SnoozeDependencyUpdatesResponse.updates:type_name -> ermite.RepoDependencyUpdates
-	5,  // 12: ermite.DepsService.ListDependencyUpdates:input_type -> ermite.ListDependencyUpdatesRequest
-	7,  // 13: ermite.DepsService.CheckDependencies:input_type -> ermite.CheckDependenciesRequest
-	9,  // 14: ermite.DepsService.OpenDependencyUpdates:input_type -> ermite.OpenDependencyUpdatesRequest
-	11, // 15: ermite.DepsService.IgnoreDependencyUpdates:input_type -> ermite.IgnoreDependencyUpdatesRequest
-	13, // 16: ermite.DepsService.SnoozeDependencyUpdates:input_type -> ermite.SnoozeDependencyUpdatesRequest
-	6,  // 17: ermite.DepsService.ListDependencyUpdates:output_type -> ermite.ListDependencyUpdatesResponse
-	8,  // 18: ermite.DepsService.CheckDependencies:output_type -> ermite.CheckDependenciesResponse
-	10, // 19: ermite.DepsService.OpenDependencyUpdates:output_type -> ermite.OpenDependencyUpdatesResponse
-	12, // 20: ermite.DepsService.IgnoreDependencyUpdates:output_type -> ermite.IgnoreDependencyUpdatesResponse
-	14, // 21: ermite.DepsService.SnoozeDependencyUpdates:output_type -> ermite.SnoozeDependencyUpdatesResponse
-	17, // [17:22] is the sub-list for method output_type
-	12, // [12:17] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	5,  // 5: ermite.RepoDependencyUpdates.batches:type_name -> ermite.DependencyBatch
+	2,  // 6: ermite.DependencyBatch.updates:type_name -> ermite.DependencyUpdate
+	1,  // 7: ermite.DependencyBatch.state:type_name -> ermite.RepoDependencyUpdates.State
+	4,  // 8: ermite.ListDependencyUpdatesResponse.repos:type_name -> ermite.RepoDependencyUpdates
+	4,  // 9: ermite.CheckDependenciesResponse.updates:type_name -> ermite.RepoDependencyUpdates
+	3,  // 10: ermite.OpenDependencyUpdatesRequest.expected_versions:type_name -> ermite.DependencyVersion
+	4,  // 11: ermite.OpenDependencyUpdatesResponse.updates:type_name -> ermite.RepoDependencyUpdates
+	3,  // 12: ermite.IgnoreDependencyUpdatesRequest.expected_versions:type_name -> ermite.DependencyVersion
+	4,  // 13: ermite.IgnoreDependencyUpdatesResponse.updates:type_name -> ermite.RepoDependencyUpdates
+	4,  // 14: ermite.SnoozeDependencyUpdatesResponse.updates:type_name -> ermite.RepoDependencyUpdates
+	6,  // 15: ermite.DepsService.ListDependencyUpdates:input_type -> ermite.ListDependencyUpdatesRequest
+	8,  // 16: ermite.DepsService.CheckDependencies:input_type -> ermite.CheckDependenciesRequest
+	10, // 17: ermite.DepsService.OpenDependencyUpdates:input_type -> ermite.OpenDependencyUpdatesRequest
+	12, // 18: ermite.DepsService.IgnoreDependencyUpdates:input_type -> ermite.IgnoreDependencyUpdatesRequest
+	14, // 19: ermite.DepsService.SnoozeDependencyUpdates:input_type -> ermite.SnoozeDependencyUpdatesRequest
+	7,  // 20: ermite.DepsService.ListDependencyUpdates:output_type -> ermite.ListDependencyUpdatesResponse
+	9,  // 21: ermite.DepsService.CheckDependencies:output_type -> ermite.CheckDependenciesResponse
+	11, // 22: ermite.DepsService.OpenDependencyUpdates:output_type -> ermite.OpenDependencyUpdatesResponse
+	13, // 23: ermite.DepsService.IgnoreDependencyUpdates:output_type -> ermite.IgnoreDependencyUpdatesResponse
+	15, // 24: ermite.DepsService.SnoozeDependencyUpdates:output_type -> ermite.SnoozeDependencyUpdatesResponse
+	20, // [20:25] is the sub-list for method output_type
+	15, // [15:20] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_ermite_deps_proto_init() }
@@ -1006,14 +1176,14 @@ func file_ermite_deps_proto_init() {
 	if File_ermite_deps_proto != nil {
 		return
 	}
-	file_ermite_deps_proto_msgTypes[3].OneofWrappers = []any{}
+	file_ermite_deps_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ermite_deps_proto_rawDesc), len(file_ermite_deps_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   13,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

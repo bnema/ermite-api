@@ -477,7 +477,8 @@ message FetchJobRequest {
   // given at registration, so that the list shows what runs now. Empty, from
   // an older runner, leaves the stored version unchanged.
   string version = 3;
-  // Kinds are accepted job kinds: "workflow" and/or "deps". Empty means
+  // Kinds are accepted job kinds: "workflow" and "deps", with capabilities
+  // "deps.npm" and "deps.gomod-path-majors" for those updates. Empty means
   // ["workflow"], so older runners never receive deps jobs.
   repeated string kinds = 4;
 }
@@ -997,20 +998,34 @@ message UploadSummaryRequest {
 // UploadSummaryResponse is empty.
 message UploadSummaryResponse {}
 
-// DepsJob applies the requested Go module updates in the runner sandbox.
+// DepsJob applies gomod and npm updates in the runner sandbox. Runners
+// advertise "deps" and the required "deps.npm" or "deps.gomod-path-majors"
+// capabilities in FetchJobRequest.kinds.
 message DepsJob {
   repeated DepsJobUpdate updates = 1;
   // GoVersion is the highest root go.mod go/toolchain version, without "go".
   string go_version = 2;
+  // NodeVersion is the Node.js major version for npm ecosystem jobs.
+  string node_version = 3;
 }
 
-// DepsJobUpdate identifies one exact version to apply.
+// DepsJobUpdate identifies one exact gomod or npm version to apply.
 message DepsJobUpdate {
   string ecosystem = 1;
-  // Directory is repository-relative; empty means the root module.
+  // Directory is repository-relative; empty means the repository root.
   string directory = 2;
   string name = 3;
   string version = 4;
+  // NewName is the new module path for a Go import-path major; empty otherwise.
+  string new_name = 5;
+  // Range is the new npm dependency specifier, including its operator.
+  string range = 6;
+  // Manager is the npm ecosystem package manager: npm, pnpm, yarn, or bun.
+  string manager = 7;
+  // ManagerVersion is the package manager version; empty uses the default.
+  string manager_version = 8;
+  // Root is the repository-relative install root; empty means repository root.
+  string root = 9;
 }
 
 // DepsReport returns changed files or an application error. At most 64 files,
@@ -1022,7 +1037,8 @@ message DepsReport {
   string error = 2;
 }
 
-// DepsFile is a changed go.mod or go.sum in a requested module directory.
+// DepsFile is a changed file allowed by the requested gomod or npm updates:
+// Go manifests and import-path-major source files, or npm manifests and lockfiles.
 message DepsFile {
   // Path is repository-relative, with no absolute path or traversal components.
   string path = 1;

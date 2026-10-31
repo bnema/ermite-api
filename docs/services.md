@@ -106,13 +106,32 @@ All methods are owner-only. Requires feature `deps`.
 | `IgnoreDependencyUpdates` | Ignore the exact expected versions; refuses stale versions |
 | `SnoozeDependencyUpdates` | Hide the card for seven days |
 
+`RepoDependencyUpdates.batches` contains independently opened/ignored batches:
+`key` (empty for base), `updates`, `state`, `error`, `run_id`,
+`merge_request_number`, and `outdated` (the MR no longer matches the updates).
+Open and Ignore select `batch` (empty means base); `expected_versions` is the
+complete set for that batch. Snooze remains repository-wide. The deprecated
+repository fields `updates`, `merge_request_number`, `state`, `error`, and
+`run_id` mirror the base batch for older clients. `DependencyUpdate.new_name`
+is the new module path for a Go import-path major, empty otherwise.
+
 New versions publish `dependency_updates_found` on the owner topic only.
 
 Runners opt into dependency jobs with `FetchJobRequest.kinds = ["workflow", "deps"]`;
-an empty list means workflow jobs only. A dependency job has `Job.deps` set.
+an empty list means workflow jobs only. Runners additionally advertise
+`deps.npm` for npm updates and `deps.gomod-path-majors` for Go import-path
+majors in that same list; these capabilities accompany `deps`.
+`DepsJob` supports `gomod` and `npm`, with `go_version` and `node_version`.
+Each `DepsJobUpdate` carries `ecosystem`, `directory`, `name`, `version`,
+`new_name` (new Go module path), `range` (npm specifier with operator),
+`manager` (`npm`, `pnpm`, `yarn`, `bun`), `manager_version` (empty for default),
+and `root` (repository-relative install root, empty for repository root).
+`DepsFile` carries changed Go manifests/source or npm manifests/lockfiles,
+subject to server validation. A dependency job has `Job.deps` set.
 With feature `deps.runs` it is a job of a run (`run_id`, `job_token`, `WatchJob`
 cancel) and the job calls take the job token; older servers send an empty
 `job_token`, run 0 and an ID prefixed `deps-`, and the runner token
 authenticates the job calls. Complete the job with
 `CompleteJobRequest.deps_report`: no more than 64 files, 2 MiB per file, 8 MiB
-of content total. `RepoDependencyUpdates.run_id` names the run.
+of content total. `DependencyBatch.run_id` names the run; deprecated `RepoDependencyUpdates.run_id`
+names the base batch run.

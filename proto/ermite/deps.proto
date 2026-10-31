@@ -15,9 +15,9 @@ message DependencyUpdate {
     KIND_MINOR = 2;
     KIND_MAJOR = 3;
   }
-  // Ecosystem is "gomod" or "github-actions".
+  // Ecosystem is "gomod", "github-actions", or "npm".
   string ecosystem = 1;
-  // Name is the module path or action owner/repository.
+  // Name is the module path, action owner/repository, or npm package name.
   string name = 2;
   // Directory is the repository-relative module directory; empty means root.
   string directory = 3;
@@ -29,6 +29,8 @@ message DependencyUpdate {
   Kind kind = 6;
   // New says this version was absent from the previous check.
   bool new = 7;
+  // NewName is the new module path for a Go import-path major; empty otherwise.
+  string new_name = 8;
 }
 
 // DependencyVersion identifies exactly one proposed version in one directory.
@@ -49,19 +51,42 @@ message RepoDependencyUpdates {
     STATE_FAILED = 3;
   }
   string repo = 1;
-  repeated DependencyUpdate updates = 2;
+  // base batch; use batches
+  repeated DependencyUpdate updates = 2 [deprecated = true];
   google.protobuf.Timestamp checked_at = 3;
   google.protobuf.Timestamp snoozed_until = 4;
   // MergeRequestNumber is zero when there is no Bernard merge request.
-  int64 merge_request_number = 5;
-  State state = 6;
+  // base batch; use batches
+  int64 merge_request_number = 5 [deprecated = true];
+  // base batch; use batches
+  State state = 6 [deprecated = true];
   // Error is a short reason for FAILED, empty otherwise. The log is on the
   // run.
-  string error = 7;
+  // base batch; use batches
+  string error = 7 [deprecated = true];
   // RunId is the run applying the updates (APPLYING) or the last one that
   // tried (FAILED, or IDLE after a success); 0 for none. Set from servers
   // with the feature "deps.runs".
-  int64 run_id = 8;
+  // base batch; use batches
+  int64 run_id = 8 [deprecated = true];
+  // Batches contains the base batch and independent major-update batches.
+  repeated DependencyBatch batches = 9;
+}
+
+// DependencyBatch is one independently applied or ignored set of updates.
+message DependencyBatch {
+  // Key is empty for the base batch.
+  string key = 1;
+  repeated DependencyUpdate updates = 2;
+  RepoDependencyUpdates.State state = 3;
+  // Error is a short reason for FAILED, empty otherwise.
+  string error = 4;
+  // RunId is the applying or last attempted run; zero for none.
+  int64 run_id = 5;
+  // MergeRequestNumber is zero when there is no Bernard merge request.
+  int64 merge_request_number = 6;
+  // Outdated says the merge request no longer matches the proposed updates.
+  bool outdated = 7;
 }
 
 // DepsService manages Bernard dependency updates. Every RPC is owner-only:
@@ -100,6 +125,8 @@ message OpenDependencyUpdatesRequest {
   string repo = 1;
   // ExpectedVersions is the complete set of proposed versions the owner saw.
   repeated DependencyVersion expected_versions = 2;
+  // Batch selects the batch; empty means the base batch.
+  string batch = 3;
 }
 message OpenDependencyUpdatesResponse {
   RepoDependencyUpdates updates = 1;
@@ -108,6 +135,8 @@ message IgnoreDependencyUpdatesRequest {
   string repo = 1;
   // ExpectedVersions is the complete set of proposed versions the owner saw.
   repeated DependencyVersion expected_versions = 2;
+  // Batch selects the batch; empty means the base batch.
+  string batch = 3;
 }
 message IgnoreDependencyUpdatesResponse {
   RepoDependencyUpdates updates = 1;

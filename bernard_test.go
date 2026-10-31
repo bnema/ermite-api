@@ -9,6 +9,7 @@ import (
 	"bnema.dev/ermite-api/gen/ermite/ermiteconnect"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 func TestBernardFieldNumbers(t *testing.T) {
@@ -22,6 +23,23 @@ func TestBernardFieldNumbers(t *testing.T) {
 		{&ermite.Event{}, "dependency_updates_found", 34},
 		{&ermite.FetchJobRequest{}, "kinds", 4},
 		{&ermite.Job{}, "deps", 24},
+		{&ermite.DependencyUpdate{}, "new_name", 8},
+		{&ermite.RepoDependencyUpdates{}, "batches", 9},
+		{&ermite.OpenDependencyUpdatesRequest{}, "batch", 3},
+		{&ermite.IgnoreDependencyUpdatesRequest{}, "batch", 3},
+		{&ermite.DepsJob{}, "node_version", 3},
+		{&ermite.DependencyBatch{}, "key", 1},
+		{&ermite.DependencyBatch{}, "updates", 2},
+		{&ermite.DependencyBatch{}, "state", 3},
+		{&ermite.DependencyBatch{}, "error", 4},
+		{&ermite.DependencyBatch{}, "run_id", 5},
+		{&ermite.DependencyBatch{}, "merge_request_number", 6},
+		{&ermite.DependencyBatch{}, "outdated", 7},
+		{&ermite.DepsJobUpdate{}, "new_name", 5},
+		{&ermite.DepsJobUpdate{}, "range", 6},
+		{&ermite.DepsJobUpdate{}, "manager", 7},
+		{&ermite.DepsJobUpdate{}, "manager_version", 8},
+		{&ermite.DepsJobUpdate{}, "root", 9},
 		{&ermite.CompleteJobRequest{}, "deps_report", 7},
 	} {
 		field := tc.message.ProtoReflect().Descriptor().Fields().ByName(tc.field)
@@ -47,7 +65,10 @@ func TestDepsProcedures(t *testing.T) {
 
 func TestDepsWireRoundTrip(t *testing.T) {
 	for _, original := range []proto.Message{
-		&ermite.OpenDependencyUpdatesRequest{Repo: "demo", ExpectedVersions: []*ermite.DependencyVersion{{Ecosystem: "gomod", Directory: "sub", Name: "example.com/mod", Version: "v1.2.3"}}},
+		&ermite.IgnoreDependencyUpdatesRequest{Repo: "demo", Batch: "npm/web/react@v19"},
+		&ermite.RepoDependencyUpdates{Batches: []*ermite.DependencyBatch{{Key: "gomod/sub/mod@v2", Updates: []*ermite.DependencyUpdate{{NewName: "example.com/mod/v2"}}, State: ermite.RepoDependencyUpdates_STATE_FAILED, Error: "failed", RunId: 7, MergeRequestNumber: 8, Outdated: true}}},
+		&ermite.DepsJob{NodeVersion: "22", Updates: []*ermite.DepsJobUpdate{{Ecosystem: "npm", Name: "react", Version: "19.0.0", Range: "^19.0.0", Manager: "pnpm", ManagerVersion: "9.15.0", Root: "web", NewName: "new-name"}}},
+		&ermite.OpenDependencyUpdatesRequest{Repo: "demo", Batch: "gomod/sub/mod@v2", ExpectedVersions: []*ermite.DependencyVersion{{Ecosystem: "gomod", Directory: "sub", Name: "example.com/mod", Version: "v1.2.3"}}},
 		&ermite.Job{JobId: "deps-example", Deps: &ermite.DepsJob{GoVersion: "1.26", Updates: []*ermite.DepsJobUpdate{{Ecosystem: "gomod", Name: "example.com/mod", Version: "v1.2.3"}}}},
 		&ermite.CompleteJobRequest{JobId: "deps-example", DepsReport: &ermite.DepsReport{Files: []*ermite.DepsFile{{Path: "go.mod", Content: []byte("module example.com/demo\n")}}}},
 		&ermite.Event{Kind: &ermite.Event_DependencyUpdatesFound{DependencyUpdatesFound: &ermite.DependencyUpdatesFound{Repo: "demo", Count: 2}}},
@@ -62,6 +83,16 @@ func TestDepsWireRoundTrip(t *testing.T) {
 		}
 		if !proto.Equal(original, decoded) {
 			t.Errorf("round trip changed %T", original)
+		}
+	}
+}
+
+func TestDepsLegacyFieldsDeprecated(t *testing.T) {
+	fields := (&ermite.RepoDependencyUpdates{}).ProtoReflect().Descriptor().Fields()
+	for _, number := range []protoreflect.FieldNumber{2, 5, 6, 7, 8} {
+		field := fields.ByNumber(number)
+		if field == nil || !field.Options().(*descriptorpb.FieldOptions).GetDeprecated() {
+			t.Errorf("RepoDependencyUpdates field %d must remain deprecated", number)
 		}
 	}
 }
