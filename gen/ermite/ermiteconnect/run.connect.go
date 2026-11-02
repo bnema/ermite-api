@@ -8,69 +8,164 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// RunServiceName is the fully-qualified name of the RunService service.
 	RunServiceName = "ermite.RunService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// RunServiceListRunsProcedure is the fully-qualified name of the RunService's ListRuns RPC.
+	// RunServiceListRunsProcedure is the procedure name of the RunService's ListRuns RPC.
 	RunServiceListRunsProcedure = "/ermite.RunService/ListRuns"
-	// RunServiceGetRunProcedure is the fully-qualified name of the RunService's GetRun RPC.
+	// RunServiceGetRunProcedure is the procedure name of the RunService's GetRun RPC.
 	RunServiceGetRunProcedure = "/ermite.RunService/GetRun"
-	// RunServiceGetJobProcedure is the fully-qualified name of the RunService's GetJob RPC.
+	// RunServiceGetJobProcedure is the procedure name of the RunService's GetJob RPC.
 	RunServiceGetJobProcedure = "/ermite.RunService/GetJob"
-	// RunServiceListAnnotationsProcedure is the fully-qualified name of the RunService's
-	// ListAnnotations RPC.
+	// RunServiceListAnnotationsProcedure is the procedure name of the RunService's ListAnnotations RPC.
 	RunServiceListAnnotationsProcedure = "/ermite.RunService/ListAnnotations"
-	// RunServiceGetStepSummariesProcedure is the fully-qualified name of the RunService's
-	// GetStepSummaries RPC.
+	// RunServiceGetStepSummariesProcedure is the procedure name of the RunService's GetStepSummaries
+	// RPC.
 	RunServiceGetStepSummariesProcedure = "/ermite.RunService/GetStepSummaries"
-	// RunServiceGetJobLogProcedure is the fully-qualified name of the RunService's GetJobLog RPC.
+	// RunServiceGetJobLogProcedure is the procedure name of the RunService's GetJobLog RPC.
 	RunServiceGetJobLogProcedure = "/ermite.RunService/GetJobLog"
-	// RunServiceCancelRunProcedure is the fully-qualified name of the RunService's CancelRun RPC.
+	// RunServiceCancelRunProcedure is the procedure name of the RunService's CancelRun RPC.
 	RunServiceCancelRunProcedure = "/ermite.RunService/CancelRun"
-	// RunServiceRerunRunProcedure is the fully-qualified name of the RunService's RerunRun RPC.
+	// RunServiceRerunRunProcedure is the procedure name of the RunService's RerunRun RPC.
 	RunServiceRerunRunProcedure = "/ermite.RunService/RerunRun"
-	// RunServiceDispatchWorkflowProcedure is the fully-qualified name of the RunService's
-	// DispatchWorkflow RPC.
+	// RunServiceDispatchWorkflowProcedure is the procedure name of the RunService's DispatchWorkflow
+	// RPC.
 	RunServiceDispatchWorkflowProcedure = "/ermite.RunService/DispatchWorkflow"
-	// RunServiceListWorkflowsProcedure is the fully-qualified name of the RunService's ListWorkflows
-	// RPC.
+	// RunServiceListWorkflowsProcedure is the procedure name of the RunService's ListWorkflows RPC.
 	RunServiceListWorkflowsProcedure = "/ermite.RunService/ListWorkflows"
-	// RunServiceDisableWorkflowProcedure is the fully-qualified name of the RunService's
-	// DisableWorkflow RPC.
+	// RunServiceDisableWorkflowProcedure is the procedure name of the RunService's DisableWorkflow RPC.
 	RunServiceDisableWorkflowProcedure = "/ermite.RunService/DisableWorkflow"
-	// RunServiceEnableWorkflowProcedure is the fully-qualified name of the RunService's EnableWorkflow
-	// RPC.
+	// RunServiceEnableWorkflowProcedure is the procedure name of the RunService's EnableWorkflow RPC.
 	RunServiceEnableWorkflowProcedure = "/ermite.RunService/EnableWorkflow"
-	// RunServiceListChecksProcedure is the fully-qualified name of the RunService's ListChecks RPC.
+	// RunServiceListChecksProcedure is the procedure name of the RunService's ListChecks RPC.
 	RunServiceListChecksProcedure = "/ermite.RunService/ListChecks"
-	// RunServiceListRunnersProcedure is the fully-qualified name of the RunService's ListRunners RPC.
+	// RunServiceListRunnersProcedure is the procedure name of the RunService's ListRunners RPC.
 	RunServiceListRunnersProcedure = "/ermite.RunService/ListRunners"
-	// RunServiceRemoveRunnerProcedure is the fully-qualified name of the RunService's RemoveRunner RPC.
+	// RunServiceRemoveRunnerProcedure is the procedure name of the RunService's RemoveRunner RPC.
 	RunServiceRemoveRunnerProcedure = "/ermite.RunService/RemoveRunner"
+)
+
+var (
+	runServiceListRunsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("ListRuns"),
+			Procedure:  RunServiceListRunsProcedure,
+		}
+	})
+	runServiceGetRunSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("GetRun"),
+			Procedure:  RunServiceGetRunProcedure,
+		}
+	})
+	runServiceGetJobSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("GetJob"),
+			Procedure:  RunServiceGetJobProcedure,
+		}
+	})
+	runServiceListAnnotationsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("ListAnnotations"),
+			Procedure:  RunServiceListAnnotationsProcedure,
+		}
+	})
+	runServiceGetStepSummariesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("GetStepSummaries"),
+			Procedure:  RunServiceGetStepSummariesProcedure,
+		}
+	})
+	runServiceGetJobLogSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("GetJobLog"),
+			Procedure:  RunServiceGetJobLogProcedure,
+		}
+	})
+	runServiceCancelRunSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("CancelRun"),
+			Procedure:  RunServiceCancelRunProcedure,
+		}
+	})
+	runServiceRerunRunSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("RerunRun"),
+			Procedure:  RunServiceRerunRunProcedure,
+		}
+	})
+	runServiceDispatchWorkflowSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("DispatchWorkflow"),
+			Procedure:  RunServiceDispatchWorkflowProcedure,
+		}
+	})
+	runServiceListWorkflowsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("ListWorkflows"),
+			Procedure:  RunServiceListWorkflowsProcedure,
+		}
+	})
+	runServiceDisableWorkflowSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("DisableWorkflow"),
+			Procedure:  RunServiceDisableWorkflowProcedure,
+		}
+	})
+	runServiceEnableWorkflowSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("EnableWorkflow"),
+			Procedure:  RunServiceEnableWorkflowProcedure,
+		}
+	})
+	runServiceListChecksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("ListChecks"),
+			Procedure:  RunServiceListChecksProcedure,
+		}
+	})
+	runServiceListRunnersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("ListRunners"),
+			Procedure:  RunServiceListRunnersProcedure,
+		}
+	})
+	runServiceRemoveRunnerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_run_proto.Services().ByName("RunService").Methods().ByName("RemoveRunner"),
+			Procedure:  RunServiceRemoveRunnerProcedure,
+		}
+	})
 )
 
 // RunServiceClient is a client for the ermite.RunService service.
@@ -80,14 +175,14 @@ type RunServiceClient interface {
 	// server without the feature "ci.runs.filters" ignores them and returns
 	// every run, so a client that needs them checks the feature. Fails with
 	// invalid_argument if a filter is malformed.
-	ListRuns(context.Context, *connect.Request[ermite.ListRunsRequest]) (*connect.Response[ermite.ListRunsResponse], error)
+	ListRuns(context.Context, *ermite.ListRunsRequest) (*ermite.ListRunsResponse, error)
 	// GetRun returns a run with its jobs and their steps, for the latest attempt
 	// or for the one asked. Fails with not_found if the run or the attempt does
 	// not exist.
-	GetRun(context.Context, *connect.Request[ermite.GetRunRequest]) (*connect.Response[ermite.GetRunResponse], error)
+	GetRun(context.Context, *ermite.GetRunRequest) (*ermite.GetRunResponse, error)
 	// GetJob returns one job with its steps. Fails with not_found if the job
 	// or the attempt does not exist.
-	GetJob(context.Context, *connect.Request[ermite.GetJobRequest]) (*connect.Response[ermite.GetJobResponse], error)
+	GetJob(context.Context, *ermite.GetJobRequest) (*ermite.GetJobResponse, error)
 	// ListAnnotations lists the annotations of a run attempt, optionally of one
 	// job, ordered by job (as in GetRun), step number, then the order in which
 	// the step produced them. For each job it gives the annotations of the
@@ -97,7 +192,7 @@ type RunServiceClient interface {
 	// empty list. Only servers with the feature "ci.annotations" implement it
 	// (unimplemented otherwise). Fails with not_found if the run, the attempt or
 	// the job does not exist, or if the job is not a job of the run.
-	ListAnnotations(context.Context, *connect.Request[ermite.ListAnnotationsRequest]) (*connect.Response[ermite.ListAnnotationsResponse], error)
+	ListAnnotations(context.Context, *ermite.ListAnnotationsRequest) (*ermite.ListAnnotationsResponse, error)
 	// GetStepSummaries returns the job summaries (the Markdown written to
 	// GITHUB_STEP_SUMMARY) of the steps of a job that have one, ordered by step
 	// number. Like GitHub, it returns at most 20 summaries per job: the first 20
@@ -106,7 +201,7 @@ type RunServiceClient interface {
 	// "ci.summaries" implement it (unimplemented otherwise). A job without
 	// summaries gives an empty list. Fails with not_found if the job or the
 	// attempt does not exist.
-	GetStepSummaries(context.Context, *connect.Request[ermite.GetStepSummariesRequest]) (*connect.Response[ermite.GetStepSummariesResponse], error)
+	GetStepSummaries(context.Context, *ermite.GetStepSummariesRequest) (*ermite.GetStepSummariesResponse, error)
 	// GetJobLog streams the lines of the log of a job, from a line number. The
 	// server sends them in order in messages of at most 1,000 lines and 64 KiB of
 	// text each.
@@ -125,20 +220,20 @@ type RunServiceClient interface {
 	// resource_exhausted when there are too many concurrent log streams, in
 	// total or from one client. Like Watch, a stream ends with unauthenticated
 	// when the token was revoked or expired.
-	GetJobLog(context.Context, *connect.Request[ermite.GetJobLogRequest]) (*connect.ServerStreamForClient[ermite.GetJobLogResponse], error)
+	GetJobLog(context.Context, *ermite.GetJobLogRequest) (RunServiceGetJobLogClientStream, error)
 	// CancelRun asks to cancel the latest attempt of a run. Needs the ci:write
 	// scope. Jobs that have not started are cancelled at once; jobs in progress
 	// get a CANCEL_REASON_USER request through WatchJob, and the run completes
 	// when they have ended, so the returned run may still be IN_PROGRESS.
 	// Cancelling a run that already has a cancellation requested succeeds and
 	// changes nothing. Fails with failed_precondition if the run has completed.
-	CancelRun(context.Context, *connect.Request[ermite.CancelRunRequest]) (*connect.Response[ermite.CancelRunResponse], error)
+	CancelRun(context.Context, *ermite.CancelRunRequest) (*ermite.CancelRunResponse, error)
 	// RerunRun starts a new attempt of a completed run: same run id and number,
 	// attempt + 1, same commit and same workflow file as at the original run (the
 	// file of the repository is not read again). Needs the ci:write scope. Fails
 	// with failed_precondition if the latest attempt has not completed, or if
 	// failed_only is set and no job failed. The new attempt is returned QUEUED.
-	RerunRun(context.Context, *connect.Request[ermite.RerunRunRequest]) (*connect.Response[ermite.RerunRunResponse], error)
+	RerunRun(context.Context, *ermite.RerunRunRequest) (*ermite.RerunRunResponse, error)
 	// DispatchWorkflow starts a run of a workflow file by hand, like `gh
 	// workflow run` and GitHub's "workflow_dispatch" event. Needs the ci:write
 	// scope on the repository. The workflow is read at ref and must have
@@ -153,7 +248,7 @@ type RunServiceClient interface {
 	// "workflow_dispatch", and with invalid_argument if an input is unknown, is
 	// missing while required without default, or has a value of the wrong type
 	// or outside its choices, or if the workflow file is not valid.
-	DispatchWorkflow(context.Context, *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error)
+	DispatchWorkflow(context.Context, *ermite.DispatchWorkflowRequest) (*ermite.DispatchWorkflowResponse, error)
 	// ListWorkflows lists the workflow files of a repository with their state,
 	// like `gh workflow list --all`, ordered by path: the files of
 	// .github/workflows at the tip of the default branch, and the files that are
@@ -163,7 +258,7 @@ type RunServiceClient interface {
 	// files. Only servers with the feature "ci.workflows" implement it
 	// (unimplemented otherwise). Fails with not_found if the repository does not
 	// exist or cannot be read.
-	ListWorkflows(context.Context, *connect.Request[ermite.ListWorkflowsRequest]) (*connect.Response[ermite.ListWorkflowsResponse], error)
+	ListWorkflows(context.Context, *ermite.ListWorkflowsRequest) (*ermite.ListWorkflowsResponse, error)
 	// DisableWorkflow disables a workflow file of a repository, like `gh
 	// workflow disable`: no event starts a run of it any more (push,
 	// pull_request, pull_request_target, schedule, workflow_run, create,
@@ -178,225 +273,53 @@ type RunServiceClient interface {
 	// caller cannot read it, permission_denied without the scope, and
 	// invalid_argument if the workflow is not a file name or a path of
 	// .github/workflows ending in .yml or .yaml.
-	DisableWorkflow(context.Context, *connect.Request[ermite.DisableWorkflowRequest]) (*connect.Response[ermite.DisableWorkflowResponse], error)
+	DisableWorkflow(context.Context, *ermite.DisableWorkflowRequest) (*ermite.DisableWorkflowResponse, error)
 	// EnableWorkflow undoes DisableWorkflow, like `gh workflow enable`. Enabling
 	// a workflow that is not disabled succeeds and changes nothing. Same access
 	// and errors as DisableWorkflow. Events that happened while the workflow was
 	// disabled are not replayed.
-	EnableWorkflow(context.Context, *connect.Request[ermite.EnableWorkflowRequest]) (*connect.Response[ermite.EnableWorkflowResponse], error)
+	EnableWorkflow(context.Context, *ermite.EnableWorkflowRequest) (*ermite.EnableWorkflowResponse, error)
 	// ListChecks lists the checks of a commit: for each job of each run on that
 	// sha, the one of the latest attempt, ordered by creation time then name.
 	// A commit without a run has no check: the list is empty, which is not an
 	// error, and the server does not verify that the commit exists. Returns at
 	// most 1,000 checks (truncated tells).
-	ListChecks(context.Context, *connect.Request[ermite.ListChecksRequest]) (*connect.Response[ermite.ListChecksResponse], error)
+	ListChecks(context.Context, *ermite.ListChecksRequest) (*ermite.ListChecksResponse, error)
 	// ListRunners lists the registered runners, ordered by name. Needs the
 	// runner:register scope.
-	ListRunners(context.Context, *connect.Request[ermite.ListRunnersRequest]) (*connect.Response[ermite.ListRunnersResponse], error)
+	ListRunners(context.Context, *ermite.ListRunnersRequest) (*ermite.ListRunnersResponse, error)
 	// RemoveRunner removes a runner: its runner token stops working at once (a
 	// FetchJob in progress ends with unauthenticated) and it no longer gets
 	// jobs. A job it is running is not affected: it ends normally, or fails as
 	// a lost runner without heartbeats. Needs the runner:register scope. Fails
 	// with not_found if the id is unknown.
-	RemoveRunner(context.Context, *connect.Request[ermite.RemoveRunnerRequest]) (*connect.Response[ermite.RemoveRunnerResponse], error)
+	RemoveRunner(context.Context, *ermite.RemoveRunnerRequest) (*ermite.RemoveRunnerResponse, error)
 }
 
-// NewRunServiceClient constructs a client for the ermite.RunService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewRunServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RunServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	runServiceMethods := ermite.File_ermite_run_proto.Services().ByName("RunService").Methods()
-	return &runServiceClient{
-		listRuns: connect.NewClient[ermite.ListRunsRequest, ermite.ListRunsResponse](
-			httpClient,
-			baseURL+RunServiceListRunsProcedure,
-			connect.WithSchema(runServiceMethods.ByName("ListRuns")),
-			connect.WithClientOptions(opts...),
-		),
-		getRun: connect.NewClient[ermite.GetRunRequest, ermite.GetRunResponse](
-			httpClient,
-			baseURL+RunServiceGetRunProcedure,
-			connect.WithSchema(runServiceMethods.ByName("GetRun")),
-			connect.WithClientOptions(opts...),
-		),
-		getJob: connect.NewClient[ermite.GetJobRequest, ermite.GetJobResponse](
-			httpClient,
-			baseURL+RunServiceGetJobProcedure,
-			connect.WithSchema(runServiceMethods.ByName("GetJob")),
-			connect.WithClientOptions(opts...),
-		),
-		listAnnotations: connect.NewClient[ermite.ListAnnotationsRequest, ermite.ListAnnotationsResponse](
-			httpClient,
-			baseURL+RunServiceListAnnotationsProcedure,
-			connect.WithSchema(runServiceMethods.ByName("ListAnnotations")),
-			connect.WithClientOptions(opts...),
-		),
-		getStepSummaries: connect.NewClient[ermite.GetStepSummariesRequest, ermite.GetStepSummariesResponse](
-			httpClient,
-			baseURL+RunServiceGetStepSummariesProcedure,
-			connect.WithSchema(runServiceMethods.ByName("GetStepSummaries")),
-			connect.WithClientOptions(opts...),
-		),
-		getJobLog: connect.NewClient[ermite.GetJobLogRequest, ermite.GetJobLogResponse](
-			httpClient,
-			baseURL+RunServiceGetJobLogProcedure,
-			connect.WithSchema(runServiceMethods.ByName("GetJobLog")),
-			connect.WithClientOptions(opts...),
-		),
-		cancelRun: connect.NewClient[ermite.CancelRunRequest, ermite.CancelRunResponse](
-			httpClient,
-			baseURL+RunServiceCancelRunProcedure,
-			connect.WithSchema(runServiceMethods.ByName("CancelRun")),
-			connect.WithClientOptions(opts...),
-		),
-		rerunRun: connect.NewClient[ermite.RerunRunRequest, ermite.RerunRunResponse](
-			httpClient,
-			baseURL+RunServiceRerunRunProcedure,
-			connect.WithSchema(runServiceMethods.ByName("RerunRun")),
-			connect.WithClientOptions(opts...),
-		),
-		dispatchWorkflow: connect.NewClient[ermite.DispatchWorkflowRequest, ermite.DispatchWorkflowResponse](
-			httpClient,
-			baseURL+RunServiceDispatchWorkflowProcedure,
-			connect.WithSchema(runServiceMethods.ByName("DispatchWorkflow")),
-			connect.WithClientOptions(opts...),
-		),
-		listWorkflows: connect.NewClient[ermite.ListWorkflowsRequest, ermite.ListWorkflowsResponse](
-			httpClient,
-			baseURL+RunServiceListWorkflowsProcedure,
-			connect.WithSchema(runServiceMethods.ByName("ListWorkflows")),
-			connect.WithClientOptions(opts...),
-		),
-		disableWorkflow: connect.NewClient[ermite.DisableWorkflowRequest, ermite.DisableWorkflowResponse](
-			httpClient,
-			baseURL+RunServiceDisableWorkflowProcedure,
-			connect.WithSchema(runServiceMethods.ByName("DisableWorkflow")),
-			connect.WithClientOptions(opts...),
-		),
-		enableWorkflow: connect.NewClient[ermite.EnableWorkflowRequest, ermite.EnableWorkflowResponse](
-			httpClient,
-			baseURL+RunServiceEnableWorkflowProcedure,
-			connect.WithSchema(runServiceMethods.ByName("EnableWorkflow")),
-			connect.WithClientOptions(opts...),
-		),
-		listChecks: connect.NewClient[ermite.ListChecksRequest, ermite.ListChecksResponse](
-			httpClient,
-			baseURL+RunServiceListChecksProcedure,
-			connect.WithSchema(runServiceMethods.ByName("ListChecks")),
-			connect.WithClientOptions(opts...),
-		),
-		listRunners: connect.NewClient[ermite.ListRunnersRequest, ermite.ListRunnersResponse](
-			httpClient,
-			baseURL+RunServiceListRunnersProcedure,
-			connect.WithSchema(runServiceMethods.ByName("ListRunners")),
-			connect.WithClientOptions(opts...),
-		),
-		removeRunner: connect.NewClient[ermite.RemoveRunnerRequest, ermite.RemoveRunnerResponse](
-			httpClient,
-			baseURL+RunServiceRemoveRunnerProcedure,
-			connect.WithSchema(runServiceMethods.ByName("RemoveRunner")),
-			connect.WithClientOptions(opts...),
-		),
+// NewRunServiceClient constructs a client for the ermite.RunService service. Multiple service
+// clients may share a single connect.Client.
+func NewRunServiceClient(client *connect.Client) RunServiceClient {
+	return &runServiceClient{client: client}
+}
+
+// RunServiceGetJobLogClientStream is the client stream for the RunService's GetJobLog RPC.
+type RunServiceGetJobLogClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s RunServiceGetJobLogClientStream) Receive() (*ermite.GetJobLogResponse, error) {
+	var res ermite.GetJobLogResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// runServiceClient implements RunServiceClient.
-type runServiceClient struct {
-	listRuns         *connect.Client[ermite.ListRunsRequest, ermite.ListRunsResponse]
-	getRun           *connect.Client[ermite.GetRunRequest, ermite.GetRunResponse]
-	getJob           *connect.Client[ermite.GetJobRequest, ermite.GetJobResponse]
-	listAnnotations  *connect.Client[ermite.ListAnnotationsRequest, ermite.ListAnnotationsResponse]
-	getStepSummaries *connect.Client[ermite.GetStepSummariesRequest, ermite.GetStepSummariesResponse]
-	getJobLog        *connect.Client[ermite.GetJobLogRequest, ermite.GetJobLogResponse]
-	cancelRun        *connect.Client[ermite.CancelRunRequest, ermite.CancelRunResponse]
-	rerunRun         *connect.Client[ermite.RerunRunRequest, ermite.RerunRunResponse]
-	dispatchWorkflow *connect.Client[ermite.DispatchWorkflowRequest, ermite.DispatchWorkflowResponse]
-	listWorkflows    *connect.Client[ermite.ListWorkflowsRequest, ermite.ListWorkflowsResponse]
-	disableWorkflow  *connect.Client[ermite.DisableWorkflowRequest, ermite.DisableWorkflowResponse]
-	enableWorkflow   *connect.Client[ermite.EnableWorkflowRequest, ermite.EnableWorkflowResponse]
-	listChecks       *connect.Client[ermite.ListChecksRequest, ermite.ListChecksResponse]
-	listRunners      *connect.Client[ermite.ListRunnersRequest, ermite.ListRunnersResponse]
-	removeRunner     *connect.Client[ermite.RemoveRunnerRequest, ermite.RemoveRunnerResponse]
-}
-
-// ListRuns calls ermite.RunService.ListRuns.
-func (c *runServiceClient) ListRuns(ctx context.Context, req *connect.Request[ermite.ListRunsRequest]) (*connect.Response[ermite.ListRunsResponse], error) {
-	return c.listRuns.CallUnary(ctx, req)
-}
-
-// GetRun calls ermite.RunService.GetRun.
-func (c *runServiceClient) GetRun(ctx context.Context, req *connect.Request[ermite.GetRunRequest]) (*connect.Response[ermite.GetRunResponse], error) {
-	return c.getRun.CallUnary(ctx, req)
-}
-
-// GetJob calls ermite.RunService.GetJob.
-func (c *runServiceClient) GetJob(ctx context.Context, req *connect.Request[ermite.GetJobRequest]) (*connect.Response[ermite.GetJobResponse], error) {
-	return c.getJob.CallUnary(ctx, req)
-}
-
-// ListAnnotations calls ermite.RunService.ListAnnotations.
-func (c *runServiceClient) ListAnnotations(ctx context.Context, req *connect.Request[ermite.ListAnnotationsRequest]) (*connect.Response[ermite.ListAnnotationsResponse], error) {
-	return c.listAnnotations.CallUnary(ctx, req)
-}
-
-// GetStepSummaries calls ermite.RunService.GetStepSummaries.
-func (c *runServiceClient) GetStepSummaries(ctx context.Context, req *connect.Request[ermite.GetStepSummariesRequest]) (*connect.Response[ermite.GetStepSummariesResponse], error) {
-	return c.getStepSummaries.CallUnary(ctx, req)
-}
-
-// GetJobLog calls ermite.RunService.GetJobLog.
-func (c *runServiceClient) GetJobLog(ctx context.Context, req *connect.Request[ermite.GetJobLogRequest]) (*connect.ServerStreamForClient[ermite.GetJobLogResponse], error) {
-	return c.getJobLog.CallServerStream(ctx, req)
-}
-
-// CancelRun calls ermite.RunService.CancelRun.
-func (c *runServiceClient) CancelRun(ctx context.Context, req *connect.Request[ermite.CancelRunRequest]) (*connect.Response[ermite.CancelRunResponse], error) {
-	return c.cancelRun.CallUnary(ctx, req)
-}
-
-// RerunRun calls ermite.RunService.RerunRun.
-func (c *runServiceClient) RerunRun(ctx context.Context, req *connect.Request[ermite.RerunRunRequest]) (*connect.Response[ermite.RerunRunResponse], error) {
-	return c.rerunRun.CallUnary(ctx, req)
-}
-
-// DispatchWorkflow calls ermite.RunService.DispatchWorkflow.
-func (c *runServiceClient) DispatchWorkflow(ctx context.Context, req *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error) {
-	return c.dispatchWorkflow.CallUnary(ctx, req)
-}
-
-// ListWorkflows calls ermite.RunService.ListWorkflows.
-func (c *runServiceClient) ListWorkflows(ctx context.Context, req *connect.Request[ermite.ListWorkflowsRequest]) (*connect.Response[ermite.ListWorkflowsResponse], error) {
-	return c.listWorkflows.CallUnary(ctx, req)
-}
-
-// DisableWorkflow calls ermite.RunService.DisableWorkflow.
-func (c *runServiceClient) DisableWorkflow(ctx context.Context, req *connect.Request[ermite.DisableWorkflowRequest]) (*connect.Response[ermite.DisableWorkflowResponse], error) {
-	return c.disableWorkflow.CallUnary(ctx, req)
-}
-
-// EnableWorkflow calls ermite.RunService.EnableWorkflow.
-func (c *runServiceClient) EnableWorkflow(ctx context.Context, req *connect.Request[ermite.EnableWorkflowRequest]) (*connect.Response[ermite.EnableWorkflowResponse], error) {
-	return c.enableWorkflow.CallUnary(ctx, req)
-}
-
-// ListChecks calls ermite.RunService.ListChecks.
-func (c *runServiceClient) ListChecks(ctx context.Context, req *connect.Request[ermite.ListChecksRequest]) (*connect.Response[ermite.ListChecksResponse], error) {
-	return c.listChecks.CallUnary(ctx, req)
-}
-
-// ListRunners calls ermite.RunService.ListRunners.
-func (c *runServiceClient) ListRunners(ctx context.Context, req *connect.Request[ermite.ListRunnersRequest]) (*connect.Response[ermite.ListRunnersResponse], error) {
-	return c.listRunners.CallUnary(ctx, req)
-}
-
-// RemoveRunner calls ermite.RunService.RemoveRunner.
-func (c *runServiceClient) RemoveRunner(ctx context.Context, req *connect.Request[ermite.RemoveRunnerRequest]) (*connect.Response[ermite.RemoveRunnerResponse], error) {
-	return c.removeRunner.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s RunServiceGetJobLogClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // RunServiceHandler is an implementation of the ermite.RunService service.
@@ -406,14 +329,14 @@ type RunServiceHandler interface {
 	// server without the feature "ci.runs.filters" ignores them and returns
 	// every run, so a client that needs them checks the feature. Fails with
 	// invalid_argument if a filter is malformed.
-	ListRuns(context.Context, *connect.Request[ermite.ListRunsRequest]) (*connect.Response[ermite.ListRunsResponse], error)
+	ListRuns(context.Context, *ermite.ListRunsRequest) (*ermite.ListRunsResponse, error)
 	// GetRun returns a run with its jobs and their steps, for the latest attempt
 	// or for the one asked. Fails with not_found if the run or the attempt does
 	// not exist.
-	GetRun(context.Context, *connect.Request[ermite.GetRunRequest]) (*connect.Response[ermite.GetRunResponse], error)
+	GetRun(context.Context, *ermite.GetRunRequest) (*ermite.GetRunResponse, error)
 	// GetJob returns one job with its steps. Fails with not_found if the job
 	// or the attempt does not exist.
-	GetJob(context.Context, *connect.Request[ermite.GetJobRequest]) (*connect.Response[ermite.GetJobResponse], error)
+	GetJob(context.Context, *ermite.GetJobRequest) (*ermite.GetJobResponse, error)
 	// ListAnnotations lists the annotations of a run attempt, optionally of one
 	// job, ordered by job (as in GetRun), step number, then the order in which
 	// the step produced them. For each job it gives the annotations of the
@@ -423,7 +346,7 @@ type RunServiceHandler interface {
 	// empty list. Only servers with the feature "ci.annotations" implement it
 	// (unimplemented otherwise). Fails with not_found if the run, the attempt or
 	// the job does not exist, or if the job is not a job of the run.
-	ListAnnotations(context.Context, *connect.Request[ermite.ListAnnotationsRequest]) (*connect.Response[ermite.ListAnnotationsResponse], error)
+	ListAnnotations(context.Context, *ermite.ListAnnotationsRequest) (*ermite.ListAnnotationsResponse, error)
 	// GetStepSummaries returns the job summaries (the Markdown written to
 	// GITHUB_STEP_SUMMARY) of the steps of a job that have one, ordered by step
 	// number. Like GitHub, it returns at most 20 summaries per job: the first 20
@@ -432,7 +355,7 @@ type RunServiceHandler interface {
 	// "ci.summaries" implement it (unimplemented otherwise). A job without
 	// summaries gives an empty list. Fails with not_found if the job or the
 	// attempt does not exist.
-	GetStepSummaries(context.Context, *connect.Request[ermite.GetStepSummariesRequest]) (*connect.Response[ermite.GetStepSummariesResponse], error)
+	GetStepSummaries(context.Context, *ermite.GetStepSummariesRequest) (*ermite.GetStepSummariesResponse, error)
 	// GetJobLog streams the lines of the log of a job, from a line number. The
 	// server sends them in order in messages of at most 1,000 lines and 64 KiB of
 	// text each.
@@ -451,20 +374,20 @@ type RunServiceHandler interface {
 	// resource_exhausted when there are too many concurrent log streams, in
 	// total or from one client. Like Watch, a stream ends with unauthenticated
 	// when the token was revoked or expired.
-	GetJobLog(context.Context, *connect.Request[ermite.GetJobLogRequest], *connect.ServerStream[ermite.GetJobLogResponse]) error
+	GetJobLog(context.Context, *ermite.GetJobLogRequest, RunServiceGetJobLogServerStream) error
 	// CancelRun asks to cancel the latest attempt of a run. Needs the ci:write
 	// scope. Jobs that have not started are cancelled at once; jobs in progress
 	// get a CANCEL_REASON_USER request through WatchJob, and the run completes
 	// when they have ended, so the returned run may still be IN_PROGRESS.
 	// Cancelling a run that already has a cancellation requested succeeds and
 	// changes nothing. Fails with failed_precondition if the run has completed.
-	CancelRun(context.Context, *connect.Request[ermite.CancelRunRequest]) (*connect.Response[ermite.CancelRunResponse], error)
+	CancelRun(context.Context, *ermite.CancelRunRequest) (*ermite.CancelRunResponse, error)
 	// RerunRun starts a new attempt of a completed run: same run id and number,
 	// attempt + 1, same commit and same workflow file as at the original run (the
 	// file of the repository is not read again). Needs the ci:write scope. Fails
 	// with failed_precondition if the latest attempt has not completed, or if
 	// failed_only is set and no job failed. The new attempt is returned QUEUED.
-	RerunRun(context.Context, *connect.Request[ermite.RerunRunRequest]) (*connect.Response[ermite.RerunRunResponse], error)
+	RerunRun(context.Context, *ermite.RerunRunRequest) (*ermite.RerunRunResponse, error)
 	// DispatchWorkflow starts a run of a workflow file by hand, like `gh
 	// workflow run` and GitHub's "workflow_dispatch" event. Needs the ci:write
 	// scope on the repository. The workflow is read at ref and must have
@@ -479,7 +402,7 @@ type RunServiceHandler interface {
 	// "workflow_dispatch", and with invalid_argument if an input is unknown, is
 	// missing while required without default, or has a value of the wrong type
 	// or outside its choices, or if the workflow file is not valid.
-	DispatchWorkflow(context.Context, *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error)
+	DispatchWorkflow(context.Context, *ermite.DispatchWorkflowRequest) (*ermite.DispatchWorkflowResponse, error)
 	// ListWorkflows lists the workflow files of a repository with their state,
 	// like `gh workflow list --all`, ordered by path: the files of
 	// .github/workflows at the tip of the default branch, and the files that are
@@ -489,7 +412,7 @@ type RunServiceHandler interface {
 	// files. Only servers with the feature "ci.workflows" implement it
 	// (unimplemented otherwise). Fails with not_found if the repository does not
 	// exist or cannot be read.
-	ListWorkflows(context.Context, *connect.Request[ermite.ListWorkflowsRequest]) (*connect.Response[ermite.ListWorkflowsResponse], error)
+	ListWorkflows(context.Context, *ermite.ListWorkflowsRequest) (*ermite.ListWorkflowsResponse, error)
 	// DisableWorkflow disables a workflow file of a repository, like `gh
 	// workflow disable`: no event starts a run of it any more (push,
 	// pull_request, pull_request_target, schedule, workflow_run, create,
@@ -504,223 +427,427 @@ type RunServiceHandler interface {
 	// caller cannot read it, permission_denied without the scope, and
 	// invalid_argument if the workflow is not a file name or a path of
 	// .github/workflows ending in .yml or .yaml.
-	DisableWorkflow(context.Context, *connect.Request[ermite.DisableWorkflowRequest]) (*connect.Response[ermite.DisableWorkflowResponse], error)
+	DisableWorkflow(context.Context, *ermite.DisableWorkflowRequest) (*ermite.DisableWorkflowResponse, error)
 	// EnableWorkflow undoes DisableWorkflow, like `gh workflow enable`. Enabling
 	// a workflow that is not disabled succeeds and changes nothing. Same access
 	// and errors as DisableWorkflow. Events that happened while the workflow was
 	// disabled are not replayed.
-	EnableWorkflow(context.Context, *connect.Request[ermite.EnableWorkflowRequest]) (*connect.Response[ermite.EnableWorkflowResponse], error)
+	EnableWorkflow(context.Context, *ermite.EnableWorkflowRequest) (*ermite.EnableWorkflowResponse, error)
 	// ListChecks lists the checks of a commit: for each job of each run on that
 	// sha, the one of the latest attempt, ordered by creation time then name.
 	// A commit without a run has no check: the list is empty, which is not an
 	// error, and the server does not verify that the commit exists. Returns at
 	// most 1,000 checks (truncated tells).
-	ListChecks(context.Context, *connect.Request[ermite.ListChecksRequest]) (*connect.Response[ermite.ListChecksResponse], error)
+	ListChecks(context.Context, *ermite.ListChecksRequest) (*ermite.ListChecksResponse, error)
 	// ListRunners lists the registered runners, ordered by name. Needs the
 	// runner:register scope.
-	ListRunners(context.Context, *connect.Request[ermite.ListRunnersRequest]) (*connect.Response[ermite.ListRunnersResponse], error)
+	ListRunners(context.Context, *ermite.ListRunnersRequest) (*ermite.ListRunnersResponse, error)
 	// RemoveRunner removes a runner: its runner token stops working at once (a
 	// FetchJob in progress ends with unauthenticated) and it no longer gets
 	// jobs. A job it is running is not affected: it ends normally, or fails as
 	// a lost runner without heartbeats. Needs the runner:register scope. Fails
 	// with not_found if the id is unknown.
-	RemoveRunner(context.Context, *connect.Request[ermite.RemoveRunnerRequest]) (*connect.Response[ermite.RemoveRunnerResponse], error)
+	RemoveRunner(context.Context, *ermite.RemoveRunnerRequest) (*ermite.RemoveRunnerResponse, error)
 }
 
-// NewRunServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewRunServiceHandler(svc RunServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	runServiceMethods := ermite.File_ermite_run_proto.Services().ByName("RunService").Methods()
-	runServiceListRunsHandler := connect.NewUnaryHandler(
-		RunServiceListRunsProcedure,
-		svc.ListRuns,
-		connect.WithSchema(runServiceMethods.ByName("ListRuns")),
-		connect.WithHandlerOptions(opts...),
+// RegisterRunServiceHandler registers svc as the ermite.RunService implementation on server.
+func RegisterRunServiceHandler(server *connect.Server, svc RunServiceHandler) {
+	adapter := runServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: runServiceListRunsSpec(), Handler: adapter.listRuns},
+		connect.Method{Spec: runServiceGetRunSpec(), Handler: adapter.getRun},
+		connect.Method{Spec: runServiceGetJobSpec(), Handler: adapter.getJob},
+		connect.Method{Spec: runServiceListAnnotationsSpec(), Handler: adapter.listAnnotations},
+		connect.Method{Spec: runServiceGetStepSummariesSpec(), Handler: adapter.getStepSummaries},
+		connect.Method{Spec: runServiceGetJobLogSpec(), Handler: adapter.getJobLog},
+		connect.Method{Spec: runServiceCancelRunSpec(), Handler: adapter.cancelRun},
+		connect.Method{Spec: runServiceRerunRunSpec(), Handler: adapter.rerunRun},
+		connect.Method{Spec: runServiceDispatchWorkflowSpec(), Handler: adapter.dispatchWorkflow},
+		connect.Method{Spec: runServiceListWorkflowsSpec(), Handler: adapter.listWorkflows},
+		connect.Method{Spec: runServiceDisableWorkflowSpec(), Handler: adapter.disableWorkflow},
+		connect.Method{Spec: runServiceEnableWorkflowSpec(), Handler: adapter.enableWorkflow},
+		connect.Method{Spec: runServiceListChecksSpec(), Handler: adapter.listChecks},
+		connect.Method{Spec: runServiceListRunnersSpec(), Handler: adapter.listRunners},
+		connect.Method{Spec: runServiceRemoveRunnerSpec(), Handler: adapter.removeRunner},
 	)
-	runServiceGetRunHandler := connect.NewUnaryHandler(
-		RunServiceGetRunProcedure,
-		svc.GetRun,
-		connect.WithSchema(runServiceMethods.ByName("GetRun")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceGetJobHandler := connect.NewUnaryHandler(
-		RunServiceGetJobProcedure,
-		svc.GetJob,
-		connect.WithSchema(runServiceMethods.ByName("GetJob")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceListAnnotationsHandler := connect.NewUnaryHandler(
-		RunServiceListAnnotationsProcedure,
-		svc.ListAnnotations,
-		connect.WithSchema(runServiceMethods.ByName("ListAnnotations")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceGetStepSummariesHandler := connect.NewUnaryHandler(
-		RunServiceGetStepSummariesProcedure,
-		svc.GetStepSummaries,
-		connect.WithSchema(runServiceMethods.ByName("GetStepSummaries")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceGetJobLogHandler := connect.NewServerStreamHandler(
-		RunServiceGetJobLogProcedure,
-		svc.GetJobLog,
-		connect.WithSchema(runServiceMethods.ByName("GetJobLog")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceCancelRunHandler := connect.NewUnaryHandler(
-		RunServiceCancelRunProcedure,
-		svc.CancelRun,
-		connect.WithSchema(runServiceMethods.ByName("CancelRun")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceRerunRunHandler := connect.NewUnaryHandler(
-		RunServiceRerunRunProcedure,
-		svc.RerunRun,
-		connect.WithSchema(runServiceMethods.ByName("RerunRun")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceDispatchWorkflowHandler := connect.NewUnaryHandler(
-		RunServiceDispatchWorkflowProcedure,
-		svc.DispatchWorkflow,
-		connect.WithSchema(runServiceMethods.ByName("DispatchWorkflow")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceListWorkflowsHandler := connect.NewUnaryHandler(
-		RunServiceListWorkflowsProcedure,
-		svc.ListWorkflows,
-		connect.WithSchema(runServiceMethods.ByName("ListWorkflows")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceDisableWorkflowHandler := connect.NewUnaryHandler(
-		RunServiceDisableWorkflowProcedure,
-		svc.DisableWorkflow,
-		connect.WithSchema(runServiceMethods.ByName("DisableWorkflow")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceEnableWorkflowHandler := connect.NewUnaryHandler(
-		RunServiceEnableWorkflowProcedure,
-		svc.EnableWorkflow,
-		connect.WithSchema(runServiceMethods.ByName("EnableWorkflow")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceListChecksHandler := connect.NewUnaryHandler(
-		RunServiceListChecksProcedure,
-		svc.ListChecks,
-		connect.WithSchema(runServiceMethods.ByName("ListChecks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceListRunnersHandler := connect.NewUnaryHandler(
-		RunServiceListRunnersProcedure,
-		svc.ListRunners,
-		connect.WithSchema(runServiceMethods.ByName("ListRunners")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runServiceRemoveRunnerHandler := connect.NewUnaryHandler(
-		RunServiceRemoveRunnerProcedure,
-		svc.RemoveRunner,
-		connect.WithSchema(runServiceMethods.ByName("RemoveRunner")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.RunService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case RunServiceListRunsProcedure:
-			runServiceListRunsHandler.ServeHTTP(w, r)
-		case RunServiceGetRunProcedure:
-			runServiceGetRunHandler.ServeHTTP(w, r)
-		case RunServiceGetJobProcedure:
-			runServiceGetJobHandler.ServeHTTP(w, r)
-		case RunServiceListAnnotationsProcedure:
-			runServiceListAnnotationsHandler.ServeHTTP(w, r)
-		case RunServiceGetStepSummariesProcedure:
-			runServiceGetStepSummariesHandler.ServeHTTP(w, r)
-		case RunServiceGetJobLogProcedure:
-			runServiceGetJobLogHandler.ServeHTTP(w, r)
-		case RunServiceCancelRunProcedure:
-			runServiceCancelRunHandler.ServeHTTP(w, r)
-		case RunServiceRerunRunProcedure:
-			runServiceRerunRunHandler.ServeHTTP(w, r)
-		case RunServiceDispatchWorkflowProcedure:
-			runServiceDispatchWorkflowHandler.ServeHTTP(w, r)
-		case RunServiceListWorkflowsProcedure:
-			runServiceListWorkflowsHandler.ServeHTTP(w, r)
-		case RunServiceDisableWorkflowProcedure:
-			runServiceDisableWorkflowHandler.ServeHTTP(w, r)
-		case RunServiceEnableWorkflowProcedure:
-			runServiceEnableWorkflowHandler.ServeHTTP(w, r)
-		case RunServiceListChecksProcedure:
-			runServiceListChecksHandler.ServeHTTP(w, r)
-		case RunServiceListRunnersProcedure:
-			runServiceListRunnersHandler.ServeHTTP(w, r)
-		case RunServiceRemoveRunnerProcedure:
-			runServiceRemoveRunnerHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// RunServiceGetJobLogServerStream is the server stream for the RunService's GetJobLog RPC.
+type RunServiceGetJobLogServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s RunServiceGetJobLogServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s RunServiceGetJobLogServerStream) Send(res *ermite.GetJobLogResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedRunServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedRunServiceHandler struct{}
 
-func (UnimplementedRunServiceHandler) ListRuns(context.Context, *connect.Request[ermite.ListRunsRequest]) (*connect.Response[ermite.ListRunsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.ListRuns is not implemented"))
+func (UnimplementedRunServiceHandler) ListRuns(context.Context, *ermite.ListRunsRequest) (*ermite.ListRunsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.ListRuns is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) GetRun(context.Context, *connect.Request[ermite.GetRunRequest]) (*connect.Response[ermite.GetRunResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.GetRun is not implemented"))
+func (UnimplementedRunServiceHandler) GetRun(context.Context, *ermite.GetRunRequest) (*ermite.GetRunResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.GetRun is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) GetJob(context.Context, *connect.Request[ermite.GetJobRequest]) (*connect.Response[ermite.GetJobResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.GetJob is not implemented"))
+func (UnimplementedRunServiceHandler) GetJob(context.Context, *ermite.GetJobRequest) (*ermite.GetJobResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.GetJob is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) ListAnnotations(context.Context, *connect.Request[ermite.ListAnnotationsRequest]) (*connect.Response[ermite.ListAnnotationsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.ListAnnotations is not implemented"))
+func (UnimplementedRunServiceHandler) ListAnnotations(context.Context, *ermite.ListAnnotationsRequest) (*ermite.ListAnnotationsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.ListAnnotations is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) GetStepSummaries(context.Context, *connect.Request[ermite.GetStepSummariesRequest]) (*connect.Response[ermite.GetStepSummariesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.GetStepSummaries is not implemented"))
+func (UnimplementedRunServiceHandler) GetStepSummaries(context.Context, *ermite.GetStepSummariesRequest) (*ermite.GetStepSummariesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.GetStepSummaries is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) GetJobLog(context.Context, *connect.Request[ermite.GetJobLogRequest], *connect.ServerStream[ermite.GetJobLogResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.GetJobLog is not implemented"))
+func (UnimplementedRunServiceHandler) GetJobLog(context.Context, *ermite.GetJobLogRequest, RunServiceGetJobLogServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "ermite.RunService.GetJobLog is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) CancelRun(context.Context, *connect.Request[ermite.CancelRunRequest]) (*connect.Response[ermite.CancelRunResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.CancelRun is not implemented"))
+func (UnimplementedRunServiceHandler) CancelRun(context.Context, *ermite.CancelRunRequest) (*ermite.CancelRunResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.CancelRun is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) RerunRun(context.Context, *connect.Request[ermite.RerunRunRequest]) (*connect.Response[ermite.RerunRunResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.RerunRun is not implemented"))
+func (UnimplementedRunServiceHandler) RerunRun(context.Context, *ermite.RerunRunRequest) (*ermite.RerunRunResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.RerunRun is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) DispatchWorkflow(context.Context, *connect.Request[ermite.DispatchWorkflowRequest]) (*connect.Response[ermite.DispatchWorkflowResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.DispatchWorkflow is not implemented"))
+func (UnimplementedRunServiceHandler) DispatchWorkflow(context.Context, *ermite.DispatchWorkflowRequest) (*ermite.DispatchWorkflowResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.DispatchWorkflow is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) ListWorkflows(context.Context, *connect.Request[ermite.ListWorkflowsRequest]) (*connect.Response[ermite.ListWorkflowsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.ListWorkflows is not implemented"))
+func (UnimplementedRunServiceHandler) ListWorkflows(context.Context, *ermite.ListWorkflowsRequest) (*ermite.ListWorkflowsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.ListWorkflows is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) DisableWorkflow(context.Context, *connect.Request[ermite.DisableWorkflowRequest]) (*connect.Response[ermite.DisableWorkflowResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.DisableWorkflow is not implemented"))
+func (UnimplementedRunServiceHandler) DisableWorkflow(context.Context, *ermite.DisableWorkflowRequest) (*ermite.DisableWorkflowResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.DisableWorkflow is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) EnableWorkflow(context.Context, *connect.Request[ermite.EnableWorkflowRequest]) (*connect.Response[ermite.EnableWorkflowResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.EnableWorkflow is not implemented"))
+func (UnimplementedRunServiceHandler) EnableWorkflow(context.Context, *ermite.EnableWorkflowRequest) (*ermite.EnableWorkflowResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.EnableWorkflow is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) ListChecks(context.Context, *connect.Request[ermite.ListChecksRequest]) (*connect.Response[ermite.ListChecksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.ListChecks is not implemented"))
+func (UnimplementedRunServiceHandler) ListChecks(context.Context, *ermite.ListChecksRequest) (*ermite.ListChecksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.ListChecks is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) ListRunners(context.Context, *connect.Request[ermite.ListRunnersRequest]) (*connect.Response[ermite.ListRunnersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.ListRunners is not implemented"))
+func (UnimplementedRunServiceHandler) ListRunners(context.Context, *ermite.ListRunnersRequest) (*ermite.ListRunnersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.ListRunners is not implemented")
 }
 
-func (UnimplementedRunServiceHandler) RemoveRunner(context.Context, *connect.Request[ermite.RemoveRunnerRequest]) (*connect.Response[ermite.RemoveRunnerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunService.RemoveRunner is not implemented"))
+func (UnimplementedRunServiceHandler) RemoveRunner(context.Context, *ermite.RemoveRunnerRequest) (*ermite.RemoveRunnerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunService.RemoveRunner is not implemented")
+}
+
+type runServiceClient struct {
+	client *connect.Client
+}
+
+func (c *runServiceClient) ListRuns(ctx context.Context, req *ermite.ListRunsRequest) (*ermite.ListRunsResponse, error) {
+	var res ermite.ListRunsResponse
+	if err := c.client.CallUnary(ctx, runServiceListRunsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) GetRun(ctx context.Context, req *ermite.GetRunRequest) (*ermite.GetRunResponse, error) {
+	var res ermite.GetRunResponse
+	if err := c.client.CallUnary(ctx, runServiceGetRunSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) GetJob(ctx context.Context, req *ermite.GetJobRequest) (*ermite.GetJobResponse, error) {
+	var res ermite.GetJobResponse
+	if err := c.client.CallUnary(ctx, runServiceGetJobSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) ListAnnotations(ctx context.Context, req *ermite.ListAnnotationsRequest) (*ermite.ListAnnotationsResponse, error) {
+	var res ermite.ListAnnotationsResponse
+	if err := c.client.CallUnary(ctx, runServiceListAnnotationsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) GetStepSummaries(ctx context.Context, req *ermite.GetStepSummariesRequest) (*ermite.GetStepSummariesResponse, error) {
+	var res ermite.GetStepSummariesResponse
+	if err := c.client.CallUnary(ctx, runServiceGetStepSummariesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) GetJobLog(ctx context.Context, req *ermite.GetJobLogRequest) (RunServiceGetJobLogClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, runServiceGetJobLogSpec(), req)
+	if err != nil {
+		return RunServiceGetJobLogClientStream{}, err
+	}
+	return RunServiceGetJobLogClientStream{stream: stream}, nil
+}
+
+func (c *runServiceClient) CancelRun(ctx context.Context, req *ermite.CancelRunRequest) (*ermite.CancelRunResponse, error) {
+	var res ermite.CancelRunResponse
+	if err := c.client.CallUnary(ctx, runServiceCancelRunSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) RerunRun(ctx context.Context, req *ermite.RerunRunRequest) (*ermite.RerunRunResponse, error) {
+	var res ermite.RerunRunResponse
+	if err := c.client.CallUnary(ctx, runServiceRerunRunSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) DispatchWorkflow(ctx context.Context, req *ermite.DispatchWorkflowRequest) (*ermite.DispatchWorkflowResponse, error) {
+	var res ermite.DispatchWorkflowResponse
+	if err := c.client.CallUnary(ctx, runServiceDispatchWorkflowSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) ListWorkflows(ctx context.Context, req *ermite.ListWorkflowsRequest) (*ermite.ListWorkflowsResponse, error) {
+	var res ermite.ListWorkflowsResponse
+	if err := c.client.CallUnary(ctx, runServiceListWorkflowsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) DisableWorkflow(ctx context.Context, req *ermite.DisableWorkflowRequest) (*ermite.DisableWorkflowResponse, error) {
+	var res ermite.DisableWorkflowResponse
+	if err := c.client.CallUnary(ctx, runServiceDisableWorkflowSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) EnableWorkflow(ctx context.Context, req *ermite.EnableWorkflowRequest) (*ermite.EnableWorkflowResponse, error) {
+	var res ermite.EnableWorkflowResponse
+	if err := c.client.CallUnary(ctx, runServiceEnableWorkflowSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) ListChecks(ctx context.Context, req *ermite.ListChecksRequest) (*ermite.ListChecksResponse, error) {
+	var res ermite.ListChecksResponse
+	if err := c.client.CallUnary(ctx, runServiceListChecksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) ListRunners(ctx context.Context, req *ermite.ListRunnersRequest) (*ermite.ListRunnersResponse, error) {
+	var res ermite.ListRunnersResponse
+	if err := c.client.CallUnary(ctx, runServiceListRunnersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runServiceClient) RemoveRunner(ctx context.Context, req *ermite.RemoveRunnerRequest) (*ermite.RemoveRunnerResponse, error) {
+	var res ermite.RemoveRunnerResponse
+	if err := c.client.CallUnary(ctx, runServiceRemoveRunnerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type runServiceHandler struct{ svc RunServiceHandler }
+
+func (h runServiceHandler) listRuns(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListRunsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListRuns(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) getRun(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetRunRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetRun(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) getJob(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetJobRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetJob(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) listAnnotations(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListAnnotationsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListAnnotations(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) getStepSummaries(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetStepSummariesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetStepSummaries(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) getJobLog(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetJobLogRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.GetJobLog(ctx, &req, RunServiceGetJobLogServerStream{stream: stream})
+}
+
+func (h runServiceHandler) cancelRun(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CancelRunRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CancelRun(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) rerunRun(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.RerunRunRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RerunRun(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) dispatchWorkflow(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DispatchWorkflowRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DispatchWorkflow(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) listWorkflows(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListWorkflowsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListWorkflows(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) disableWorkflow(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DisableWorkflowRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DisableWorkflow(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) enableWorkflow(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.EnableWorkflowRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EnableWorkflow(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) listChecks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListChecksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListChecks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) listRunners(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListRunnersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListRunners(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runServiceHandler) removeRunner(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.RemoveRunnerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveRunner(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

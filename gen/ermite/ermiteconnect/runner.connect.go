@@ -8,55 +8,111 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// RunnerServiceName is the fully-qualified name of the RunnerService service.
 	RunnerServiceName = "ermite.RunnerService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// RunnerServiceRegisterRunnerProcedure is the fully-qualified name of the RunnerService's
-	// RegisterRunner RPC.
-	RunnerServiceRegisterRunnerProcedure = "/ermite.RunnerService/RegisterRunner"
-	// RunnerServiceFetchJobProcedure is the fully-qualified name of the RunnerService's FetchJob RPC.
-	RunnerServiceFetchJobProcedure = "/ermite.RunnerService/FetchJob"
-	// RunnerServiceUpdateJobProcedure is the fully-qualified name of the RunnerService's UpdateJob RPC.
-	RunnerServiceUpdateJobProcedure = "/ermite.RunnerService/UpdateJob"
-	// RunnerServiceAppendLogProcedure is the fully-qualified name of the RunnerService's AppendLog RPC.
-	RunnerServiceAppendLogProcedure = "/ermite.RunnerService/AppendLog"
-	// RunnerServiceHeartbeatProcedure is the fully-qualified name of the RunnerService's Heartbeat RPC.
-	RunnerServiceHeartbeatProcedure = "/ermite.RunnerService/Heartbeat"
-	// RunnerServiceWatchJobProcedure is the fully-qualified name of the RunnerService's WatchJob RPC.
-	RunnerServiceWatchJobProcedure = "/ermite.RunnerService/WatchJob"
-	// RunnerServiceCompleteJobProcedure is the fully-qualified name of the RunnerService's CompleteJob
+	// RunnerServiceRegisterRunnerProcedure is the procedure name of the RunnerService's RegisterRunner
 	// RPC.
+	RunnerServiceRegisterRunnerProcedure = "/ermite.RunnerService/RegisterRunner"
+	// RunnerServiceFetchJobProcedure is the procedure name of the RunnerService's FetchJob RPC.
+	RunnerServiceFetchJobProcedure = "/ermite.RunnerService/FetchJob"
+	// RunnerServiceUpdateJobProcedure is the procedure name of the RunnerService's UpdateJob RPC.
+	RunnerServiceUpdateJobProcedure = "/ermite.RunnerService/UpdateJob"
+	// RunnerServiceAppendLogProcedure is the procedure name of the RunnerService's AppendLog RPC.
+	RunnerServiceAppendLogProcedure = "/ermite.RunnerService/AppendLog"
+	// RunnerServiceHeartbeatProcedure is the procedure name of the RunnerService's Heartbeat RPC.
+	RunnerServiceHeartbeatProcedure = "/ermite.RunnerService/Heartbeat"
+	// RunnerServiceWatchJobProcedure is the procedure name of the RunnerService's WatchJob RPC.
+	RunnerServiceWatchJobProcedure = "/ermite.RunnerService/WatchJob"
+	// RunnerServiceCompleteJobProcedure is the procedure name of the RunnerService's CompleteJob RPC.
 	RunnerServiceCompleteJobProcedure = "/ermite.RunnerService/CompleteJob"
-	// RunnerServiceResolveActionsProcedure is the fully-qualified name of the RunnerService's
-	// ResolveActions RPC.
+	// RunnerServiceResolveActionsProcedure is the procedure name of the RunnerService's ResolveActions
+	// RPC.
 	RunnerServiceResolveActionsProcedure = "/ermite.RunnerService/ResolveActions"
-	// RunnerServiceUploadSummaryProcedure is the fully-qualified name of the RunnerService's
-	// UploadSummary RPC.
+	// RunnerServiceUploadSummaryProcedure is the procedure name of the RunnerService's UploadSummary
+	// RPC.
 	RunnerServiceUploadSummaryProcedure = "/ermite.RunnerService/UploadSummary"
+)
+
+var (
+	runnerServiceRegisterRunnerSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods().ByName("RegisterRunner"),
+			Procedure:  RunnerServiceRegisterRunnerProcedure,
+		}
+	})
+	runnerServiceFetchJobSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods().ByName("FetchJob"),
+			Procedure:  RunnerServiceFetchJobProcedure,
+		}
+	})
+	runnerServiceUpdateJobSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods().ByName("UpdateJob"),
+			Procedure:  RunnerServiceUpdateJobProcedure,
+		}
+	})
+	runnerServiceAppendLogSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods().ByName("AppendLog"),
+			Procedure:  RunnerServiceAppendLogProcedure,
+		}
+	})
+	runnerServiceHeartbeatSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods().ByName("Heartbeat"),
+			Procedure:  RunnerServiceHeartbeatProcedure,
+		}
+	})
+	runnerServiceWatchJobSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods().ByName("WatchJob"),
+			Procedure:  RunnerServiceWatchJobProcedure,
+		}
+	})
+	runnerServiceCompleteJobSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods().ByName("CompleteJob"),
+			Procedure:  RunnerServiceCompleteJobProcedure,
+		}
+	})
+	runnerServiceResolveActionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods().ByName("ResolveActions"),
+			Procedure:  RunnerServiceResolveActionsProcedure,
+		}
+	})
+	runnerServiceUploadSummarySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods().ByName("UploadSummary"),
+			Procedure:  RunnerServiceUploadSummaryProcedure,
+		}
+	})
 )
 
 // RunnerServiceClient is a client for the ermite.RunnerService service.
@@ -69,7 +125,7 @@ type RunnerServiceClient interface {
 	// scope or with a repository-restricted token, invalid_argument if a field
 	// breaks a rule, and already_exists if name is taken by another runner and
 	// replace is not set.
-	RegisterRunner(context.Context, *connect.Request[ermite.RegisterRunnerRequest]) (*connect.Response[ermite.RegisterRunnerResponse], error)
+	RegisterRunner(context.Context, *ermite.RegisterRunnerRequest) (*ermite.RegisterRunnerResponse, error)
 	// FetchJob asks for a job to run (long poll). The server holds the call
 	// until a queued job matches the runner, or about 50 seconds (never more
 	// than 50) pass, then answers; without a job the response has no job and the
@@ -105,7 +161,7 @@ type RunnerServiceClient interface {
 	// Needs the runner token. Fails with unauthenticated when the runner was
 	// removed (also ending a call in progress) and invalid_argument if labels
 	// or poll_id break a rule.
-	FetchJob(context.Context, *connect.Request[ermite.FetchJobRequest]) (*connect.Response[ermite.FetchJobResponse], error)
+	FetchJob(context.Context, *ermite.FetchJobRequest) (*ermite.FetchJobResponse, error)
 	// UpdateJob reports the state of the steps of a job while it runs. Needs the
 	// job token. Each call is applied whole or not at all, and repeating an
 	// identical call changes nothing, so a runner may retry after a network
@@ -126,7 +182,7 @@ type RunnerServiceClient interface {
 	// limits), with failed_precondition if a step goes back (a COMPLETED step
 	// cannot change, a step cannot go from IN_PROGRESS to PENDING) and with
 	// failed_precondition and a JobEnded detail if the job has ended.
-	UpdateJob(context.Context, *connect.Request[ermite.UpdateJobRequest]) (*connect.Response[ermite.UpdateJobResponse], error)
+	UpdateJob(context.Context, *ermite.UpdateJobRequest) (*ermite.UpdateJobResponse, error)
 	// AppendLog appends lines to the log of a job. Needs the job token.
 	//
 	// The log of a job is one sequence of lines, numbered from 0 across all
@@ -171,7 +227,7 @@ type RunnerServiceClient interface {
 	//
 	// Fails with invalid_argument if a rule is broken (step number, text with a
 	// line feed or invalid UTF-8, missing time, a continued first line).
-	AppendLog(context.Context, *connect.Request[ermite.AppendLogRequest]) (*connect.Response[ermite.AppendLogResponse], error)
+	AppendLog(context.Context, *ermite.AppendLogRequest) (*ermite.AppendLogResponse, error)
 	// Heartbeat tells the server that the runner is alive and still working on
 	// the job. Needs the job token. The first one acknowledges the assignment
 	// (see FetchJob). The runner then calls it every 30 seconds for as long as
@@ -185,7 +241,7 @@ type RunnerServiceClient interface {
 	// A runner that gets unavailable (or any network error) retries Heartbeat
 	// every 5 seconds until it succeeds, instead of waiting for its next 30
 	// second tick, and keeps the job running meanwhile.
-	Heartbeat(context.Context, *connect.Request[ermite.HeartbeatRequest]) (*connect.Response[ermite.HeartbeatResponse], error)
+	Heartbeat(context.Context, *ermite.HeartbeatRequest) (*ermite.HeartbeatResponse, error)
 	// WatchJob streams what the runner must react to. Needs the job token. The
 	// runner opens it when it starts the job and keeps it open; it reopens it
 	// after any error other than unauthenticated and the failed_precondition
@@ -211,7 +267,7 @@ type RunnerServiceClient interface {
 	// for user and fail-fast, CI_CONCLUSION_TIMED_OUT for timeout, with an error
 	// saying that the runner did not answer, and the steps not completed are
 	// completed as cancelled. The runner's later CompleteJob returns that result.
-	WatchJob(context.Context, *connect.Request[ermite.WatchJobRequest]) (*connect.ServerStreamForClient[ermite.WatchJobResponse], error)
+	WatchJob(context.Context, *ermite.WatchJobRequest) (RunnerServiceWatchJobClientStream, error)
 	// CompleteJob ends a job: it reports the final steps, the outputs and the
 	// conclusion. Needs the job token, which stays valid for this RPC for 24
 	// hours after the end of the job, however it ended. The call is applied whole
@@ -238,7 +294,7 @@ type RunnerServiceClient interface {
 	// Fails with invalid_argument if a rule is broken (including the output and
 	// annotation limits) and failed_precondition if a step goes back, as in
 	// UpdateJob.
-	CompleteJob(context.Context, *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error)
+	CompleteJob(context.Context, *ermite.CompleteJobRequest) (*ermite.CompleteJobResponse, error)
 	// ResolveActions turns the "uses" of workflow and action steps into what the
 	// runner needs to download the actions, as GitHub's action download info
 	// does. Needs the job token; the job_id must be the one of the token. It
@@ -265,7 +321,7 @@ type RunnerServiceClient interface {
 	// with invalid_argument if there are more than 100 refs or if a "uses" is a
 	// local action ("./path") or a Docker image ("docker://"), which the runner
 	// handles without the server.
-	ResolveActions(context.Context, *connect.Request[ermite.ResolveActionsRequest]) (*connect.Response[ermite.ResolveActionsResponse], error)
+	ResolveActions(context.Context, *ermite.ResolveActionsRequest) (*ermite.ResolveActionsResponse, error)
 	// UploadSummary stores the job summary of one step: the Markdown that the
 	// step wrote to the file named by GITHUB_STEP_SUMMARY. Needs the job token.
 	// The runner masks it before sending it, and sends it after the step ended
@@ -280,133 +336,33 @@ type RunnerServiceClient interface {
 	//
 	// Fails with invalid_argument if a rule is broken (size, UTF-8, step number)
 	// and with failed_precondition and a JobEnded detail if the job has ended.
-	UploadSummary(context.Context, *connect.Request[ermite.UploadSummaryRequest]) (*connect.Response[ermite.UploadSummaryResponse], error)
+	UploadSummary(context.Context, *ermite.UploadSummaryRequest) (*ermite.UploadSummaryResponse, error)
 }
 
-// NewRunnerServiceClient constructs a client for the ermite.RunnerService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewRunnerServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RunnerServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	runnerServiceMethods := ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods()
-	return &runnerServiceClient{
-		registerRunner: connect.NewClient[ermite.RegisterRunnerRequest, ermite.RegisterRunnerResponse](
-			httpClient,
-			baseURL+RunnerServiceRegisterRunnerProcedure,
-			connect.WithSchema(runnerServiceMethods.ByName("RegisterRunner")),
-			connect.WithClientOptions(opts...),
-		),
-		fetchJob: connect.NewClient[ermite.FetchJobRequest, ermite.FetchJobResponse](
-			httpClient,
-			baseURL+RunnerServiceFetchJobProcedure,
-			connect.WithSchema(runnerServiceMethods.ByName("FetchJob")),
-			connect.WithClientOptions(opts...),
-		),
-		updateJob: connect.NewClient[ermite.UpdateJobRequest, ermite.UpdateJobResponse](
-			httpClient,
-			baseURL+RunnerServiceUpdateJobProcedure,
-			connect.WithSchema(runnerServiceMethods.ByName("UpdateJob")),
-			connect.WithClientOptions(opts...),
-		),
-		appendLog: connect.NewClient[ermite.AppendLogRequest, ermite.AppendLogResponse](
-			httpClient,
-			baseURL+RunnerServiceAppendLogProcedure,
-			connect.WithSchema(runnerServiceMethods.ByName("AppendLog")),
-			connect.WithClientOptions(opts...),
-		),
-		heartbeat: connect.NewClient[ermite.HeartbeatRequest, ermite.HeartbeatResponse](
-			httpClient,
-			baseURL+RunnerServiceHeartbeatProcedure,
-			connect.WithSchema(runnerServiceMethods.ByName("Heartbeat")),
-			connect.WithClientOptions(opts...),
-		),
-		watchJob: connect.NewClient[ermite.WatchJobRequest, ermite.WatchJobResponse](
-			httpClient,
-			baseURL+RunnerServiceWatchJobProcedure,
-			connect.WithSchema(runnerServiceMethods.ByName("WatchJob")),
-			connect.WithClientOptions(opts...),
-		),
-		completeJob: connect.NewClient[ermite.CompleteJobRequest, ermite.CompleteJobResponse](
-			httpClient,
-			baseURL+RunnerServiceCompleteJobProcedure,
-			connect.WithSchema(runnerServiceMethods.ByName("CompleteJob")),
-			connect.WithClientOptions(opts...),
-		),
-		resolveActions: connect.NewClient[ermite.ResolveActionsRequest, ermite.ResolveActionsResponse](
-			httpClient,
-			baseURL+RunnerServiceResolveActionsProcedure,
-			connect.WithSchema(runnerServiceMethods.ByName("ResolveActions")),
-			connect.WithClientOptions(opts...),
-		),
-		uploadSummary: connect.NewClient[ermite.UploadSummaryRequest, ermite.UploadSummaryResponse](
-			httpClient,
-			baseURL+RunnerServiceUploadSummaryProcedure,
-			connect.WithSchema(runnerServiceMethods.ByName("UploadSummary")),
-			connect.WithClientOptions(opts...),
-		),
+// NewRunnerServiceClient constructs a client for the ermite.RunnerService service. Multiple service
+// clients may share a single connect.Client.
+func NewRunnerServiceClient(client *connect.Client) RunnerServiceClient {
+	return &runnerServiceClient{client: client}
+}
+
+// RunnerServiceWatchJobClientStream is the client stream for the RunnerService's WatchJob RPC.
+type RunnerServiceWatchJobClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s RunnerServiceWatchJobClientStream) Receive() (*ermite.WatchJobResponse, error) {
+	var res ermite.WatchJobResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// runnerServiceClient implements RunnerServiceClient.
-type runnerServiceClient struct {
-	registerRunner *connect.Client[ermite.RegisterRunnerRequest, ermite.RegisterRunnerResponse]
-	fetchJob       *connect.Client[ermite.FetchJobRequest, ermite.FetchJobResponse]
-	updateJob      *connect.Client[ermite.UpdateJobRequest, ermite.UpdateJobResponse]
-	appendLog      *connect.Client[ermite.AppendLogRequest, ermite.AppendLogResponse]
-	heartbeat      *connect.Client[ermite.HeartbeatRequest, ermite.HeartbeatResponse]
-	watchJob       *connect.Client[ermite.WatchJobRequest, ermite.WatchJobResponse]
-	completeJob    *connect.Client[ermite.CompleteJobRequest, ermite.CompleteJobResponse]
-	resolveActions *connect.Client[ermite.ResolveActionsRequest, ermite.ResolveActionsResponse]
-	uploadSummary  *connect.Client[ermite.UploadSummaryRequest, ermite.UploadSummaryResponse]
-}
-
-// RegisterRunner calls ermite.RunnerService.RegisterRunner.
-func (c *runnerServiceClient) RegisterRunner(ctx context.Context, req *connect.Request[ermite.RegisterRunnerRequest]) (*connect.Response[ermite.RegisterRunnerResponse], error) {
-	return c.registerRunner.CallUnary(ctx, req)
-}
-
-// FetchJob calls ermite.RunnerService.FetchJob.
-func (c *runnerServiceClient) FetchJob(ctx context.Context, req *connect.Request[ermite.FetchJobRequest]) (*connect.Response[ermite.FetchJobResponse], error) {
-	return c.fetchJob.CallUnary(ctx, req)
-}
-
-// UpdateJob calls ermite.RunnerService.UpdateJob.
-func (c *runnerServiceClient) UpdateJob(ctx context.Context, req *connect.Request[ermite.UpdateJobRequest]) (*connect.Response[ermite.UpdateJobResponse], error) {
-	return c.updateJob.CallUnary(ctx, req)
-}
-
-// AppendLog calls ermite.RunnerService.AppendLog.
-func (c *runnerServiceClient) AppendLog(ctx context.Context, req *connect.Request[ermite.AppendLogRequest]) (*connect.Response[ermite.AppendLogResponse], error) {
-	return c.appendLog.CallUnary(ctx, req)
-}
-
-// Heartbeat calls ermite.RunnerService.Heartbeat.
-func (c *runnerServiceClient) Heartbeat(ctx context.Context, req *connect.Request[ermite.HeartbeatRequest]) (*connect.Response[ermite.HeartbeatResponse], error) {
-	return c.heartbeat.CallUnary(ctx, req)
-}
-
-// WatchJob calls ermite.RunnerService.WatchJob.
-func (c *runnerServiceClient) WatchJob(ctx context.Context, req *connect.Request[ermite.WatchJobRequest]) (*connect.ServerStreamForClient[ermite.WatchJobResponse], error) {
-	return c.watchJob.CallServerStream(ctx, req)
-}
-
-// CompleteJob calls ermite.RunnerService.CompleteJob.
-func (c *runnerServiceClient) CompleteJob(ctx context.Context, req *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error) {
-	return c.completeJob.CallUnary(ctx, req)
-}
-
-// ResolveActions calls ermite.RunnerService.ResolveActions.
-func (c *runnerServiceClient) ResolveActions(ctx context.Context, req *connect.Request[ermite.ResolveActionsRequest]) (*connect.Response[ermite.ResolveActionsResponse], error) {
-	return c.resolveActions.CallUnary(ctx, req)
-}
-
-// UploadSummary calls ermite.RunnerService.UploadSummary.
-func (c *runnerServiceClient) UploadSummary(ctx context.Context, req *connect.Request[ermite.UploadSummaryRequest]) (*connect.Response[ermite.UploadSummaryResponse], error) {
-	return c.uploadSummary.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s RunnerServiceWatchJobClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // RunnerServiceHandler is an implementation of the ermite.RunnerService service.
@@ -419,7 +375,7 @@ type RunnerServiceHandler interface {
 	// scope or with a repository-restricted token, invalid_argument if a field
 	// breaks a rule, and already_exists if name is taken by another runner and
 	// replace is not set.
-	RegisterRunner(context.Context, *connect.Request[ermite.RegisterRunnerRequest]) (*connect.Response[ermite.RegisterRunnerResponse], error)
+	RegisterRunner(context.Context, *ermite.RegisterRunnerRequest) (*ermite.RegisterRunnerResponse, error)
 	// FetchJob asks for a job to run (long poll). The server holds the call
 	// until a queued job matches the runner, or about 50 seconds (never more
 	// than 50) pass, then answers; without a job the response has no job and the
@@ -455,7 +411,7 @@ type RunnerServiceHandler interface {
 	// Needs the runner token. Fails with unauthenticated when the runner was
 	// removed (also ending a call in progress) and invalid_argument if labels
 	// or poll_id break a rule.
-	FetchJob(context.Context, *connect.Request[ermite.FetchJobRequest]) (*connect.Response[ermite.FetchJobResponse], error)
+	FetchJob(context.Context, *ermite.FetchJobRequest) (*ermite.FetchJobResponse, error)
 	// UpdateJob reports the state of the steps of a job while it runs. Needs the
 	// job token. Each call is applied whole or not at all, and repeating an
 	// identical call changes nothing, so a runner may retry after a network
@@ -476,7 +432,7 @@ type RunnerServiceHandler interface {
 	// limits), with failed_precondition if a step goes back (a COMPLETED step
 	// cannot change, a step cannot go from IN_PROGRESS to PENDING) and with
 	// failed_precondition and a JobEnded detail if the job has ended.
-	UpdateJob(context.Context, *connect.Request[ermite.UpdateJobRequest]) (*connect.Response[ermite.UpdateJobResponse], error)
+	UpdateJob(context.Context, *ermite.UpdateJobRequest) (*ermite.UpdateJobResponse, error)
 	// AppendLog appends lines to the log of a job. Needs the job token.
 	//
 	// The log of a job is one sequence of lines, numbered from 0 across all
@@ -521,7 +477,7 @@ type RunnerServiceHandler interface {
 	//
 	// Fails with invalid_argument if a rule is broken (step number, text with a
 	// line feed or invalid UTF-8, missing time, a continued first line).
-	AppendLog(context.Context, *connect.Request[ermite.AppendLogRequest]) (*connect.Response[ermite.AppendLogResponse], error)
+	AppendLog(context.Context, *ermite.AppendLogRequest) (*ermite.AppendLogResponse, error)
 	// Heartbeat tells the server that the runner is alive and still working on
 	// the job. Needs the job token. The first one acknowledges the assignment
 	// (see FetchJob). The runner then calls it every 30 seconds for as long as
@@ -535,7 +491,7 @@ type RunnerServiceHandler interface {
 	// A runner that gets unavailable (or any network error) retries Heartbeat
 	// every 5 seconds until it succeeds, instead of waiting for its next 30
 	// second tick, and keeps the job running meanwhile.
-	Heartbeat(context.Context, *connect.Request[ermite.HeartbeatRequest]) (*connect.Response[ermite.HeartbeatResponse], error)
+	Heartbeat(context.Context, *ermite.HeartbeatRequest) (*ermite.HeartbeatResponse, error)
 	// WatchJob streams what the runner must react to. Needs the job token. The
 	// runner opens it when it starts the job and keeps it open; it reopens it
 	// after any error other than unauthenticated and the failed_precondition
@@ -561,7 +517,7 @@ type RunnerServiceHandler interface {
 	// for user and fail-fast, CI_CONCLUSION_TIMED_OUT for timeout, with an error
 	// saying that the runner did not answer, and the steps not completed are
 	// completed as cancelled. The runner's later CompleteJob returns that result.
-	WatchJob(context.Context, *connect.Request[ermite.WatchJobRequest], *connect.ServerStream[ermite.WatchJobResponse]) error
+	WatchJob(context.Context, *ermite.WatchJobRequest, RunnerServiceWatchJobServerStream) error
 	// CompleteJob ends a job: it reports the final steps, the outputs and the
 	// conclusion. Needs the job token, which stays valid for this RPC for 24
 	// hours after the end of the job, however it ended. The call is applied whole
@@ -588,7 +544,7 @@ type RunnerServiceHandler interface {
 	// Fails with invalid_argument if a rule is broken (including the output and
 	// annotation limits) and failed_precondition if a step goes back, as in
 	// UpdateJob.
-	CompleteJob(context.Context, *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error)
+	CompleteJob(context.Context, *ermite.CompleteJobRequest) (*ermite.CompleteJobResponse, error)
 	// ResolveActions turns the "uses" of workflow and action steps into what the
 	// runner needs to download the actions, as GitHub's action download info
 	// does. Needs the job token; the job_id must be the one of the token. It
@@ -615,7 +571,7 @@ type RunnerServiceHandler interface {
 	// with invalid_argument if there are more than 100 refs or if a "uses" is a
 	// local action ("./path") or a Docker image ("docker://"), which the runner
 	// handles without the server.
-	ResolveActions(context.Context, *connect.Request[ermite.ResolveActionsRequest]) (*connect.Response[ermite.ResolveActionsResponse], error)
+	ResolveActions(context.Context, *ermite.ResolveActionsRequest) (*ermite.ResolveActionsResponse, error)
 	// UploadSummary stores the job summary of one step: the Markdown that the
 	// step wrote to the file named by GITHUB_STEP_SUMMARY. Needs the job token.
 	// The runner masks it before sending it, and sends it after the step ended
@@ -630,131 +586,257 @@ type RunnerServiceHandler interface {
 	//
 	// Fails with invalid_argument if a rule is broken (size, UTF-8, step number)
 	// and with failed_precondition and a JobEnded detail if the job has ended.
-	UploadSummary(context.Context, *connect.Request[ermite.UploadSummaryRequest]) (*connect.Response[ermite.UploadSummaryResponse], error)
+	UploadSummary(context.Context, *ermite.UploadSummaryRequest) (*ermite.UploadSummaryResponse, error)
 }
 
-// NewRunnerServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewRunnerServiceHandler(svc RunnerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	runnerServiceMethods := ermite.File_ermite_runner_proto.Services().ByName("RunnerService").Methods()
-	runnerServiceRegisterRunnerHandler := connect.NewUnaryHandler(
-		RunnerServiceRegisterRunnerProcedure,
-		svc.RegisterRunner,
-		connect.WithSchema(runnerServiceMethods.ByName("RegisterRunner")),
-		connect.WithHandlerOptions(opts...),
+// RegisterRunnerServiceHandler registers svc as the ermite.RunnerService implementation on server.
+func RegisterRunnerServiceHandler(server *connect.Server, svc RunnerServiceHandler) {
+	adapter := runnerServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: runnerServiceRegisterRunnerSpec(), Handler: adapter.registerRunner},
+		connect.Method{Spec: runnerServiceFetchJobSpec(), Handler: adapter.fetchJob},
+		connect.Method{Spec: runnerServiceUpdateJobSpec(), Handler: adapter.updateJob},
+		connect.Method{Spec: runnerServiceAppendLogSpec(), Handler: adapter.appendLog},
+		connect.Method{Spec: runnerServiceHeartbeatSpec(), Handler: adapter.heartbeat},
+		connect.Method{Spec: runnerServiceWatchJobSpec(), Handler: adapter.watchJob},
+		connect.Method{Spec: runnerServiceCompleteJobSpec(), Handler: adapter.completeJob},
+		connect.Method{Spec: runnerServiceResolveActionsSpec(), Handler: adapter.resolveActions},
+		connect.Method{Spec: runnerServiceUploadSummarySpec(), Handler: adapter.uploadSummary},
 	)
-	runnerServiceFetchJobHandler := connect.NewUnaryHandler(
-		RunnerServiceFetchJobProcedure,
-		svc.FetchJob,
-		connect.WithSchema(runnerServiceMethods.ByName("FetchJob")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runnerServiceUpdateJobHandler := connect.NewUnaryHandler(
-		RunnerServiceUpdateJobProcedure,
-		svc.UpdateJob,
-		connect.WithSchema(runnerServiceMethods.ByName("UpdateJob")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runnerServiceAppendLogHandler := connect.NewUnaryHandler(
-		RunnerServiceAppendLogProcedure,
-		svc.AppendLog,
-		connect.WithSchema(runnerServiceMethods.ByName("AppendLog")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runnerServiceHeartbeatHandler := connect.NewUnaryHandler(
-		RunnerServiceHeartbeatProcedure,
-		svc.Heartbeat,
-		connect.WithSchema(runnerServiceMethods.ByName("Heartbeat")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runnerServiceWatchJobHandler := connect.NewServerStreamHandler(
-		RunnerServiceWatchJobProcedure,
-		svc.WatchJob,
-		connect.WithSchema(runnerServiceMethods.ByName("WatchJob")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runnerServiceCompleteJobHandler := connect.NewUnaryHandler(
-		RunnerServiceCompleteJobProcedure,
-		svc.CompleteJob,
-		connect.WithSchema(runnerServiceMethods.ByName("CompleteJob")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runnerServiceResolveActionsHandler := connect.NewUnaryHandler(
-		RunnerServiceResolveActionsProcedure,
-		svc.ResolveActions,
-		connect.WithSchema(runnerServiceMethods.ByName("ResolveActions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	runnerServiceUploadSummaryHandler := connect.NewUnaryHandler(
-		RunnerServiceUploadSummaryProcedure,
-		svc.UploadSummary,
-		connect.WithSchema(runnerServiceMethods.ByName("UploadSummary")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.RunnerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case RunnerServiceRegisterRunnerProcedure:
-			runnerServiceRegisterRunnerHandler.ServeHTTP(w, r)
-		case RunnerServiceFetchJobProcedure:
-			runnerServiceFetchJobHandler.ServeHTTP(w, r)
-		case RunnerServiceUpdateJobProcedure:
-			runnerServiceUpdateJobHandler.ServeHTTP(w, r)
-		case RunnerServiceAppendLogProcedure:
-			runnerServiceAppendLogHandler.ServeHTTP(w, r)
-		case RunnerServiceHeartbeatProcedure:
-			runnerServiceHeartbeatHandler.ServeHTTP(w, r)
-		case RunnerServiceWatchJobProcedure:
-			runnerServiceWatchJobHandler.ServeHTTP(w, r)
-		case RunnerServiceCompleteJobProcedure:
-			runnerServiceCompleteJobHandler.ServeHTTP(w, r)
-		case RunnerServiceResolveActionsProcedure:
-			runnerServiceResolveActionsHandler.ServeHTTP(w, r)
-		case RunnerServiceUploadSummaryProcedure:
-			runnerServiceUploadSummaryHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// RunnerServiceWatchJobServerStream is the server stream for the RunnerService's WatchJob RPC.
+type RunnerServiceWatchJobServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s RunnerServiceWatchJobServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s RunnerServiceWatchJobServerStream) Send(res *ermite.WatchJobResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedRunnerServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedRunnerServiceHandler struct{}
 
-func (UnimplementedRunnerServiceHandler) RegisterRunner(context.Context, *connect.Request[ermite.RegisterRunnerRequest]) (*connect.Response[ermite.RegisterRunnerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.RegisterRunner is not implemented"))
+func (UnimplementedRunnerServiceHandler) RegisterRunner(context.Context, *ermite.RegisterRunnerRequest) (*ermite.RegisterRunnerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunnerService.RegisterRunner is not implemented")
 }
 
-func (UnimplementedRunnerServiceHandler) FetchJob(context.Context, *connect.Request[ermite.FetchJobRequest]) (*connect.Response[ermite.FetchJobResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.FetchJob is not implemented"))
+func (UnimplementedRunnerServiceHandler) FetchJob(context.Context, *ermite.FetchJobRequest) (*ermite.FetchJobResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunnerService.FetchJob is not implemented")
 }
 
-func (UnimplementedRunnerServiceHandler) UpdateJob(context.Context, *connect.Request[ermite.UpdateJobRequest]) (*connect.Response[ermite.UpdateJobResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.UpdateJob is not implemented"))
+func (UnimplementedRunnerServiceHandler) UpdateJob(context.Context, *ermite.UpdateJobRequest) (*ermite.UpdateJobResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunnerService.UpdateJob is not implemented")
 }
 
-func (UnimplementedRunnerServiceHandler) AppendLog(context.Context, *connect.Request[ermite.AppendLogRequest]) (*connect.Response[ermite.AppendLogResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.AppendLog is not implemented"))
+func (UnimplementedRunnerServiceHandler) AppendLog(context.Context, *ermite.AppendLogRequest) (*ermite.AppendLogResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunnerService.AppendLog is not implemented")
 }
 
-func (UnimplementedRunnerServiceHandler) Heartbeat(context.Context, *connect.Request[ermite.HeartbeatRequest]) (*connect.Response[ermite.HeartbeatResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.Heartbeat is not implemented"))
+func (UnimplementedRunnerServiceHandler) Heartbeat(context.Context, *ermite.HeartbeatRequest) (*ermite.HeartbeatResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunnerService.Heartbeat is not implemented")
 }
 
-func (UnimplementedRunnerServiceHandler) WatchJob(context.Context, *connect.Request[ermite.WatchJobRequest], *connect.ServerStream[ermite.WatchJobResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.WatchJob is not implemented"))
+func (UnimplementedRunnerServiceHandler) WatchJob(context.Context, *ermite.WatchJobRequest, RunnerServiceWatchJobServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "ermite.RunnerService.WatchJob is not implemented")
 }
 
-func (UnimplementedRunnerServiceHandler) CompleteJob(context.Context, *connect.Request[ermite.CompleteJobRequest]) (*connect.Response[ermite.CompleteJobResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.CompleteJob is not implemented"))
+func (UnimplementedRunnerServiceHandler) CompleteJob(context.Context, *ermite.CompleteJobRequest) (*ermite.CompleteJobResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunnerService.CompleteJob is not implemented")
 }
 
-func (UnimplementedRunnerServiceHandler) ResolveActions(context.Context, *connect.Request[ermite.ResolveActionsRequest]) (*connect.Response[ermite.ResolveActionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.ResolveActions is not implemented"))
+func (UnimplementedRunnerServiceHandler) ResolveActions(context.Context, *ermite.ResolveActionsRequest) (*ermite.ResolveActionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunnerService.ResolveActions is not implemented")
 }
 
-func (UnimplementedRunnerServiceHandler) UploadSummary(context.Context, *connect.Request[ermite.UploadSummaryRequest]) (*connect.Response[ermite.UploadSummaryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RunnerService.UploadSummary is not implemented"))
+func (UnimplementedRunnerServiceHandler) UploadSummary(context.Context, *ermite.UploadSummaryRequest) (*ermite.UploadSummaryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RunnerService.UploadSummary is not implemented")
+}
+
+type runnerServiceClient struct {
+	client *connect.Client
+}
+
+func (c *runnerServiceClient) RegisterRunner(ctx context.Context, req *ermite.RegisterRunnerRequest) (*ermite.RegisterRunnerResponse, error) {
+	var res ermite.RegisterRunnerResponse
+	if err := c.client.CallUnary(ctx, runnerServiceRegisterRunnerSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) FetchJob(ctx context.Context, req *ermite.FetchJobRequest) (*ermite.FetchJobResponse, error) {
+	var res ermite.FetchJobResponse
+	if err := c.client.CallUnary(ctx, runnerServiceFetchJobSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) UpdateJob(ctx context.Context, req *ermite.UpdateJobRequest) (*ermite.UpdateJobResponse, error) {
+	var res ermite.UpdateJobResponse
+	if err := c.client.CallUnary(ctx, runnerServiceUpdateJobSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) AppendLog(ctx context.Context, req *ermite.AppendLogRequest) (*ermite.AppendLogResponse, error) {
+	var res ermite.AppendLogResponse
+	if err := c.client.CallUnary(ctx, runnerServiceAppendLogSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) Heartbeat(ctx context.Context, req *ermite.HeartbeatRequest) (*ermite.HeartbeatResponse, error) {
+	var res ermite.HeartbeatResponse
+	if err := c.client.CallUnary(ctx, runnerServiceHeartbeatSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) WatchJob(ctx context.Context, req *ermite.WatchJobRequest) (RunnerServiceWatchJobClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, runnerServiceWatchJobSpec(), req)
+	if err != nil {
+		return RunnerServiceWatchJobClientStream{}, err
+	}
+	return RunnerServiceWatchJobClientStream{stream: stream}, nil
+}
+
+func (c *runnerServiceClient) CompleteJob(ctx context.Context, req *ermite.CompleteJobRequest) (*ermite.CompleteJobResponse, error) {
+	var res ermite.CompleteJobResponse
+	if err := c.client.CallUnary(ctx, runnerServiceCompleteJobSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) ResolveActions(ctx context.Context, req *ermite.ResolveActionsRequest) (*ermite.ResolveActionsResponse, error) {
+	var res ermite.ResolveActionsResponse
+	if err := c.client.CallUnary(ctx, runnerServiceResolveActionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) UploadSummary(ctx context.Context, req *ermite.UploadSummaryRequest) (*ermite.UploadSummaryResponse, error) {
+	var res ermite.UploadSummaryResponse
+	if err := c.client.CallUnary(ctx, runnerServiceUploadSummarySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type runnerServiceHandler struct{ svc RunnerServiceHandler }
+
+func (h runnerServiceHandler) registerRunner(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.RegisterRunnerRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RegisterRunner(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) fetchJob(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.FetchJobRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.FetchJob(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) updateJob(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.UpdateJobRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateJob(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) appendLog(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.AppendLogRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AppendLog(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) heartbeat(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.HeartbeatRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Heartbeat(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) watchJob(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.WatchJobRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.WatchJob(ctx, &req, RunnerServiceWatchJobServerStream{stream: stream})
+}
+
+func (h runnerServiceHandler) completeJob(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CompleteJobRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CompleteJob(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) resolveActions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ResolveActionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ResolveActions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) uploadSummary(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.UploadSummaryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UploadSummary(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

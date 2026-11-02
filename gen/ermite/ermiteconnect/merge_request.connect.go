@@ -8,75 +8,167 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// MergeRequestServiceName is the fully-qualified name of the MergeRequestService service.
 	MergeRequestServiceName = "ermite.MergeRequestService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// MergeRequestServiceCreateMergeRequestProcedure is the fully-qualified name of the
-	// MergeRequestService's CreateMergeRequest RPC.
+	// MergeRequestServiceCreateMergeRequestProcedure is the procedure name of the MergeRequestService's
+	// CreateMergeRequest RPC.
 	MergeRequestServiceCreateMergeRequestProcedure = "/ermite.MergeRequestService/CreateMergeRequest"
-	// MergeRequestServiceEditMergeRequestProcedure is the fully-qualified name of the
-	// MergeRequestService's EditMergeRequest RPC.
+	// MergeRequestServiceEditMergeRequestProcedure is the procedure name of the MergeRequestService's
+	// EditMergeRequest RPC.
 	MergeRequestServiceEditMergeRequestProcedure = "/ermite.MergeRequestService/EditMergeRequest"
-	// MergeRequestServiceListMergeRequestsProcedure is the fully-qualified name of the
-	// MergeRequestService's ListMergeRequests RPC.
+	// MergeRequestServiceListMergeRequestsProcedure is the procedure name of the MergeRequestService's
+	// ListMergeRequests RPC.
 	MergeRequestServiceListMergeRequestsProcedure = "/ermite.MergeRequestService/ListMergeRequests"
-	// MergeRequestServiceGetMergeRequestProcedure is the fully-qualified name of the
-	// MergeRequestService's GetMergeRequest RPC.
+	// MergeRequestServiceGetMergeRequestProcedure is the procedure name of the MergeRequestService's
+	// GetMergeRequest RPC.
 	MergeRequestServiceGetMergeRequestProcedure = "/ermite.MergeRequestService/GetMergeRequest"
-	// MergeRequestServiceAddCommentProcedure is the fully-qualified name of the MergeRequestService's
+	// MergeRequestServiceAddCommentProcedure is the procedure name of the MergeRequestService's
 	// AddComment RPC.
 	MergeRequestServiceAddCommentProcedure = "/ermite.MergeRequestService/AddComment"
-	// MergeRequestServiceEditCommentProcedure is the fully-qualified name of the MergeRequestService's
+	// MergeRequestServiceEditCommentProcedure is the procedure name of the MergeRequestService's
 	// EditComment RPC.
 	MergeRequestServiceEditCommentProcedure = "/ermite.MergeRequestService/EditComment"
-	// MergeRequestServiceDeleteCommentProcedure is the fully-qualified name of the
-	// MergeRequestService's DeleteComment RPC.
+	// MergeRequestServiceDeleteCommentProcedure is the procedure name of the MergeRequestService's
+	// DeleteComment RPC.
 	MergeRequestServiceDeleteCommentProcedure = "/ermite.MergeRequestService/DeleteComment"
-	// MergeRequestServiceResolveCommentProcedure is the fully-qualified name of the
-	// MergeRequestService's ResolveComment RPC.
+	// MergeRequestServiceResolveCommentProcedure is the procedure name of the MergeRequestService's
+	// ResolveComment RPC.
 	MergeRequestServiceResolveCommentProcedure = "/ermite.MergeRequestService/ResolveComment"
-	// MergeRequestServiceCloseMergeRequestProcedure is the fully-qualified name of the
-	// MergeRequestService's CloseMergeRequest RPC.
+	// MergeRequestServiceCloseMergeRequestProcedure is the procedure name of the MergeRequestService's
+	// CloseMergeRequest RPC.
 	MergeRequestServiceCloseMergeRequestProcedure = "/ermite.MergeRequestService/CloseMergeRequest"
-	// MergeRequestServiceMarkReadyProcedure is the fully-qualified name of the MergeRequestService's
+	// MergeRequestServiceMarkReadyProcedure is the procedure name of the MergeRequestService's
 	// MarkReady RPC.
 	MergeRequestServiceMarkReadyProcedure = "/ermite.MergeRequestService/MarkReady"
-	// MergeRequestServiceMergeMergeRequestProcedure is the fully-qualified name of the
-	// MergeRequestService's MergeMergeRequest RPC.
+	// MergeRequestServiceMergeMergeRequestProcedure is the procedure name of the MergeRequestService's
+	// MergeMergeRequest RPC.
 	MergeRequestServiceMergeMergeRequestProcedure = "/ermite.MergeRequestService/MergeMergeRequest"
-	// MergeRequestServiceEnableAutoMergeProcedure is the fully-qualified name of the
-	// MergeRequestService's EnableAutoMerge RPC.
+	// MergeRequestServiceEnableAutoMergeProcedure is the procedure name of the MergeRequestService's
+	// EnableAutoMerge RPC.
 	MergeRequestServiceEnableAutoMergeProcedure = "/ermite.MergeRequestService/EnableAutoMerge"
-	// MergeRequestServiceCancelAutoMergeProcedure is the fully-qualified name of the
-	// MergeRequestService's CancelAutoMerge RPC.
+	// MergeRequestServiceCancelAutoMergeProcedure is the procedure name of the MergeRequestService's
+	// CancelAutoMerge RPC.
 	MergeRequestServiceCancelAutoMergeProcedure = "/ermite.MergeRequestService/CancelAutoMerge"
-	// MergeRequestServiceMarkReadProcedure is the fully-qualified name of the MergeRequestService's
-	// MarkRead RPC.
+	// MergeRequestServiceMarkReadProcedure is the procedure name of the MergeRequestService's MarkRead
+	// RPC.
 	MergeRequestServiceMarkReadProcedure = "/ermite.MergeRequestService/MarkRead"
+)
+
+var (
+	mergeRequestServiceCreateMergeRequestSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("CreateMergeRequest"),
+			Procedure:  MergeRequestServiceCreateMergeRequestProcedure,
+		}
+	})
+	mergeRequestServiceEditMergeRequestSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("EditMergeRequest"),
+			Procedure:  MergeRequestServiceEditMergeRequestProcedure,
+		}
+	})
+	mergeRequestServiceListMergeRequestsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("ListMergeRequests"),
+			Procedure:  MergeRequestServiceListMergeRequestsProcedure,
+		}
+	})
+	mergeRequestServiceGetMergeRequestSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("GetMergeRequest"),
+			Procedure:  MergeRequestServiceGetMergeRequestProcedure,
+		}
+	})
+	mergeRequestServiceAddCommentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("AddComment"),
+			Procedure:  MergeRequestServiceAddCommentProcedure,
+		}
+	})
+	mergeRequestServiceEditCommentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("EditComment"),
+			Procedure:  MergeRequestServiceEditCommentProcedure,
+		}
+	})
+	mergeRequestServiceDeleteCommentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("DeleteComment"),
+			Procedure:  MergeRequestServiceDeleteCommentProcedure,
+		}
+	})
+	mergeRequestServiceResolveCommentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("ResolveComment"),
+			Procedure:  MergeRequestServiceResolveCommentProcedure,
+		}
+	})
+	mergeRequestServiceCloseMergeRequestSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("CloseMergeRequest"),
+			Procedure:  MergeRequestServiceCloseMergeRequestProcedure,
+		}
+	})
+	mergeRequestServiceMarkReadySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("MarkReady"),
+			Procedure:  MergeRequestServiceMarkReadyProcedure,
+		}
+	})
+	mergeRequestServiceMergeMergeRequestSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("MergeMergeRequest"),
+			Procedure:  MergeRequestServiceMergeMergeRequestProcedure,
+		}
+	})
+	mergeRequestServiceEnableAutoMergeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("EnableAutoMerge"),
+			Procedure:  MergeRequestServiceEnableAutoMergeProcedure,
+		}
+	})
+	mergeRequestServiceCancelAutoMergeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("CancelAutoMerge"),
+			Procedure:  MergeRequestServiceCancelAutoMergeProcedure,
+		}
+	})
+	mergeRequestServiceMarkReadSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods().ByName("MarkRead"),
+			Procedure:  MergeRequestServiceMarkReadProcedure,
+		}
+	})
 )
 
 // MergeRequestServiceClient is a client for the ermite.MergeRequestService service.
@@ -85,24 +177,24 @@ type MergeRequestServiceClient interface {
 	// with invalid_argument if a text rule is broken, if a branch does not exist
 	// or if source and target are the same branch, and with already_exists if an
 	// open merge request already has the same source and target.
-	CreateMergeRequest(context.Context, *connect.Request[ermite.CreateMergeRequestRequest]) (*connect.Response[ermite.CreateMergeRequestResponse], error)
+	CreateMergeRequest(context.Context, *ermite.CreateMergeRequestRequest) (*ermite.CreateMergeRequestResponse, error)
 	// EditMergeRequest updates only present fields. Needs the mr:write scope.
 	// Title and description follow the CreateMergeRequest text rules. Neither
 	// field present gives invalid_argument. Merged requests give
 	// failed_precondition. Open and closed requests can be edited.
 	// Identical values succeed without changing updated_at or emitting events.
-	EditMergeRequest(context.Context, *connect.Request[ermite.EditMergeRequestRequest]) (*connect.Response[ermite.EditMergeRequestResponse], error)
+	EditMergeRequest(context.Context, *ermite.EditMergeRequestRequest) (*ermite.EditMergeRequestResponse, error)
 	// ListMergeRequests lists the merge requests of a repository, highest
 	// number (newest) first, optionally restricted to one state. The listed
 	// merge requests carry no diff or comments; head_id is set. Fails with
 	// not_found if the repository does not exist or is not readable.
-	ListMergeRequests(context.Context, *connect.Request[ermite.ListMergeRequestsRequest]) (*connect.Response[ermite.ListMergeRequestsResponse], error)
+	ListMergeRequests(context.Context, *ermite.ListMergeRequestsRequest) (*ermite.ListMergeRequestsResponse, error)
 	// GetMergeRequest returns one merge request with its commits, its diff and
 	// its comments. The diff compares the target with the head (what the merge
 	// would bring: "target...head"), or, with since_last_read, the head the
 	// caller last marked read with the current head. Fails with not_found if
 	// the repository or the number is unknown.
-	GetMergeRequest(context.Context, *connect.Request[ermite.GetMergeRequestRequest]) (*connect.Response[ermite.GetMergeRequestResponse], error)
+	GetMergeRequest(context.Context, *ermite.GetMergeRequestRequest) (*ermite.GetMergeRequestResponse, error)
 	// AddComment adds a general comment, a comment on a line or a range of
 	// lines of the diff, or a reply to a root comment. Needs the mr:write
 	// scope; setting a verdict also needs the mr:review scope (permission_denied
@@ -113,7 +205,7 @@ type MergeRequestServiceClient interface {
 	// line, start_line, side or verdict, or if a verdict is set on a reply; and
 	// with failed_precondition if the merge request is not open. A comment with
 	// VERDICT_APPROVE is created resolved.
-	AddComment(context.Context, *connect.Request[ermite.AddCommentRequest]) (*connect.Response[ermite.AddCommentResponse], error)
+	AddComment(context.Context, *ermite.AddCommentRequest) (*ermite.AddCommentResponse, error)
 	// EditComment replaces the text of a comment. Needs the mr:write scope, and
 	// only the author of the comment can edit it (permission_denied
 	// otherwise). Fails with invalid_argument if the text breaks a rule (it may
@@ -121,30 +213,30 @@ type MergeRequestServiceClient interface {
 	// is unknown, and with failed_precondition if the merge request is not open
 	// or the comment was deleted. Sending the current text succeeds and changes
 	// nothing.
-	EditComment(context.Context, *connect.Request[ermite.EditCommentRequest]) (*connect.Response[ermite.EditCommentResponse], error)
+	EditComment(context.Context, *ermite.EditCommentRequest) (*ermite.EditCommentResponse, error)
 	// DeleteComment deletes a comment: its text is emptied and deleted is set,
 	// while its id, anchor, replies and verdict remain. Needs the mr:write
 	// scope, and only the author of the comment can delete it
 	// (permission_denied otherwise). Fails with not_found if the comment is
 	// unknown and with failed_precondition if the merge request is not open.
 	// Deleting a comment already deleted succeeds and changes nothing.
-	DeleteComment(context.Context, *connect.Request[ermite.DeleteCommentRequest]) (*connect.Response[ermite.DeleteCommentResponse], error)
+	DeleteComment(context.Context, *ermite.DeleteCommentRequest) (*ermite.DeleteCommentResponse, error)
 	// ResolveComment marks a thread resolved or unresolved. Needs the mr:write
 	// scope. Resolution belongs to the root comment: on a reply it fails with
 	// invalid_argument. Fails with not_found if the comment is unknown and with
 	// failed_precondition if the merge request is not open. Setting the state
 	// the comment already has succeeds and changes nothing.
-	ResolveComment(context.Context, *connect.Request[ermite.ResolveCommentRequest]) (*connect.Response[ermite.ResolveCommentResponse], error)
+	ResolveComment(context.Context, *ermite.ResolveCommentRequest) (*ermite.ResolveCommentResponse, error)
 	// CloseMergeRequest closes an open merge request without merging it. Needs
 	// the mr:write scope. Fails with failed_precondition if the merge request
 	// is not open. A closed merge request cannot be reopened: open a new one.
-	CloseMergeRequest(context.Context, *connect.Request[ermite.CloseMergeRequestRequest]) (*connect.Response[ermite.CloseMergeRequestResponse], error)
+	CloseMergeRequest(context.Context, *ermite.CloseMergeRequestRequest) (*ermite.CloseMergeRequestResponse, error)
 	// MarkReady removes the draft prefix ("WIP:" or "[WIP]") from the title so
 	// the merge request can be merged. Needs the mr:write scope. Fails with
 	// failed_precondition if the merge request is not open or is not a draft.
 	// Publishes no event: there is none for a change of title. Needs the
 	// "merge_requests.ready" feature.
-	MarkReady(context.Context, *connect.Request[ermite.MarkReadyRequest]) (*connect.Response[ermite.MarkReadyResponse], error)
+	MarkReady(context.Context, *ermite.MarkReadyRequest) (*ermite.MarkReadyResponse, error)
 	// MergeMergeRequest merges an open merge request. Needs the mr:merge scope,
 	// which merges only when the checks on the head allow it: none failed and
 	// none queued or running (a head with no checks may be merged; success,
@@ -163,7 +255,7 @@ type MergeRequestServiceClient interface {
 	// repository run one at a time. Repeating a call that succeeded fails with
 	// failed_precondition (not open). On success the server publishes
 	// MergeRequestMerged then Pushed for the target branch.
-	MergeMergeRequest(context.Context, *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error)
+	MergeMergeRequest(context.Context, *ermite.MergeMergeRequestRequest) (*ermite.MergeMergeRequestResponse, error)
 	// EnableAutoMerge asks the server to merge an open merge request by itself
 	// once at least one check passed on its head, every run created on that head
 	// is complete, and no check failed. It does not take ignore_checks. Needs
@@ -181,203 +273,23 @@ type MergeRequestServiceClient interface {
 	// RepoSettings, or the server has no CI. Enabling again replaces the mode.
 	// Publishes MergeRequestAutoMergeEnabled. Needs the
 	// "merge_requests.auto_merge" feature.
-	EnableAutoMerge(context.Context, *connect.Request[ermite.EnableAutoMergeRequest]) (*connect.Response[ermite.EnableAutoMergeResponse], error)
+	EnableAutoMerge(context.Context, *ermite.EnableAutoMergeRequest) (*ermite.EnableAutoMergeResponse, error)
 	// CancelAutoMerge cancels the pending auto-merge of an open merge request.
 	// Needs the mr:merge scope and, for a token limited to branches, write access
 	// to the target branch. Fails with failed_precondition if auto-merge is not
 	// enabled. Publishes MergeRequestAutoMergeCancelled.
-	CancelAutoMerge(context.Context, *connect.Request[ermite.CancelAutoMergeRequest]) (*connect.Response[ermite.CancelAutoMergeResponse], error)
+	CancelAutoMerge(context.Context, *ermite.CancelAutoMergeRequest) (*ermite.CancelAutoMergeResponse, error)
 	// MarkRead records the head the caller has reviewed, for the since_last_read
 	// option of GetMergeRequest. There is one read position per merge request,
 	// the reviewer's. Needs the mr:write scope. Marking a commit that does not
 	// exist in the repository is invalid_argument.
-	MarkRead(context.Context, *connect.Request[ermite.MarkReadRequest]) (*connect.Response[ermite.MarkReadResponse], error)
+	MarkRead(context.Context, *ermite.MarkReadRequest) (*ermite.MarkReadResponse, error)
 }
 
-// NewMergeRequestServiceClient constructs a client for the ermite.MergeRequestService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewMergeRequestServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) MergeRequestServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	mergeRequestServiceMethods := ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods()
-	return &mergeRequestServiceClient{
-		createMergeRequest: connect.NewClient[ermite.CreateMergeRequestRequest, ermite.CreateMergeRequestResponse](
-			httpClient,
-			baseURL+MergeRequestServiceCreateMergeRequestProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("CreateMergeRequest")),
-			connect.WithClientOptions(opts...),
-		),
-		editMergeRequest: connect.NewClient[ermite.EditMergeRequestRequest, ermite.EditMergeRequestResponse](
-			httpClient,
-			baseURL+MergeRequestServiceEditMergeRequestProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("EditMergeRequest")),
-			connect.WithClientOptions(opts...),
-		),
-		listMergeRequests: connect.NewClient[ermite.ListMergeRequestsRequest, ermite.ListMergeRequestsResponse](
-			httpClient,
-			baseURL+MergeRequestServiceListMergeRequestsProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("ListMergeRequests")),
-			connect.WithClientOptions(opts...),
-		),
-		getMergeRequest: connect.NewClient[ermite.GetMergeRequestRequest, ermite.GetMergeRequestResponse](
-			httpClient,
-			baseURL+MergeRequestServiceGetMergeRequestProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("GetMergeRequest")),
-			connect.WithClientOptions(opts...),
-		),
-		addComment: connect.NewClient[ermite.AddCommentRequest, ermite.AddCommentResponse](
-			httpClient,
-			baseURL+MergeRequestServiceAddCommentProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("AddComment")),
-			connect.WithClientOptions(opts...),
-		),
-		editComment: connect.NewClient[ermite.EditCommentRequest, ermite.EditCommentResponse](
-			httpClient,
-			baseURL+MergeRequestServiceEditCommentProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("EditComment")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteComment: connect.NewClient[ermite.DeleteCommentRequest, ermite.DeleteCommentResponse](
-			httpClient,
-			baseURL+MergeRequestServiceDeleteCommentProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("DeleteComment")),
-			connect.WithClientOptions(opts...),
-		),
-		resolveComment: connect.NewClient[ermite.ResolveCommentRequest, ermite.ResolveCommentResponse](
-			httpClient,
-			baseURL+MergeRequestServiceResolveCommentProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("ResolveComment")),
-			connect.WithClientOptions(opts...),
-		),
-		closeMergeRequest: connect.NewClient[ermite.CloseMergeRequestRequest, ermite.CloseMergeRequestResponse](
-			httpClient,
-			baseURL+MergeRequestServiceCloseMergeRequestProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("CloseMergeRequest")),
-			connect.WithClientOptions(opts...),
-		),
-		markReady: connect.NewClient[ermite.MarkReadyRequest, ermite.MarkReadyResponse](
-			httpClient,
-			baseURL+MergeRequestServiceMarkReadyProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("MarkReady")),
-			connect.WithClientOptions(opts...),
-		),
-		mergeMergeRequest: connect.NewClient[ermite.MergeMergeRequestRequest, ermite.MergeMergeRequestResponse](
-			httpClient,
-			baseURL+MergeRequestServiceMergeMergeRequestProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("MergeMergeRequest")),
-			connect.WithClientOptions(opts...),
-		),
-		enableAutoMerge: connect.NewClient[ermite.EnableAutoMergeRequest, ermite.EnableAutoMergeResponse](
-			httpClient,
-			baseURL+MergeRequestServiceEnableAutoMergeProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("EnableAutoMerge")),
-			connect.WithClientOptions(opts...),
-		),
-		cancelAutoMerge: connect.NewClient[ermite.CancelAutoMergeRequest, ermite.CancelAutoMergeResponse](
-			httpClient,
-			baseURL+MergeRequestServiceCancelAutoMergeProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("CancelAutoMerge")),
-			connect.WithClientOptions(opts...),
-		),
-		markRead: connect.NewClient[ermite.MarkReadRequest, ermite.MarkReadResponse](
-			httpClient,
-			baseURL+MergeRequestServiceMarkReadProcedure,
-			connect.WithSchema(mergeRequestServiceMethods.ByName("MarkRead")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// mergeRequestServiceClient implements MergeRequestServiceClient.
-type mergeRequestServiceClient struct {
-	createMergeRequest *connect.Client[ermite.CreateMergeRequestRequest, ermite.CreateMergeRequestResponse]
-	editMergeRequest   *connect.Client[ermite.EditMergeRequestRequest, ermite.EditMergeRequestResponse]
-	listMergeRequests  *connect.Client[ermite.ListMergeRequestsRequest, ermite.ListMergeRequestsResponse]
-	getMergeRequest    *connect.Client[ermite.GetMergeRequestRequest, ermite.GetMergeRequestResponse]
-	addComment         *connect.Client[ermite.AddCommentRequest, ermite.AddCommentResponse]
-	editComment        *connect.Client[ermite.EditCommentRequest, ermite.EditCommentResponse]
-	deleteComment      *connect.Client[ermite.DeleteCommentRequest, ermite.DeleteCommentResponse]
-	resolveComment     *connect.Client[ermite.ResolveCommentRequest, ermite.ResolveCommentResponse]
-	closeMergeRequest  *connect.Client[ermite.CloseMergeRequestRequest, ermite.CloseMergeRequestResponse]
-	markReady          *connect.Client[ermite.MarkReadyRequest, ermite.MarkReadyResponse]
-	mergeMergeRequest  *connect.Client[ermite.MergeMergeRequestRequest, ermite.MergeMergeRequestResponse]
-	enableAutoMerge    *connect.Client[ermite.EnableAutoMergeRequest, ermite.EnableAutoMergeResponse]
-	cancelAutoMerge    *connect.Client[ermite.CancelAutoMergeRequest, ermite.CancelAutoMergeResponse]
-	markRead           *connect.Client[ermite.MarkReadRequest, ermite.MarkReadResponse]
-}
-
-// CreateMergeRequest calls ermite.MergeRequestService.CreateMergeRequest.
-func (c *mergeRequestServiceClient) CreateMergeRequest(ctx context.Context, req *connect.Request[ermite.CreateMergeRequestRequest]) (*connect.Response[ermite.CreateMergeRequestResponse], error) {
-	return c.createMergeRequest.CallUnary(ctx, req)
-}
-
-// EditMergeRequest calls ermite.MergeRequestService.EditMergeRequest.
-func (c *mergeRequestServiceClient) EditMergeRequest(ctx context.Context, req *connect.Request[ermite.EditMergeRequestRequest]) (*connect.Response[ermite.EditMergeRequestResponse], error) {
-	return c.editMergeRequest.CallUnary(ctx, req)
-}
-
-// ListMergeRequests calls ermite.MergeRequestService.ListMergeRequests.
-func (c *mergeRequestServiceClient) ListMergeRequests(ctx context.Context, req *connect.Request[ermite.ListMergeRequestsRequest]) (*connect.Response[ermite.ListMergeRequestsResponse], error) {
-	return c.listMergeRequests.CallUnary(ctx, req)
-}
-
-// GetMergeRequest calls ermite.MergeRequestService.GetMergeRequest.
-func (c *mergeRequestServiceClient) GetMergeRequest(ctx context.Context, req *connect.Request[ermite.GetMergeRequestRequest]) (*connect.Response[ermite.GetMergeRequestResponse], error) {
-	return c.getMergeRequest.CallUnary(ctx, req)
-}
-
-// AddComment calls ermite.MergeRequestService.AddComment.
-func (c *mergeRequestServiceClient) AddComment(ctx context.Context, req *connect.Request[ermite.AddCommentRequest]) (*connect.Response[ermite.AddCommentResponse], error) {
-	return c.addComment.CallUnary(ctx, req)
-}
-
-// EditComment calls ermite.MergeRequestService.EditComment.
-func (c *mergeRequestServiceClient) EditComment(ctx context.Context, req *connect.Request[ermite.EditCommentRequest]) (*connect.Response[ermite.EditCommentResponse], error) {
-	return c.editComment.CallUnary(ctx, req)
-}
-
-// DeleteComment calls ermite.MergeRequestService.DeleteComment.
-func (c *mergeRequestServiceClient) DeleteComment(ctx context.Context, req *connect.Request[ermite.DeleteCommentRequest]) (*connect.Response[ermite.DeleteCommentResponse], error) {
-	return c.deleteComment.CallUnary(ctx, req)
-}
-
-// ResolveComment calls ermite.MergeRequestService.ResolveComment.
-func (c *mergeRequestServiceClient) ResolveComment(ctx context.Context, req *connect.Request[ermite.ResolveCommentRequest]) (*connect.Response[ermite.ResolveCommentResponse], error) {
-	return c.resolveComment.CallUnary(ctx, req)
-}
-
-// CloseMergeRequest calls ermite.MergeRequestService.CloseMergeRequest.
-func (c *mergeRequestServiceClient) CloseMergeRequest(ctx context.Context, req *connect.Request[ermite.CloseMergeRequestRequest]) (*connect.Response[ermite.CloseMergeRequestResponse], error) {
-	return c.closeMergeRequest.CallUnary(ctx, req)
-}
-
-// MarkReady calls ermite.MergeRequestService.MarkReady.
-func (c *mergeRequestServiceClient) MarkReady(ctx context.Context, req *connect.Request[ermite.MarkReadyRequest]) (*connect.Response[ermite.MarkReadyResponse], error) {
-	return c.markReady.CallUnary(ctx, req)
-}
-
-// MergeMergeRequest calls ermite.MergeRequestService.MergeMergeRequest.
-func (c *mergeRequestServiceClient) MergeMergeRequest(ctx context.Context, req *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error) {
-	return c.mergeMergeRequest.CallUnary(ctx, req)
-}
-
-// EnableAutoMerge calls ermite.MergeRequestService.EnableAutoMerge.
-func (c *mergeRequestServiceClient) EnableAutoMerge(ctx context.Context, req *connect.Request[ermite.EnableAutoMergeRequest]) (*connect.Response[ermite.EnableAutoMergeResponse], error) {
-	return c.enableAutoMerge.CallUnary(ctx, req)
-}
-
-// CancelAutoMerge calls ermite.MergeRequestService.CancelAutoMerge.
-func (c *mergeRequestServiceClient) CancelAutoMerge(ctx context.Context, req *connect.Request[ermite.CancelAutoMergeRequest]) (*connect.Response[ermite.CancelAutoMergeResponse], error) {
-	return c.cancelAutoMerge.CallUnary(ctx, req)
-}
-
-// MarkRead calls ermite.MergeRequestService.MarkRead.
-func (c *mergeRequestServiceClient) MarkRead(ctx context.Context, req *connect.Request[ermite.MarkReadRequest]) (*connect.Response[ermite.MarkReadResponse], error) {
-	return c.markRead.CallUnary(ctx, req)
+// NewMergeRequestServiceClient constructs a client for the ermite.MergeRequestService service.
+// Multiple service clients may share a single connect.Client.
+func NewMergeRequestServiceClient(client *connect.Client) MergeRequestServiceClient {
+	return &mergeRequestServiceClient{client: client}
 }
 
 // MergeRequestServiceHandler is an implementation of the ermite.MergeRequestService service.
@@ -386,24 +298,24 @@ type MergeRequestServiceHandler interface {
 	// with invalid_argument if a text rule is broken, if a branch does not exist
 	// or if source and target are the same branch, and with already_exists if an
 	// open merge request already has the same source and target.
-	CreateMergeRequest(context.Context, *connect.Request[ermite.CreateMergeRequestRequest]) (*connect.Response[ermite.CreateMergeRequestResponse], error)
+	CreateMergeRequest(context.Context, *ermite.CreateMergeRequestRequest) (*ermite.CreateMergeRequestResponse, error)
 	// EditMergeRequest updates only present fields. Needs the mr:write scope.
 	// Title and description follow the CreateMergeRequest text rules. Neither
 	// field present gives invalid_argument. Merged requests give
 	// failed_precondition. Open and closed requests can be edited.
 	// Identical values succeed without changing updated_at or emitting events.
-	EditMergeRequest(context.Context, *connect.Request[ermite.EditMergeRequestRequest]) (*connect.Response[ermite.EditMergeRequestResponse], error)
+	EditMergeRequest(context.Context, *ermite.EditMergeRequestRequest) (*ermite.EditMergeRequestResponse, error)
 	// ListMergeRequests lists the merge requests of a repository, highest
 	// number (newest) first, optionally restricted to one state. The listed
 	// merge requests carry no diff or comments; head_id is set. Fails with
 	// not_found if the repository does not exist or is not readable.
-	ListMergeRequests(context.Context, *connect.Request[ermite.ListMergeRequestsRequest]) (*connect.Response[ermite.ListMergeRequestsResponse], error)
+	ListMergeRequests(context.Context, *ermite.ListMergeRequestsRequest) (*ermite.ListMergeRequestsResponse, error)
 	// GetMergeRequest returns one merge request with its commits, its diff and
 	// its comments. The diff compares the target with the head (what the merge
 	// would bring: "target...head"), or, with since_last_read, the head the
 	// caller last marked read with the current head. Fails with not_found if
 	// the repository or the number is unknown.
-	GetMergeRequest(context.Context, *connect.Request[ermite.GetMergeRequestRequest]) (*connect.Response[ermite.GetMergeRequestResponse], error)
+	GetMergeRequest(context.Context, *ermite.GetMergeRequestRequest) (*ermite.GetMergeRequestResponse, error)
 	// AddComment adds a general comment, a comment on a line or a range of
 	// lines of the diff, or a reply to a root comment. Needs the mr:write
 	// scope; setting a verdict also needs the mr:review scope (permission_denied
@@ -414,7 +326,7 @@ type MergeRequestServiceHandler interface {
 	// line, start_line, side or verdict, or if a verdict is set on a reply; and
 	// with failed_precondition if the merge request is not open. A comment with
 	// VERDICT_APPROVE is created resolved.
-	AddComment(context.Context, *connect.Request[ermite.AddCommentRequest]) (*connect.Response[ermite.AddCommentResponse], error)
+	AddComment(context.Context, *ermite.AddCommentRequest) (*ermite.AddCommentResponse, error)
 	// EditComment replaces the text of a comment. Needs the mr:write scope, and
 	// only the author of the comment can edit it (permission_denied
 	// otherwise). Fails with invalid_argument if the text breaks a rule (it may
@@ -422,30 +334,30 @@ type MergeRequestServiceHandler interface {
 	// is unknown, and with failed_precondition if the merge request is not open
 	// or the comment was deleted. Sending the current text succeeds and changes
 	// nothing.
-	EditComment(context.Context, *connect.Request[ermite.EditCommentRequest]) (*connect.Response[ermite.EditCommentResponse], error)
+	EditComment(context.Context, *ermite.EditCommentRequest) (*ermite.EditCommentResponse, error)
 	// DeleteComment deletes a comment: its text is emptied and deleted is set,
 	// while its id, anchor, replies and verdict remain. Needs the mr:write
 	// scope, and only the author of the comment can delete it
 	// (permission_denied otherwise). Fails with not_found if the comment is
 	// unknown and with failed_precondition if the merge request is not open.
 	// Deleting a comment already deleted succeeds and changes nothing.
-	DeleteComment(context.Context, *connect.Request[ermite.DeleteCommentRequest]) (*connect.Response[ermite.DeleteCommentResponse], error)
+	DeleteComment(context.Context, *ermite.DeleteCommentRequest) (*ermite.DeleteCommentResponse, error)
 	// ResolveComment marks a thread resolved or unresolved. Needs the mr:write
 	// scope. Resolution belongs to the root comment: on a reply it fails with
 	// invalid_argument. Fails with not_found if the comment is unknown and with
 	// failed_precondition if the merge request is not open. Setting the state
 	// the comment already has succeeds and changes nothing.
-	ResolveComment(context.Context, *connect.Request[ermite.ResolveCommentRequest]) (*connect.Response[ermite.ResolveCommentResponse], error)
+	ResolveComment(context.Context, *ermite.ResolveCommentRequest) (*ermite.ResolveCommentResponse, error)
 	// CloseMergeRequest closes an open merge request without merging it. Needs
 	// the mr:write scope. Fails with failed_precondition if the merge request
 	// is not open. A closed merge request cannot be reopened: open a new one.
-	CloseMergeRequest(context.Context, *connect.Request[ermite.CloseMergeRequestRequest]) (*connect.Response[ermite.CloseMergeRequestResponse], error)
+	CloseMergeRequest(context.Context, *ermite.CloseMergeRequestRequest) (*ermite.CloseMergeRequestResponse, error)
 	// MarkReady removes the draft prefix ("WIP:" or "[WIP]") from the title so
 	// the merge request can be merged. Needs the mr:write scope. Fails with
 	// failed_precondition if the merge request is not open or is not a draft.
 	// Publishes no event: there is none for a change of title. Needs the
 	// "merge_requests.ready" feature.
-	MarkReady(context.Context, *connect.Request[ermite.MarkReadyRequest]) (*connect.Response[ermite.MarkReadyResponse], error)
+	MarkReady(context.Context, *ermite.MarkReadyRequest) (*ermite.MarkReadyResponse, error)
 	// MergeMergeRequest merges an open merge request. Needs the mr:merge scope,
 	// which merges only when the checks on the head allow it: none failed and
 	// none queued or running (a head with no checks may be merged; success,
@@ -464,7 +376,7 @@ type MergeRequestServiceHandler interface {
 	// repository run one at a time. Repeating a call that succeeded fails with
 	// failed_precondition (not open). On success the server publishes
 	// MergeRequestMerged then Pushed for the target branch.
-	MergeMergeRequest(context.Context, *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error)
+	MergeMergeRequest(context.Context, *ermite.MergeMergeRequestRequest) (*ermite.MergeMergeRequestResponse, error)
 	// EnableAutoMerge asks the server to merge an open merge request by itself
 	// once at least one check passed on its head, every run created on that head
 	// is complete, and no check failed. It does not take ignore_checks. Needs
@@ -482,201 +394,382 @@ type MergeRequestServiceHandler interface {
 	// RepoSettings, or the server has no CI. Enabling again replaces the mode.
 	// Publishes MergeRequestAutoMergeEnabled. Needs the
 	// "merge_requests.auto_merge" feature.
-	EnableAutoMerge(context.Context, *connect.Request[ermite.EnableAutoMergeRequest]) (*connect.Response[ermite.EnableAutoMergeResponse], error)
+	EnableAutoMerge(context.Context, *ermite.EnableAutoMergeRequest) (*ermite.EnableAutoMergeResponse, error)
 	// CancelAutoMerge cancels the pending auto-merge of an open merge request.
 	// Needs the mr:merge scope and, for a token limited to branches, write access
 	// to the target branch. Fails with failed_precondition if auto-merge is not
 	// enabled. Publishes MergeRequestAutoMergeCancelled.
-	CancelAutoMerge(context.Context, *connect.Request[ermite.CancelAutoMergeRequest]) (*connect.Response[ermite.CancelAutoMergeResponse], error)
+	CancelAutoMerge(context.Context, *ermite.CancelAutoMergeRequest) (*ermite.CancelAutoMergeResponse, error)
 	// MarkRead records the head the caller has reviewed, for the since_last_read
 	// option of GetMergeRequest. There is one read position per merge request,
 	// the reviewer's. Needs the mr:write scope. Marking a commit that does not
 	// exist in the repository is invalid_argument.
-	MarkRead(context.Context, *connect.Request[ermite.MarkReadRequest]) (*connect.Response[ermite.MarkReadResponse], error)
+	MarkRead(context.Context, *ermite.MarkReadRequest) (*ermite.MarkReadResponse, error)
 }
 
-// NewMergeRequestServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewMergeRequestServiceHandler(svc MergeRequestServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	mergeRequestServiceMethods := ermite.File_ermite_merge_request_proto.Services().ByName("MergeRequestService").Methods()
-	mergeRequestServiceCreateMergeRequestHandler := connect.NewUnaryHandler(
-		MergeRequestServiceCreateMergeRequestProcedure,
-		svc.CreateMergeRequest,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("CreateMergeRequest")),
-		connect.WithHandlerOptions(opts...),
+// RegisterMergeRequestServiceHandler registers svc as the ermite.MergeRequestService implementation
+// on server.
+func RegisterMergeRequestServiceHandler(server *connect.Server, svc MergeRequestServiceHandler) {
+	adapter := mergeRequestServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: mergeRequestServiceCreateMergeRequestSpec(), Handler: adapter.createMergeRequest},
+		connect.Method{Spec: mergeRequestServiceEditMergeRequestSpec(), Handler: adapter.editMergeRequest},
+		connect.Method{Spec: mergeRequestServiceListMergeRequestsSpec(), Handler: adapter.listMergeRequests},
+		connect.Method{Spec: mergeRequestServiceGetMergeRequestSpec(), Handler: adapter.getMergeRequest},
+		connect.Method{Spec: mergeRequestServiceAddCommentSpec(), Handler: adapter.addComment},
+		connect.Method{Spec: mergeRequestServiceEditCommentSpec(), Handler: adapter.editComment},
+		connect.Method{Spec: mergeRequestServiceDeleteCommentSpec(), Handler: adapter.deleteComment},
+		connect.Method{Spec: mergeRequestServiceResolveCommentSpec(), Handler: adapter.resolveComment},
+		connect.Method{Spec: mergeRequestServiceCloseMergeRequestSpec(), Handler: adapter.closeMergeRequest},
+		connect.Method{Spec: mergeRequestServiceMarkReadySpec(), Handler: adapter.markReady},
+		connect.Method{Spec: mergeRequestServiceMergeMergeRequestSpec(), Handler: adapter.mergeMergeRequest},
+		connect.Method{Spec: mergeRequestServiceEnableAutoMergeSpec(), Handler: adapter.enableAutoMerge},
+		connect.Method{Spec: mergeRequestServiceCancelAutoMergeSpec(), Handler: adapter.cancelAutoMerge},
+		connect.Method{Spec: mergeRequestServiceMarkReadSpec(), Handler: adapter.markRead},
 	)
-	mergeRequestServiceEditMergeRequestHandler := connect.NewUnaryHandler(
-		MergeRequestServiceEditMergeRequestProcedure,
-		svc.EditMergeRequest,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("EditMergeRequest")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceListMergeRequestsHandler := connect.NewUnaryHandler(
-		MergeRequestServiceListMergeRequestsProcedure,
-		svc.ListMergeRequests,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("ListMergeRequests")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceGetMergeRequestHandler := connect.NewUnaryHandler(
-		MergeRequestServiceGetMergeRequestProcedure,
-		svc.GetMergeRequest,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("GetMergeRequest")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceAddCommentHandler := connect.NewUnaryHandler(
-		MergeRequestServiceAddCommentProcedure,
-		svc.AddComment,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("AddComment")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceEditCommentHandler := connect.NewUnaryHandler(
-		MergeRequestServiceEditCommentProcedure,
-		svc.EditComment,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("EditComment")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceDeleteCommentHandler := connect.NewUnaryHandler(
-		MergeRequestServiceDeleteCommentProcedure,
-		svc.DeleteComment,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("DeleteComment")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceResolveCommentHandler := connect.NewUnaryHandler(
-		MergeRequestServiceResolveCommentProcedure,
-		svc.ResolveComment,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("ResolveComment")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceCloseMergeRequestHandler := connect.NewUnaryHandler(
-		MergeRequestServiceCloseMergeRequestProcedure,
-		svc.CloseMergeRequest,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("CloseMergeRequest")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceMarkReadyHandler := connect.NewUnaryHandler(
-		MergeRequestServiceMarkReadyProcedure,
-		svc.MarkReady,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("MarkReady")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceMergeMergeRequestHandler := connect.NewUnaryHandler(
-		MergeRequestServiceMergeMergeRequestProcedure,
-		svc.MergeMergeRequest,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("MergeMergeRequest")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceEnableAutoMergeHandler := connect.NewUnaryHandler(
-		MergeRequestServiceEnableAutoMergeProcedure,
-		svc.EnableAutoMerge,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("EnableAutoMerge")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceCancelAutoMergeHandler := connect.NewUnaryHandler(
-		MergeRequestServiceCancelAutoMergeProcedure,
-		svc.CancelAutoMerge,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("CancelAutoMerge")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mergeRequestServiceMarkReadHandler := connect.NewUnaryHandler(
-		MergeRequestServiceMarkReadProcedure,
-		svc.MarkRead,
-		connect.WithSchema(mergeRequestServiceMethods.ByName("MarkRead")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.MergeRequestService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case MergeRequestServiceCreateMergeRequestProcedure:
-			mergeRequestServiceCreateMergeRequestHandler.ServeHTTP(w, r)
-		case MergeRequestServiceEditMergeRequestProcedure:
-			mergeRequestServiceEditMergeRequestHandler.ServeHTTP(w, r)
-		case MergeRequestServiceListMergeRequestsProcedure:
-			mergeRequestServiceListMergeRequestsHandler.ServeHTTP(w, r)
-		case MergeRequestServiceGetMergeRequestProcedure:
-			mergeRequestServiceGetMergeRequestHandler.ServeHTTP(w, r)
-		case MergeRequestServiceAddCommentProcedure:
-			mergeRequestServiceAddCommentHandler.ServeHTTP(w, r)
-		case MergeRequestServiceEditCommentProcedure:
-			mergeRequestServiceEditCommentHandler.ServeHTTP(w, r)
-		case MergeRequestServiceDeleteCommentProcedure:
-			mergeRequestServiceDeleteCommentHandler.ServeHTTP(w, r)
-		case MergeRequestServiceResolveCommentProcedure:
-			mergeRequestServiceResolveCommentHandler.ServeHTTP(w, r)
-		case MergeRequestServiceCloseMergeRequestProcedure:
-			mergeRequestServiceCloseMergeRequestHandler.ServeHTTP(w, r)
-		case MergeRequestServiceMarkReadyProcedure:
-			mergeRequestServiceMarkReadyHandler.ServeHTTP(w, r)
-		case MergeRequestServiceMergeMergeRequestProcedure:
-			mergeRequestServiceMergeMergeRequestHandler.ServeHTTP(w, r)
-		case MergeRequestServiceEnableAutoMergeProcedure:
-			mergeRequestServiceEnableAutoMergeHandler.ServeHTTP(w, r)
-		case MergeRequestServiceCancelAutoMergeProcedure:
-			mergeRequestServiceCancelAutoMergeHandler.ServeHTTP(w, r)
-		case MergeRequestServiceMarkReadProcedure:
-			mergeRequestServiceMarkReadHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedMergeRequestServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedMergeRequestServiceHandler struct{}
 
-func (UnimplementedMergeRequestServiceHandler) CreateMergeRequest(context.Context, *connect.Request[ermite.CreateMergeRequestRequest]) (*connect.Response[ermite.CreateMergeRequestResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.CreateMergeRequest is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) CreateMergeRequest(context.Context, *ermite.CreateMergeRequestRequest) (*ermite.CreateMergeRequestResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.CreateMergeRequest is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) EditMergeRequest(context.Context, *connect.Request[ermite.EditMergeRequestRequest]) (*connect.Response[ermite.EditMergeRequestResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.EditMergeRequest is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) EditMergeRequest(context.Context, *ermite.EditMergeRequestRequest) (*ermite.EditMergeRequestResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.EditMergeRequest is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) ListMergeRequests(context.Context, *connect.Request[ermite.ListMergeRequestsRequest]) (*connect.Response[ermite.ListMergeRequestsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.ListMergeRequests is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) ListMergeRequests(context.Context, *ermite.ListMergeRequestsRequest) (*ermite.ListMergeRequestsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.ListMergeRequests is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) GetMergeRequest(context.Context, *connect.Request[ermite.GetMergeRequestRequest]) (*connect.Response[ermite.GetMergeRequestResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.GetMergeRequest is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) GetMergeRequest(context.Context, *ermite.GetMergeRequestRequest) (*ermite.GetMergeRequestResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.GetMergeRequest is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) AddComment(context.Context, *connect.Request[ermite.AddCommentRequest]) (*connect.Response[ermite.AddCommentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.AddComment is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) AddComment(context.Context, *ermite.AddCommentRequest) (*ermite.AddCommentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.AddComment is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) EditComment(context.Context, *connect.Request[ermite.EditCommentRequest]) (*connect.Response[ermite.EditCommentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.EditComment is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) EditComment(context.Context, *ermite.EditCommentRequest) (*ermite.EditCommentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.EditComment is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) DeleteComment(context.Context, *connect.Request[ermite.DeleteCommentRequest]) (*connect.Response[ermite.DeleteCommentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.DeleteComment is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) DeleteComment(context.Context, *ermite.DeleteCommentRequest) (*ermite.DeleteCommentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.DeleteComment is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) ResolveComment(context.Context, *connect.Request[ermite.ResolveCommentRequest]) (*connect.Response[ermite.ResolveCommentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.ResolveComment is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) ResolveComment(context.Context, *ermite.ResolveCommentRequest) (*ermite.ResolveCommentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.ResolveComment is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) CloseMergeRequest(context.Context, *connect.Request[ermite.CloseMergeRequestRequest]) (*connect.Response[ermite.CloseMergeRequestResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.CloseMergeRequest is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) CloseMergeRequest(context.Context, *ermite.CloseMergeRequestRequest) (*ermite.CloseMergeRequestResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.CloseMergeRequest is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) MarkReady(context.Context, *connect.Request[ermite.MarkReadyRequest]) (*connect.Response[ermite.MarkReadyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.MarkReady is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) MarkReady(context.Context, *ermite.MarkReadyRequest) (*ermite.MarkReadyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.MarkReady is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) MergeMergeRequest(context.Context, *connect.Request[ermite.MergeMergeRequestRequest]) (*connect.Response[ermite.MergeMergeRequestResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.MergeMergeRequest is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) MergeMergeRequest(context.Context, *ermite.MergeMergeRequestRequest) (*ermite.MergeMergeRequestResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.MergeMergeRequest is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) EnableAutoMerge(context.Context, *connect.Request[ermite.EnableAutoMergeRequest]) (*connect.Response[ermite.EnableAutoMergeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.EnableAutoMerge is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) EnableAutoMerge(context.Context, *ermite.EnableAutoMergeRequest) (*ermite.EnableAutoMergeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.EnableAutoMerge is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) CancelAutoMerge(context.Context, *connect.Request[ermite.CancelAutoMergeRequest]) (*connect.Response[ermite.CancelAutoMergeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.CancelAutoMerge is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) CancelAutoMerge(context.Context, *ermite.CancelAutoMergeRequest) (*ermite.CancelAutoMergeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.CancelAutoMerge is not implemented")
 }
 
-func (UnimplementedMergeRequestServiceHandler) MarkRead(context.Context, *connect.Request[ermite.MarkReadRequest]) (*connect.Response[ermite.MarkReadResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MergeRequestService.MarkRead is not implemented"))
+func (UnimplementedMergeRequestServiceHandler) MarkRead(context.Context, *ermite.MarkReadRequest) (*ermite.MarkReadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MergeRequestService.MarkRead is not implemented")
+}
+
+type mergeRequestServiceClient struct {
+	client *connect.Client
+}
+
+func (c *mergeRequestServiceClient) CreateMergeRequest(ctx context.Context, req *ermite.CreateMergeRequestRequest) (*ermite.CreateMergeRequestResponse, error) {
+	var res ermite.CreateMergeRequestResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceCreateMergeRequestSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) EditMergeRequest(ctx context.Context, req *ermite.EditMergeRequestRequest) (*ermite.EditMergeRequestResponse, error) {
+	var res ermite.EditMergeRequestResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceEditMergeRequestSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) ListMergeRequests(ctx context.Context, req *ermite.ListMergeRequestsRequest) (*ermite.ListMergeRequestsResponse, error) {
+	var res ermite.ListMergeRequestsResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceListMergeRequestsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) GetMergeRequest(ctx context.Context, req *ermite.GetMergeRequestRequest) (*ermite.GetMergeRequestResponse, error) {
+	var res ermite.GetMergeRequestResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceGetMergeRequestSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) AddComment(ctx context.Context, req *ermite.AddCommentRequest) (*ermite.AddCommentResponse, error) {
+	var res ermite.AddCommentResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceAddCommentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) EditComment(ctx context.Context, req *ermite.EditCommentRequest) (*ermite.EditCommentResponse, error) {
+	var res ermite.EditCommentResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceEditCommentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) DeleteComment(ctx context.Context, req *ermite.DeleteCommentRequest) (*ermite.DeleteCommentResponse, error) {
+	var res ermite.DeleteCommentResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceDeleteCommentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) ResolveComment(ctx context.Context, req *ermite.ResolveCommentRequest) (*ermite.ResolveCommentResponse, error) {
+	var res ermite.ResolveCommentResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceResolveCommentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) CloseMergeRequest(ctx context.Context, req *ermite.CloseMergeRequestRequest) (*ermite.CloseMergeRequestResponse, error) {
+	var res ermite.CloseMergeRequestResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceCloseMergeRequestSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) MarkReady(ctx context.Context, req *ermite.MarkReadyRequest) (*ermite.MarkReadyResponse, error) {
+	var res ermite.MarkReadyResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceMarkReadySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) MergeMergeRequest(ctx context.Context, req *ermite.MergeMergeRequestRequest) (*ermite.MergeMergeRequestResponse, error) {
+	var res ermite.MergeMergeRequestResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceMergeMergeRequestSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) EnableAutoMerge(ctx context.Context, req *ermite.EnableAutoMergeRequest) (*ermite.EnableAutoMergeResponse, error) {
+	var res ermite.EnableAutoMergeResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceEnableAutoMergeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) CancelAutoMerge(ctx context.Context, req *ermite.CancelAutoMergeRequest) (*ermite.CancelAutoMergeResponse, error) {
+	var res ermite.CancelAutoMergeResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceCancelAutoMergeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mergeRequestServiceClient) MarkRead(ctx context.Context, req *ermite.MarkReadRequest) (*ermite.MarkReadResponse, error) {
+	var res ermite.MarkReadResponse
+	if err := c.client.CallUnary(ctx, mergeRequestServiceMarkReadSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type mergeRequestServiceHandler struct{ svc MergeRequestServiceHandler }
+
+func (h mergeRequestServiceHandler) createMergeRequest(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CreateMergeRequestRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateMergeRequest(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) editMergeRequest(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.EditMergeRequestRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EditMergeRequest(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) listMergeRequests(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListMergeRequestsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListMergeRequests(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) getMergeRequest(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetMergeRequestRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetMergeRequest(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) addComment(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.AddCommentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddComment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) editComment(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.EditCommentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EditComment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) deleteComment(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DeleteCommentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteComment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) resolveComment(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ResolveCommentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ResolveComment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) closeMergeRequest(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CloseMergeRequestRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CloseMergeRequest(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) markReady(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.MarkReadyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MarkReady(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) mergeMergeRequest(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.MergeMergeRequestRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MergeMergeRequest(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) enableAutoMerge(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.EnableAutoMergeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EnableAutoMerge(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) cancelAutoMerge(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CancelAutoMergeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CancelAutoMerge(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mergeRequestServiceHandler) markRead(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.MarkReadRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MarkRead(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

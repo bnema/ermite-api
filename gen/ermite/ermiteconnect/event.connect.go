@@ -8,35 +8,36 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// EventServiceName is the fully-qualified name of the EventService service.
 	EventServiceName = "ermite.EventService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// EventServiceWatchProcedure is the fully-qualified name of the EventService's Watch RPC.
+	// EventServiceWatchProcedure is the procedure name of the EventService's Watch RPC.
 	EventServiceWatchProcedure = "/ermite.EventService/Watch"
+)
+
+var (
+	eventServiceWatchSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     ermite.File_ermite_event_proto.Services().ByName("EventService").Methods().ByName("Watch"),
+			Procedure:  EventServiceWatchProcedure,
+		}
+	})
 )
 
 // EventServiceClient is a client for the ermite.EventService service.
@@ -82,37 +83,33 @@ type EventServiceClient interface {
 	// reaches them. The server limits the watchers: more than 64 topics is
 	// invalid_argument, and too many concurrent streams, in total or from one
 	// client, is resource_exhausted.
-	Watch(context.Context, *connect.Request[ermite.WatchRequest]) (*connect.ServerStreamForClient[ermite.WatchResponse], error)
+	Watch(context.Context, *ermite.WatchRequest) (EventServiceWatchClientStream, error)
 }
 
-// NewEventServiceClient constructs a client for the ermite.EventService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewEventServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) EventServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	eventServiceMethods := ermite.File_ermite_event_proto.Services().ByName("EventService").Methods()
-	return &eventServiceClient{
-		watch: connect.NewClient[ermite.WatchRequest, ermite.WatchResponse](
-			httpClient,
-			baseURL+EventServiceWatchProcedure,
-			connect.WithSchema(eventServiceMethods.ByName("Watch")),
-			connect.WithClientOptions(opts...),
-		),
+// NewEventServiceClient constructs a client for the ermite.EventService service. Multiple service
+// clients may share a single connect.Client.
+func NewEventServiceClient(client *connect.Client) EventServiceClient {
+	return &eventServiceClient{client: client}
+}
+
+// EventServiceWatchClientStream is the client stream for the EventService's Watch RPC.
+type EventServiceWatchClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s EventServiceWatchClientStream) Receive() (*ermite.WatchResponse, error) {
+	var res ermite.WatchResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// eventServiceClient implements EventServiceClient.
-type eventServiceClient struct {
-	watch *connect.Client[ermite.WatchRequest, ermite.WatchResponse]
-}
-
-// Watch calls ermite.EventService.Watch.
-func (c *eventServiceClient) Watch(ctx context.Context, req *connect.Request[ermite.WatchRequest]) (*connect.ServerStreamForClient[ermite.WatchResponse], error) {
-	return c.watch.CallServerStream(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s EventServiceWatchClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // EventServiceHandler is an implementation of the ermite.EventService service.
@@ -158,35 +155,57 @@ type EventServiceHandler interface {
 	// reaches them. The server limits the watchers: more than 64 topics is
 	// invalid_argument, and too many concurrent streams, in total or from one
 	// client, is resource_exhausted.
-	Watch(context.Context, *connect.Request[ermite.WatchRequest], *connect.ServerStream[ermite.WatchResponse]) error
+	Watch(context.Context, *ermite.WatchRequest, EventServiceWatchServerStream) error
 }
 
-// NewEventServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewEventServiceHandler(svc EventServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	eventServiceMethods := ermite.File_ermite_event_proto.Services().ByName("EventService").Methods()
-	eventServiceWatchHandler := connect.NewServerStreamHandler(
-		EventServiceWatchProcedure,
-		svc.Watch,
-		connect.WithSchema(eventServiceMethods.ByName("Watch")),
-		connect.WithHandlerOptions(opts...),
+// RegisterEventServiceHandler registers svc as the ermite.EventService implementation on server.
+func RegisterEventServiceHandler(server *connect.Server, svc EventServiceHandler) {
+	adapter := eventServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: eventServiceWatchSpec(), Handler: adapter.watch},
 	)
-	return "/ermite.EventService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case EventServiceWatchProcedure:
-			eventServiceWatchHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// EventServiceWatchServerStream is the server stream for the EventService's Watch RPC.
+type EventServiceWatchServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s EventServiceWatchServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s EventServiceWatchServerStream) Send(res *ermite.WatchResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedEventServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedEventServiceHandler struct{}
 
-func (UnimplementedEventServiceHandler) Watch(context.Context, *connect.Request[ermite.WatchRequest], *connect.ServerStream[ermite.WatchResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("ermite.EventService.Watch is not implemented"))
+func (UnimplementedEventServiceHandler) Watch(context.Context, *ermite.WatchRequest, EventServiceWatchServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "ermite.EventService.Watch is not implemented")
+}
+
+type eventServiceClient struct {
+	client *connect.Client
+}
+
+func (c *eventServiceClient) Watch(ctx context.Context, req *ermite.WatchRequest) (EventServiceWatchClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, eventServiceWatchSpec(), req)
+	if err != nil {
+		return EventServiceWatchClientStream{}, err
+	}
+	return EventServiceWatchClientStream{stream: stream}, nil
+}
+
+type eventServiceHandler struct{ svc EventServiceHandler }
+
+func (h eventServiceHandler) watch(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.WatchRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.Watch(ctx, &req, EventServiceWatchServerStream{stream: stream})
 }

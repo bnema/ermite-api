@@ -8,45 +8,67 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// SessionServiceName is the fully-qualified name of the SessionService service.
 	SessionServiceName = "ermite.SessionService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// SessionServiceCreateLoginLinkProcedure is the fully-qualified name of the SessionService's
+	// SessionServiceCreateLoginLinkProcedure is the procedure name of the SessionService's
 	// CreateLoginLink RPC.
 	SessionServiceCreateLoginLinkProcedure = "/ermite.SessionService/CreateLoginLink"
-	// SessionServiceSignOutEverywhereProcedure is the fully-qualified name of the SessionService's
+	// SessionServiceSignOutEverywhereProcedure is the procedure name of the SessionService's
 	// SignOutEverywhere RPC.
 	SessionServiceSignOutEverywhereProcedure = "/ermite.SessionService/SignOutEverywhere"
-	// SessionServiceListPasskeysProcedure is the fully-qualified name of the SessionService's
-	// ListPasskeys RPC.
+	// SessionServiceListPasskeysProcedure is the procedure name of the SessionService's ListPasskeys
+	// RPC.
 	SessionServiceListPasskeysProcedure = "/ermite.SessionService/ListPasskeys"
-	// SessionServiceRemovePasskeyProcedure is the fully-qualified name of the SessionService's
-	// RemovePasskey RPC.
+	// SessionServiceRemovePasskeyProcedure is the procedure name of the SessionService's RemovePasskey
+	// RPC.
 	SessionServiceRemovePasskeyProcedure = "/ermite.SessionService/RemovePasskey"
+)
+
+var (
+	sessionServiceCreateLoginLinkSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_session_proto.Services().ByName("SessionService").Methods().ByName("CreateLoginLink"),
+			Procedure:  SessionServiceCreateLoginLinkProcedure,
+		}
+	})
+	sessionServiceSignOutEverywhereSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_session_proto.Services().ByName("SessionService").Methods().ByName("SignOutEverywhere"),
+			Procedure:  SessionServiceSignOutEverywhereProcedure,
+		}
+	})
+	sessionServiceListPasskeysSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_session_proto.Services().ByName("SessionService").Methods().ByName("ListPasskeys"),
+			Procedure:  SessionServiceListPasskeysProcedure,
+		}
+	})
+	sessionServiceRemovePasskeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_session_proto.Services().ByName("SessionService").Methods().ByName("RemovePasskey"),
+			Procedure:  SessionServiceRemovePasskeyProcedure,
+		}
+	})
 )
 
 // SessionServiceClient is a client for the ermite.SessionService service.
@@ -57,85 +79,25 @@ type SessionServiceClient interface {
 	// shows a confirmation page; only confirming it consumes the link and sets
 	// the session. Creating a new link does not void an earlier one. Fails with
 	// resource_exhausted when too many links are pending.
-	CreateLoginLink(context.Context, *connect.Request[ermite.CreateLoginLinkRequest]) (*connect.Response[ermite.CreateLoginLinkResponse], error)
+	CreateLoginLink(context.Context, *ermite.CreateLoginLinkRequest) (*ermite.CreateLoginLinkResponse, error)
 	// SignOutEverywhere ends every browser session at once, including those on
 	// other devices. Pending login links are not affected. Tokens are not
 	// affected either: revoke them with TokenService.
-	SignOutEverywhere(context.Context, *connect.Request[ermite.SignOutEverywhereRequest]) (*connect.Response[ermite.SignOutEverywhereResponse], error)
+	SignOutEverywhere(context.Context, *ermite.SignOutEverywhereRequest) (*ermite.SignOutEverywhereResponse, error)
 	// ListPasskeys lists the owner's registered passkeys, oldest first. Fails
 	// with failed_precondition when the server has passkeys disabled.
-	ListPasskeys(context.Context, *connect.Request[ermite.ListPasskeysRequest]) (*connect.Response[ermite.ListPasskeysResponse], error)
+	ListPasskeys(context.Context, *ermite.ListPasskeysRequest) (*ermite.ListPasskeysResponse, error)
 	// RemovePasskey removes one passkey. It also signs out every browser
 	// session, on every device, like SignOutEverywhere. Fails with not_found
 	// for an unknown id, invalid_argument for an id that is not base64url, and
 	// failed_precondition when the server has passkeys disabled.
-	RemovePasskey(context.Context, *connect.Request[ermite.RemovePasskeyRequest]) (*connect.Response[ermite.RemovePasskeyResponse], error)
+	RemovePasskey(context.Context, *ermite.RemovePasskeyRequest) (*ermite.RemovePasskeyResponse, error)
 }
 
-// NewSessionServiceClient constructs a client for the ermite.SessionService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewSessionServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) SessionServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	sessionServiceMethods := ermite.File_ermite_session_proto.Services().ByName("SessionService").Methods()
-	return &sessionServiceClient{
-		createLoginLink: connect.NewClient[ermite.CreateLoginLinkRequest, ermite.CreateLoginLinkResponse](
-			httpClient,
-			baseURL+SessionServiceCreateLoginLinkProcedure,
-			connect.WithSchema(sessionServiceMethods.ByName("CreateLoginLink")),
-			connect.WithClientOptions(opts...),
-		),
-		signOutEverywhere: connect.NewClient[ermite.SignOutEverywhereRequest, ermite.SignOutEverywhereResponse](
-			httpClient,
-			baseURL+SessionServiceSignOutEverywhereProcedure,
-			connect.WithSchema(sessionServiceMethods.ByName("SignOutEverywhere")),
-			connect.WithClientOptions(opts...),
-		),
-		listPasskeys: connect.NewClient[ermite.ListPasskeysRequest, ermite.ListPasskeysResponse](
-			httpClient,
-			baseURL+SessionServiceListPasskeysProcedure,
-			connect.WithSchema(sessionServiceMethods.ByName("ListPasskeys")),
-			connect.WithClientOptions(opts...),
-		),
-		removePasskey: connect.NewClient[ermite.RemovePasskeyRequest, ermite.RemovePasskeyResponse](
-			httpClient,
-			baseURL+SessionServiceRemovePasskeyProcedure,
-			connect.WithSchema(sessionServiceMethods.ByName("RemovePasskey")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// sessionServiceClient implements SessionServiceClient.
-type sessionServiceClient struct {
-	createLoginLink   *connect.Client[ermite.CreateLoginLinkRequest, ermite.CreateLoginLinkResponse]
-	signOutEverywhere *connect.Client[ermite.SignOutEverywhereRequest, ermite.SignOutEverywhereResponse]
-	listPasskeys      *connect.Client[ermite.ListPasskeysRequest, ermite.ListPasskeysResponse]
-	removePasskey     *connect.Client[ermite.RemovePasskeyRequest, ermite.RemovePasskeyResponse]
-}
-
-// CreateLoginLink calls ermite.SessionService.CreateLoginLink.
-func (c *sessionServiceClient) CreateLoginLink(ctx context.Context, req *connect.Request[ermite.CreateLoginLinkRequest]) (*connect.Response[ermite.CreateLoginLinkResponse], error) {
-	return c.createLoginLink.CallUnary(ctx, req)
-}
-
-// SignOutEverywhere calls ermite.SessionService.SignOutEverywhere.
-func (c *sessionServiceClient) SignOutEverywhere(ctx context.Context, req *connect.Request[ermite.SignOutEverywhereRequest]) (*connect.Response[ermite.SignOutEverywhereResponse], error) {
-	return c.signOutEverywhere.CallUnary(ctx, req)
-}
-
-// ListPasskeys calls ermite.SessionService.ListPasskeys.
-func (c *sessionServiceClient) ListPasskeys(ctx context.Context, req *connect.Request[ermite.ListPasskeysRequest]) (*connect.Response[ermite.ListPasskeysResponse], error) {
-	return c.listPasskeys.CallUnary(ctx, req)
-}
-
-// RemovePasskey calls ermite.SessionService.RemovePasskey.
-func (c *sessionServiceClient) RemovePasskey(ctx context.Context, req *connect.Request[ermite.RemovePasskeyRequest]) (*connect.Response[ermite.RemovePasskeyResponse], error) {
-	return c.removePasskey.CallUnary(ctx, req)
+// NewSessionServiceClient constructs a client for the ermite.SessionService service. Multiple
+// service clients may share a single connect.Client.
+func NewSessionServiceClient(client *connect.Client) SessionServiceClient {
+	return &sessionServiceClient{client: client}
 }
 
 // SessionServiceHandler is an implementation of the ermite.SessionService service.
@@ -146,83 +108,134 @@ type SessionServiceHandler interface {
 	// shows a confirmation page; only confirming it consumes the link and sets
 	// the session. Creating a new link does not void an earlier one. Fails with
 	// resource_exhausted when too many links are pending.
-	CreateLoginLink(context.Context, *connect.Request[ermite.CreateLoginLinkRequest]) (*connect.Response[ermite.CreateLoginLinkResponse], error)
+	CreateLoginLink(context.Context, *ermite.CreateLoginLinkRequest) (*ermite.CreateLoginLinkResponse, error)
 	// SignOutEverywhere ends every browser session at once, including those on
 	// other devices. Pending login links are not affected. Tokens are not
 	// affected either: revoke them with TokenService.
-	SignOutEverywhere(context.Context, *connect.Request[ermite.SignOutEverywhereRequest]) (*connect.Response[ermite.SignOutEverywhereResponse], error)
+	SignOutEverywhere(context.Context, *ermite.SignOutEverywhereRequest) (*ermite.SignOutEverywhereResponse, error)
 	// ListPasskeys lists the owner's registered passkeys, oldest first. Fails
 	// with failed_precondition when the server has passkeys disabled.
-	ListPasskeys(context.Context, *connect.Request[ermite.ListPasskeysRequest]) (*connect.Response[ermite.ListPasskeysResponse], error)
+	ListPasskeys(context.Context, *ermite.ListPasskeysRequest) (*ermite.ListPasskeysResponse, error)
 	// RemovePasskey removes one passkey. It also signs out every browser
 	// session, on every device, like SignOutEverywhere. Fails with not_found
 	// for an unknown id, invalid_argument for an id that is not base64url, and
 	// failed_precondition when the server has passkeys disabled.
-	RemovePasskey(context.Context, *connect.Request[ermite.RemovePasskeyRequest]) (*connect.Response[ermite.RemovePasskeyResponse], error)
+	RemovePasskey(context.Context, *ermite.RemovePasskeyRequest) (*ermite.RemovePasskeyResponse, error)
 }
 
-// NewSessionServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewSessionServiceHandler(svc SessionServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	sessionServiceMethods := ermite.File_ermite_session_proto.Services().ByName("SessionService").Methods()
-	sessionServiceCreateLoginLinkHandler := connect.NewUnaryHandler(
-		SessionServiceCreateLoginLinkProcedure,
-		svc.CreateLoginLink,
-		connect.WithSchema(sessionServiceMethods.ByName("CreateLoginLink")),
-		connect.WithHandlerOptions(opts...),
+// RegisterSessionServiceHandler registers svc as the ermite.SessionService implementation on
+// server.
+func RegisterSessionServiceHandler(server *connect.Server, svc SessionServiceHandler) {
+	adapter := sessionServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: sessionServiceCreateLoginLinkSpec(), Handler: adapter.createLoginLink},
+		connect.Method{Spec: sessionServiceSignOutEverywhereSpec(), Handler: adapter.signOutEverywhere},
+		connect.Method{Spec: sessionServiceListPasskeysSpec(), Handler: adapter.listPasskeys},
+		connect.Method{Spec: sessionServiceRemovePasskeySpec(), Handler: adapter.removePasskey},
 	)
-	sessionServiceSignOutEverywhereHandler := connect.NewUnaryHandler(
-		SessionServiceSignOutEverywhereProcedure,
-		svc.SignOutEverywhere,
-		connect.WithSchema(sessionServiceMethods.ByName("SignOutEverywhere")),
-		connect.WithHandlerOptions(opts...),
-	)
-	sessionServiceListPasskeysHandler := connect.NewUnaryHandler(
-		SessionServiceListPasskeysProcedure,
-		svc.ListPasskeys,
-		connect.WithSchema(sessionServiceMethods.ByName("ListPasskeys")),
-		connect.WithHandlerOptions(opts...),
-	)
-	sessionServiceRemovePasskeyHandler := connect.NewUnaryHandler(
-		SessionServiceRemovePasskeyProcedure,
-		svc.RemovePasskey,
-		connect.WithSchema(sessionServiceMethods.ByName("RemovePasskey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.SessionService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case SessionServiceCreateLoginLinkProcedure:
-			sessionServiceCreateLoginLinkHandler.ServeHTTP(w, r)
-		case SessionServiceSignOutEverywhereProcedure:
-			sessionServiceSignOutEverywhereHandler.ServeHTTP(w, r)
-		case SessionServiceListPasskeysProcedure:
-			sessionServiceListPasskeysHandler.ServeHTTP(w, r)
-		case SessionServiceRemovePasskeyProcedure:
-			sessionServiceRemovePasskeyHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedSessionServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedSessionServiceHandler struct{}
 
-func (UnimplementedSessionServiceHandler) CreateLoginLink(context.Context, *connect.Request[ermite.CreateLoginLinkRequest]) (*connect.Response[ermite.CreateLoginLinkResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.SessionService.CreateLoginLink is not implemented"))
+func (UnimplementedSessionServiceHandler) CreateLoginLink(context.Context, *ermite.CreateLoginLinkRequest) (*ermite.CreateLoginLinkResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.SessionService.CreateLoginLink is not implemented")
 }
 
-func (UnimplementedSessionServiceHandler) SignOutEverywhere(context.Context, *connect.Request[ermite.SignOutEverywhereRequest]) (*connect.Response[ermite.SignOutEverywhereResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.SessionService.SignOutEverywhere is not implemented"))
+func (UnimplementedSessionServiceHandler) SignOutEverywhere(context.Context, *ermite.SignOutEverywhereRequest) (*ermite.SignOutEverywhereResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.SessionService.SignOutEverywhere is not implemented")
 }
 
-func (UnimplementedSessionServiceHandler) ListPasskeys(context.Context, *connect.Request[ermite.ListPasskeysRequest]) (*connect.Response[ermite.ListPasskeysResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.SessionService.ListPasskeys is not implemented"))
+func (UnimplementedSessionServiceHandler) ListPasskeys(context.Context, *ermite.ListPasskeysRequest) (*ermite.ListPasskeysResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.SessionService.ListPasskeys is not implemented")
 }
 
-func (UnimplementedSessionServiceHandler) RemovePasskey(context.Context, *connect.Request[ermite.RemovePasskeyRequest]) (*connect.Response[ermite.RemovePasskeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.SessionService.RemovePasskey is not implemented"))
+func (UnimplementedSessionServiceHandler) RemovePasskey(context.Context, *ermite.RemovePasskeyRequest) (*ermite.RemovePasskeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.SessionService.RemovePasskey is not implemented")
+}
+
+type sessionServiceClient struct {
+	client *connect.Client
+}
+
+func (c *sessionServiceClient) CreateLoginLink(ctx context.Context, req *ermite.CreateLoginLinkRequest) (*ermite.CreateLoginLinkResponse, error) {
+	var res ermite.CreateLoginLinkResponse
+	if err := c.client.CallUnary(ctx, sessionServiceCreateLoginLinkSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *sessionServiceClient) SignOutEverywhere(ctx context.Context, req *ermite.SignOutEverywhereRequest) (*ermite.SignOutEverywhereResponse, error) {
+	var res ermite.SignOutEverywhereResponse
+	if err := c.client.CallUnary(ctx, sessionServiceSignOutEverywhereSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *sessionServiceClient) ListPasskeys(ctx context.Context, req *ermite.ListPasskeysRequest) (*ermite.ListPasskeysResponse, error) {
+	var res ermite.ListPasskeysResponse
+	if err := c.client.CallUnary(ctx, sessionServiceListPasskeysSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *sessionServiceClient) RemovePasskey(ctx context.Context, req *ermite.RemovePasskeyRequest) (*ermite.RemovePasskeyResponse, error) {
+	var res ermite.RemovePasskeyResponse
+	if err := c.client.CallUnary(ctx, sessionServiceRemovePasskeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type sessionServiceHandler struct{ svc SessionServiceHandler }
+
+func (h sessionServiceHandler) createLoginLink(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CreateLoginLinkRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateLoginLink(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h sessionServiceHandler) signOutEverywhere(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.SignOutEverywhereRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignOutEverywhere(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h sessionServiceHandler) listPasskeys(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListPasskeysRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPasskeys(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h sessionServiceHandler) removePasskey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.RemovePasskeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemovePasskey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

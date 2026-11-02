@@ -8,42 +8,56 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ServerServiceName is the fully-qualified name of the ServerService service.
 	ServerServiceName = "ermite.ServerService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ServerServiceGetVersionProcedure is the fully-qualified name of the ServerService's GetVersion
-	// RPC.
+	// ServerServiceGetVersionProcedure is the procedure name of the ServerService's GetVersion RPC.
 	ServerServiceGetVersionProcedure = "/ermite.ServerService/GetVersion"
-	// ServerServiceGetSigningKeyProcedure is the fully-qualified name of the ServerService's
-	// GetSigningKey RPC.
+	// ServerServiceGetSigningKeyProcedure is the procedure name of the ServerService's GetSigningKey
+	// RPC.
 	ServerServiceGetSigningKeyProcedure = "/ermite.ServerService/GetSigningKey"
-	// ServerServiceRotateOIDCKeyProcedure is the fully-qualified name of the ServerService's
-	// RotateOIDCKey RPC.
+	// ServerServiceRotateOIDCKeyProcedure is the procedure name of the ServerService's RotateOIDCKey
+	// RPC.
 	ServerServiceRotateOIDCKeyProcedure = "/ermite.ServerService/RotateOIDCKey"
+)
+
+var (
+	serverServiceGetVersionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_server_proto.Services().ByName("ServerService").Methods().ByName("GetVersion"),
+			Procedure:  ServerServiceGetVersionProcedure,
+		}
+	})
+	serverServiceGetSigningKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_server_proto.Services().ByName("ServerService").Methods().ByName("GetSigningKey"),
+			Procedure:  ServerServiceGetSigningKeyProcedure,
+		}
+	})
+	serverServiceRotateOIDCKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_server_proto.Services().ByName("ServerService").Methods().ByName("RotateOIDCKey"),
+			Procedure:  ServerServiceRotateOIDCKeyProcedure,
+		}
+	})
 )
 
 // ServerServiceClient is a client for the ermite.ServerService service.
@@ -51,13 +65,13 @@ type ServerServiceClient interface {
 	// GetVersion returns the server version and the optional capabilities of the
 	// contract it implements. It needs no authentication, so a client can call
 	// it first to check compatibility.
-	GetVersion(context.Context, *connect.Request[ermite.GetVersionRequest]) (*connect.Response[ermite.GetVersionResponse], error)
+	GetVersion(context.Context, *ermite.GetVersionRequest) (*ermite.GetVersionResponse, error)
 	// GetSigningKey returns the public key with which the server signs the
 	// commits it creates (squash and merge commits, see MergeMode). It needs no
 	// authentication: the key is public, and anyone verifying a commit needs it.
 	// Servers that implement it list "signing_key" in
 	// GetVersionResponse.features.
-	GetSigningKey(context.Context, *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error)
+	GetSigningKey(context.Context, *ermite.GetSigningKeyRequest) (*ermite.GetSigningKeyResponse, error)
 	// RotateOIDCKey replaces the key with which the server signs the OIDC ID
 	// tokens of CI jobs (Job.id_token_url) by a new one. The previous key stops
 	// signing at once but stays in the server's JWKS
@@ -68,61 +82,13 @@ type ServerServiceClient interface {
 	// failed_precondition when the server issues no ID tokens (it has no
 	// secrets key to seal the key with). Servers that implement it list
 	// "ci.oidc" in GetVersionResponse.features.
-	RotateOIDCKey(context.Context, *connect.Request[ermite.RotateOIDCKeyRequest]) (*connect.Response[ermite.RotateOIDCKeyResponse], error)
+	RotateOIDCKey(context.Context, *ermite.RotateOIDCKeyRequest) (*ermite.RotateOIDCKeyResponse, error)
 }
 
-// NewServerServiceClient constructs a client for the ermite.ServerService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewServerServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ServerServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	serverServiceMethods := ermite.File_ermite_server_proto.Services().ByName("ServerService").Methods()
-	return &serverServiceClient{
-		getVersion: connect.NewClient[ermite.GetVersionRequest, ermite.GetVersionResponse](
-			httpClient,
-			baseURL+ServerServiceGetVersionProcedure,
-			connect.WithSchema(serverServiceMethods.ByName("GetVersion")),
-			connect.WithClientOptions(opts...),
-		),
-		getSigningKey: connect.NewClient[ermite.GetSigningKeyRequest, ermite.GetSigningKeyResponse](
-			httpClient,
-			baseURL+ServerServiceGetSigningKeyProcedure,
-			connect.WithSchema(serverServiceMethods.ByName("GetSigningKey")),
-			connect.WithClientOptions(opts...),
-		),
-		rotateOIDCKey: connect.NewClient[ermite.RotateOIDCKeyRequest, ermite.RotateOIDCKeyResponse](
-			httpClient,
-			baseURL+ServerServiceRotateOIDCKeyProcedure,
-			connect.WithSchema(serverServiceMethods.ByName("RotateOIDCKey")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// serverServiceClient implements ServerServiceClient.
-type serverServiceClient struct {
-	getVersion    *connect.Client[ermite.GetVersionRequest, ermite.GetVersionResponse]
-	getSigningKey *connect.Client[ermite.GetSigningKeyRequest, ermite.GetSigningKeyResponse]
-	rotateOIDCKey *connect.Client[ermite.RotateOIDCKeyRequest, ermite.RotateOIDCKeyResponse]
-}
-
-// GetVersion calls ermite.ServerService.GetVersion.
-func (c *serverServiceClient) GetVersion(ctx context.Context, req *connect.Request[ermite.GetVersionRequest]) (*connect.Response[ermite.GetVersionResponse], error) {
-	return c.getVersion.CallUnary(ctx, req)
-}
-
-// GetSigningKey calls ermite.ServerService.GetSigningKey.
-func (c *serverServiceClient) GetSigningKey(ctx context.Context, req *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error) {
-	return c.getSigningKey.CallUnary(ctx, req)
-}
-
-// RotateOIDCKey calls ermite.ServerService.RotateOIDCKey.
-func (c *serverServiceClient) RotateOIDCKey(ctx context.Context, req *connect.Request[ermite.RotateOIDCKeyRequest]) (*connect.Response[ermite.RotateOIDCKeyResponse], error) {
-	return c.rotateOIDCKey.CallUnary(ctx, req)
+// NewServerServiceClient constructs a client for the ermite.ServerService service. Multiple service
+// clients may share a single connect.Client.
+func NewServerServiceClient(client *connect.Client) ServerServiceClient {
+	return &serverServiceClient{client: client}
 }
 
 // ServerServiceHandler is an implementation of the ermite.ServerService service.
@@ -130,13 +96,13 @@ type ServerServiceHandler interface {
 	// GetVersion returns the server version and the optional capabilities of the
 	// contract it implements. It needs no authentication, so a client can call
 	// it first to check compatibility.
-	GetVersion(context.Context, *connect.Request[ermite.GetVersionRequest]) (*connect.Response[ermite.GetVersionResponse], error)
+	GetVersion(context.Context, *ermite.GetVersionRequest) (*ermite.GetVersionResponse, error)
 	// GetSigningKey returns the public key with which the server signs the
 	// commits it creates (squash and merge commits, see MergeMode). It needs no
 	// authentication: the key is public, and anyone verifying a commit needs it.
 	// Servers that implement it list "signing_key" in
 	// GetVersionResponse.features.
-	GetSigningKey(context.Context, *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error)
+	GetSigningKey(context.Context, *ermite.GetSigningKeyRequest) (*ermite.GetSigningKeyResponse, error)
 	// RotateOIDCKey replaces the key with which the server signs the OIDC ID
 	// tokens of CI jobs (Job.id_token_url) by a new one. The previous key stops
 	// signing at once but stays in the server's JWKS
@@ -147,59 +113,96 @@ type ServerServiceHandler interface {
 	// failed_precondition when the server issues no ID tokens (it has no
 	// secrets key to seal the key with). Servers that implement it list
 	// "ci.oidc" in GetVersionResponse.features.
-	RotateOIDCKey(context.Context, *connect.Request[ermite.RotateOIDCKeyRequest]) (*connect.Response[ermite.RotateOIDCKeyResponse], error)
+	RotateOIDCKey(context.Context, *ermite.RotateOIDCKeyRequest) (*ermite.RotateOIDCKeyResponse, error)
 }
 
-// NewServerServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewServerServiceHandler(svc ServerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	serverServiceMethods := ermite.File_ermite_server_proto.Services().ByName("ServerService").Methods()
-	serverServiceGetVersionHandler := connect.NewUnaryHandler(
-		ServerServiceGetVersionProcedure,
-		svc.GetVersion,
-		connect.WithSchema(serverServiceMethods.ByName("GetVersion")),
-		connect.WithHandlerOptions(opts...),
+// RegisterServerServiceHandler registers svc as the ermite.ServerService implementation on server.
+func RegisterServerServiceHandler(server *connect.Server, svc ServerServiceHandler) {
+	adapter := serverServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: serverServiceGetVersionSpec(), Handler: adapter.getVersion},
+		connect.Method{Spec: serverServiceGetSigningKeySpec(), Handler: adapter.getSigningKey},
+		connect.Method{Spec: serverServiceRotateOIDCKeySpec(), Handler: adapter.rotateOIDCKey},
 	)
-	serverServiceGetSigningKeyHandler := connect.NewUnaryHandler(
-		ServerServiceGetSigningKeyProcedure,
-		svc.GetSigningKey,
-		connect.WithSchema(serverServiceMethods.ByName("GetSigningKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	serverServiceRotateOIDCKeyHandler := connect.NewUnaryHandler(
-		ServerServiceRotateOIDCKeyProcedure,
-		svc.RotateOIDCKey,
-		connect.WithSchema(serverServiceMethods.ByName("RotateOIDCKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.ServerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ServerServiceGetVersionProcedure:
-			serverServiceGetVersionHandler.ServeHTTP(w, r)
-		case ServerServiceGetSigningKeyProcedure:
-			serverServiceGetSigningKeyHandler.ServeHTTP(w, r)
-		case ServerServiceRotateOIDCKeyProcedure:
-			serverServiceRotateOIDCKeyHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedServerServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedServerServiceHandler struct{}
 
-func (UnimplementedServerServiceHandler) GetVersion(context.Context, *connect.Request[ermite.GetVersionRequest]) (*connect.Response[ermite.GetVersionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ServerService.GetVersion is not implemented"))
+func (UnimplementedServerServiceHandler) GetVersion(context.Context, *ermite.GetVersionRequest) (*ermite.GetVersionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ServerService.GetVersion is not implemented")
 }
 
-func (UnimplementedServerServiceHandler) GetSigningKey(context.Context, *connect.Request[ermite.GetSigningKeyRequest]) (*connect.Response[ermite.GetSigningKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ServerService.GetSigningKey is not implemented"))
+func (UnimplementedServerServiceHandler) GetSigningKey(context.Context, *ermite.GetSigningKeyRequest) (*ermite.GetSigningKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ServerService.GetSigningKey is not implemented")
 }
 
-func (UnimplementedServerServiceHandler) RotateOIDCKey(context.Context, *connect.Request[ermite.RotateOIDCKeyRequest]) (*connect.Response[ermite.RotateOIDCKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ServerService.RotateOIDCKey is not implemented"))
+func (UnimplementedServerServiceHandler) RotateOIDCKey(context.Context, *ermite.RotateOIDCKeyRequest) (*ermite.RotateOIDCKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ServerService.RotateOIDCKey is not implemented")
+}
+
+type serverServiceClient struct {
+	client *connect.Client
+}
+
+func (c *serverServiceClient) GetVersion(ctx context.Context, req *ermite.GetVersionRequest) (*ermite.GetVersionResponse, error) {
+	var res ermite.GetVersionResponse
+	if err := c.client.CallUnary(ctx, serverServiceGetVersionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *serverServiceClient) GetSigningKey(ctx context.Context, req *ermite.GetSigningKeyRequest) (*ermite.GetSigningKeyResponse, error) {
+	var res ermite.GetSigningKeyResponse
+	if err := c.client.CallUnary(ctx, serverServiceGetSigningKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *serverServiceClient) RotateOIDCKey(ctx context.Context, req *ermite.RotateOIDCKeyRequest) (*ermite.RotateOIDCKeyResponse, error) {
+	var res ermite.RotateOIDCKeyResponse
+	if err := c.client.CallUnary(ctx, serverServiceRotateOIDCKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type serverServiceHandler struct{ svc ServerServiceHandler }
+
+func (h serverServiceHandler) getVersion(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetVersionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetVersion(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h serverServiceHandler) getSigningKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetSigningKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSigningKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h serverServiceHandler) rotateOIDCKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.RotateOIDCKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RotateOIDCKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

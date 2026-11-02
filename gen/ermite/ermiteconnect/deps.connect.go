@@ -8,236 +8,256 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// DepsServiceName is the fully-qualified name of the DepsService service.
 	DepsServiceName = "ermite.DepsService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// DepsServiceListDependencyUpdatesProcedure is the fully-qualified name of the DepsService's
+	// DepsServiceListDependencyUpdatesProcedure is the procedure name of the DepsService's
 	// ListDependencyUpdates RPC.
 	DepsServiceListDependencyUpdatesProcedure = "/ermite.DepsService/ListDependencyUpdates"
-	// DepsServiceCheckDependenciesProcedure is the fully-qualified name of the DepsService's
+	// DepsServiceCheckDependenciesProcedure is the procedure name of the DepsService's
 	// CheckDependencies RPC.
 	DepsServiceCheckDependenciesProcedure = "/ermite.DepsService/CheckDependencies"
-	// DepsServiceOpenDependencyUpdatesProcedure is the fully-qualified name of the DepsService's
+	// DepsServiceOpenDependencyUpdatesProcedure is the procedure name of the DepsService's
 	// OpenDependencyUpdates RPC.
 	DepsServiceOpenDependencyUpdatesProcedure = "/ermite.DepsService/OpenDependencyUpdates"
-	// DepsServiceIgnoreDependencyUpdatesProcedure is the fully-qualified name of the DepsService's
+	// DepsServiceIgnoreDependencyUpdatesProcedure is the procedure name of the DepsService's
 	// IgnoreDependencyUpdates RPC.
 	DepsServiceIgnoreDependencyUpdatesProcedure = "/ermite.DepsService/IgnoreDependencyUpdates"
-	// DepsServiceSnoozeDependencyUpdatesProcedure is the fully-qualified name of the DepsService's
+	// DepsServiceSnoozeDependencyUpdatesProcedure is the procedure name of the DepsService's
 	// SnoozeDependencyUpdates RPC.
 	DepsServiceSnoozeDependencyUpdatesProcedure = "/ermite.DepsService/SnoozeDependencyUpdates"
+)
+
+var (
+	depsServiceListDependencyUpdatesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_deps_proto.Services().ByName("DepsService").Methods().ByName("ListDependencyUpdates"),
+			Procedure:  DepsServiceListDependencyUpdatesProcedure,
+		}
+	})
+	depsServiceCheckDependenciesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_deps_proto.Services().ByName("DepsService").Methods().ByName("CheckDependencies"),
+			Procedure:  DepsServiceCheckDependenciesProcedure,
+		}
+	})
+	depsServiceOpenDependencyUpdatesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_deps_proto.Services().ByName("DepsService").Methods().ByName("OpenDependencyUpdates"),
+			Procedure:  DepsServiceOpenDependencyUpdatesProcedure,
+		}
+	})
+	depsServiceIgnoreDependencyUpdatesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_deps_proto.Services().ByName("DepsService").Methods().ByName("IgnoreDependencyUpdates"),
+			Procedure:  DepsServiceIgnoreDependencyUpdatesProcedure,
+		}
+	})
+	depsServiceSnoozeDependencyUpdatesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_deps_proto.Services().ByName("DepsService").Methods().ByName("SnoozeDependencyUpdates"),
+			Procedure:  DepsServiceSnoozeDependencyUpdatesProcedure,
+		}
+	})
 )
 
 // DepsServiceClient is a client for the ermite.DepsService service.
 type DepsServiceClient interface {
 	// ListDependencyUpdates reads pending repository states.
-	ListDependencyUpdates(context.Context, *connect.Request[ermite.ListDependencyUpdatesRequest]) (*connect.Response[ermite.ListDependencyUpdatesResponse], error)
+	ListDependencyUpdates(context.Context, *ermite.ListDependencyUpdatesRequest) (*ermite.ListDependencyUpdatesResponse, error)
 	// CheckDependencies synchronously checks one non-archived repository.
-	CheckDependencies(context.Context, *connect.Request[ermite.CheckDependenciesRequest]) (*connect.Response[ermite.CheckDependenciesResponse], error)
+	CheckDependencies(context.Context, *ermite.CheckDependenciesRequest) (*ermite.CheckDependenciesResponse, error)
 	// OpenDependencyUpdates opens or updates the Bernard merge request. A stale
 	// expected_versions set or APPLYING state fails with failed_precondition.
-	OpenDependencyUpdates(context.Context, *connect.Request[ermite.OpenDependencyUpdatesRequest]) (*connect.Response[ermite.OpenDependencyUpdatesResponse], error)
+	OpenDependencyUpdates(context.Context, *ermite.OpenDependencyUpdatesRequest) (*ermite.OpenDependencyUpdatesResponse, error)
 	// IgnoreDependencyUpdates ignores exactly the listed versions. A stale
 	// expected_versions set or APPLYING state fails with failed_precondition.
-	IgnoreDependencyUpdates(context.Context, *connect.Request[ermite.IgnoreDependencyUpdatesRequest]) (*connect.Response[ermite.IgnoreDependencyUpdatesResponse], error)
+	IgnoreDependencyUpdates(context.Context, *ermite.IgnoreDependencyUpdatesRequest) (*ermite.IgnoreDependencyUpdatesResponse, error)
 	// SnoozeDependencyUpdates hides the card for the server's snooze duration
 	// (seven days by default).
-	SnoozeDependencyUpdates(context.Context, *connect.Request[ermite.SnoozeDependencyUpdatesRequest]) (*connect.Response[ermite.SnoozeDependencyUpdatesResponse], error)
+	SnoozeDependencyUpdates(context.Context, *ermite.SnoozeDependencyUpdatesRequest) (*ermite.SnoozeDependencyUpdatesResponse, error)
 }
 
-// NewDepsServiceClient constructs a client for the ermite.DepsService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewDepsServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DepsServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	depsServiceMethods := ermite.File_ermite_deps_proto.Services().ByName("DepsService").Methods()
-	return &depsServiceClient{
-		listDependencyUpdates: connect.NewClient[ermite.ListDependencyUpdatesRequest, ermite.ListDependencyUpdatesResponse](
-			httpClient,
-			baseURL+DepsServiceListDependencyUpdatesProcedure,
-			connect.WithSchema(depsServiceMethods.ByName("ListDependencyUpdates")),
-			connect.WithClientOptions(opts...),
-		),
-		checkDependencies: connect.NewClient[ermite.CheckDependenciesRequest, ermite.CheckDependenciesResponse](
-			httpClient,
-			baseURL+DepsServiceCheckDependenciesProcedure,
-			connect.WithSchema(depsServiceMethods.ByName("CheckDependencies")),
-			connect.WithClientOptions(opts...),
-		),
-		openDependencyUpdates: connect.NewClient[ermite.OpenDependencyUpdatesRequest, ermite.OpenDependencyUpdatesResponse](
-			httpClient,
-			baseURL+DepsServiceOpenDependencyUpdatesProcedure,
-			connect.WithSchema(depsServiceMethods.ByName("OpenDependencyUpdates")),
-			connect.WithClientOptions(opts...),
-		),
-		ignoreDependencyUpdates: connect.NewClient[ermite.IgnoreDependencyUpdatesRequest, ermite.IgnoreDependencyUpdatesResponse](
-			httpClient,
-			baseURL+DepsServiceIgnoreDependencyUpdatesProcedure,
-			connect.WithSchema(depsServiceMethods.ByName("IgnoreDependencyUpdates")),
-			connect.WithClientOptions(opts...),
-		),
-		snoozeDependencyUpdates: connect.NewClient[ermite.SnoozeDependencyUpdatesRequest, ermite.SnoozeDependencyUpdatesResponse](
-			httpClient,
-			baseURL+DepsServiceSnoozeDependencyUpdatesProcedure,
-			connect.WithSchema(depsServiceMethods.ByName("SnoozeDependencyUpdates")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// depsServiceClient implements DepsServiceClient.
-type depsServiceClient struct {
-	listDependencyUpdates   *connect.Client[ermite.ListDependencyUpdatesRequest, ermite.ListDependencyUpdatesResponse]
-	checkDependencies       *connect.Client[ermite.CheckDependenciesRequest, ermite.CheckDependenciesResponse]
-	openDependencyUpdates   *connect.Client[ermite.OpenDependencyUpdatesRequest, ermite.OpenDependencyUpdatesResponse]
-	ignoreDependencyUpdates *connect.Client[ermite.IgnoreDependencyUpdatesRequest, ermite.IgnoreDependencyUpdatesResponse]
-	snoozeDependencyUpdates *connect.Client[ermite.SnoozeDependencyUpdatesRequest, ermite.SnoozeDependencyUpdatesResponse]
-}
-
-// ListDependencyUpdates calls ermite.DepsService.ListDependencyUpdates.
-func (c *depsServiceClient) ListDependencyUpdates(ctx context.Context, req *connect.Request[ermite.ListDependencyUpdatesRequest]) (*connect.Response[ermite.ListDependencyUpdatesResponse], error) {
-	return c.listDependencyUpdates.CallUnary(ctx, req)
-}
-
-// CheckDependencies calls ermite.DepsService.CheckDependencies.
-func (c *depsServiceClient) CheckDependencies(ctx context.Context, req *connect.Request[ermite.CheckDependenciesRequest]) (*connect.Response[ermite.CheckDependenciesResponse], error) {
-	return c.checkDependencies.CallUnary(ctx, req)
-}
-
-// OpenDependencyUpdates calls ermite.DepsService.OpenDependencyUpdates.
-func (c *depsServiceClient) OpenDependencyUpdates(ctx context.Context, req *connect.Request[ermite.OpenDependencyUpdatesRequest]) (*connect.Response[ermite.OpenDependencyUpdatesResponse], error) {
-	return c.openDependencyUpdates.CallUnary(ctx, req)
-}
-
-// IgnoreDependencyUpdates calls ermite.DepsService.IgnoreDependencyUpdates.
-func (c *depsServiceClient) IgnoreDependencyUpdates(ctx context.Context, req *connect.Request[ermite.IgnoreDependencyUpdatesRequest]) (*connect.Response[ermite.IgnoreDependencyUpdatesResponse], error) {
-	return c.ignoreDependencyUpdates.CallUnary(ctx, req)
-}
-
-// SnoozeDependencyUpdates calls ermite.DepsService.SnoozeDependencyUpdates.
-func (c *depsServiceClient) SnoozeDependencyUpdates(ctx context.Context, req *connect.Request[ermite.SnoozeDependencyUpdatesRequest]) (*connect.Response[ermite.SnoozeDependencyUpdatesResponse], error) {
-	return c.snoozeDependencyUpdates.CallUnary(ctx, req)
+// NewDepsServiceClient constructs a client for the ermite.DepsService service. Multiple service
+// clients may share a single connect.Client.
+func NewDepsServiceClient(client *connect.Client) DepsServiceClient {
+	return &depsServiceClient{client: client}
 }
 
 // DepsServiceHandler is an implementation of the ermite.DepsService service.
 type DepsServiceHandler interface {
 	// ListDependencyUpdates reads pending repository states.
-	ListDependencyUpdates(context.Context, *connect.Request[ermite.ListDependencyUpdatesRequest]) (*connect.Response[ermite.ListDependencyUpdatesResponse], error)
+	ListDependencyUpdates(context.Context, *ermite.ListDependencyUpdatesRequest) (*ermite.ListDependencyUpdatesResponse, error)
 	// CheckDependencies synchronously checks one non-archived repository.
-	CheckDependencies(context.Context, *connect.Request[ermite.CheckDependenciesRequest]) (*connect.Response[ermite.CheckDependenciesResponse], error)
+	CheckDependencies(context.Context, *ermite.CheckDependenciesRequest) (*ermite.CheckDependenciesResponse, error)
 	// OpenDependencyUpdates opens or updates the Bernard merge request. A stale
 	// expected_versions set or APPLYING state fails with failed_precondition.
-	OpenDependencyUpdates(context.Context, *connect.Request[ermite.OpenDependencyUpdatesRequest]) (*connect.Response[ermite.OpenDependencyUpdatesResponse], error)
+	OpenDependencyUpdates(context.Context, *ermite.OpenDependencyUpdatesRequest) (*ermite.OpenDependencyUpdatesResponse, error)
 	// IgnoreDependencyUpdates ignores exactly the listed versions. A stale
 	// expected_versions set or APPLYING state fails with failed_precondition.
-	IgnoreDependencyUpdates(context.Context, *connect.Request[ermite.IgnoreDependencyUpdatesRequest]) (*connect.Response[ermite.IgnoreDependencyUpdatesResponse], error)
+	IgnoreDependencyUpdates(context.Context, *ermite.IgnoreDependencyUpdatesRequest) (*ermite.IgnoreDependencyUpdatesResponse, error)
 	// SnoozeDependencyUpdates hides the card for the server's snooze duration
 	// (seven days by default).
-	SnoozeDependencyUpdates(context.Context, *connect.Request[ermite.SnoozeDependencyUpdatesRequest]) (*connect.Response[ermite.SnoozeDependencyUpdatesResponse], error)
+	SnoozeDependencyUpdates(context.Context, *ermite.SnoozeDependencyUpdatesRequest) (*ermite.SnoozeDependencyUpdatesResponse, error)
 }
 
-// NewDepsServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewDepsServiceHandler(svc DepsServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	depsServiceMethods := ermite.File_ermite_deps_proto.Services().ByName("DepsService").Methods()
-	depsServiceListDependencyUpdatesHandler := connect.NewUnaryHandler(
-		DepsServiceListDependencyUpdatesProcedure,
-		svc.ListDependencyUpdates,
-		connect.WithSchema(depsServiceMethods.ByName("ListDependencyUpdates")),
-		connect.WithHandlerOptions(opts...),
+// RegisterDepsServiceHandler registers svc as the ermite.DepsService implementation on server.
+func RegisterDepsServiceHandler(server *connect.Server, svc DepsServiceHandler) {
+	adapter := depsServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: depsServiceListDependencyUpdatesSpec(), Handler: adapter.listDependencyUpdates},
+		connect.Method{Spec: depsServiceCheckDependenciesSpec(), Handler: adapter.checkDependencies},
+		connect.Method{Spec: depsServiceOpenDependencyUpdatesSpec(), Handler: adapter.openDependencyUpdates},
+		connect.Method{Spec: depsServiceIgnoreDependencyUpdatesSpec(), Handler: adapter.ignoreDependencyUpdates},
+		connect.Method{Spec: depsServiceSnoozeDependencyUpdatesSpec(), Handler: adapter.snoozeDependencyUpdates},
 	)
-	depsServiceCheckDependenciesHandler := connect.NewUnaryHandler(
-		DepsServiceCheckDependenciesProcedure,
-		svc.CheckDependencies,
-		connect.WithSchema(depsServiceMethods.ByName("CheckDependencies")),
-		connect.WithHandlerOptions(opts...),
-	)
-	depsServiceOpenDependencyUpdatesHandler := connect.NewUnaryHandler(
-		DepsServiceOpenDependencyUpdatesProcedure,
-		svc.OpenDependencyUpdates,
-		connect.WithSchema(depsServiceMethods.ByName("OpenDependencyUpdates")),
-		connect.WithHandlerOptions(opts...),
-	)
-	depsServiceIgnoreDependencyUpdatesHandler := connect.NewUnaryHandler(
-		DepsServiceIgnoreDependencyUpdatesProcedure,
-		svc.IgnoreDependencyUpdates,
-		connect.WithSchema(depsServiceMethods.ByName("IgnoreDependencyUpdates")),
-		connect.WithHandlerOptions(opts...),
-	)
-	depsServiceSnoozeDependencyUpdatesHandler := connect.NewUnaryHandler(
-		DepsServiceSnoozeDependencyUpdatesProcedure,
-		svc.SnoozeDependencyUpdates,
-		connect.WithSchema(depsServiceMethods.ByName("SnoozeDependencyUpdates")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.DepsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case DepsServiceListDependencyUpdatesProcedure:
-			depsServiceListDependencyUpdatesHandler.ServeHTTP(w, r)
-		case DepsServiceCheckDependenciesProcedure:
-			depsServiceCheckDependenciesHandler.ServeHTTP(w, r)
-		case DepsServiceOpenDependencyUpdatesProcedure:
-			depsServiceOpenDependencyUpdatesHandler.ServeHTTP(w, r)
-		case DepsServiceIgnoreDependencyUpdatesProcedure:
-			depsServiceIgnoreDependencyUpdatesHandler.ServeHTTP(w, r)
-		case DepsServiceSnoozeDependencyUpdatesProcedure:
-			depsServiceSnoozeDependencyUpdatesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedDepsServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDepsServiceHandler struct{}
 
-func (UnimplementedDepsServiceHandler) ListDependencyUpdates(context.Context, *connect.Request[ermite.ListDependencyUpdatesRequest]) (*connect.Response[ermite.ListDependencyUpdatesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.DepsService.ListDependencyUpdates is not implemented"))
+func (UnimplementedDepsServiceHandler) ListDependencyUpdates(context.Context, *ermite.ListDependencyUpdatesRequest) (*ermite.ListDependencyUpdatesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.DepsService.ListDependencyUpdates is not implemented")
 }
 
-func (UnimplementedDepsServiceHandler) CheckDependencies(context.Context, *connect.Request[ermite.CheckDependenciesRequest]) (*connect.Response[ermite.CheckDependenciesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.DepsService.CheckDependencies is not implemented"))
+func (UnimplementedDepsServiceHandler) CheckDependencies(context.Context, *ermite.CheckDependenciesRequest) (*ermite.CheckDependenciesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.DepsService.CheckDependencies is not implemented")
 }
 
-func (UnimplementedDepsServiceHandler) OpenDependencyUpdates(context.Context, *connect.Request[ermite.OpenDependencyUpdatesRequest]) (*connect.Response[ermite.OpenDependencyUpdatesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.DepsService.OpenDependencyUpdates is not implemented"))
+func (UnimplementedDepsServiceHandler) OpenDependencyUpdates(context.Context, *ermite.OpenDependencyUpdatesRequest) (*ermite.OpenDependencyUpdatesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.DepsService.OpenDependencyUpdates is not implemented")
 }
 
-func (UnimplementedDepsServiceHandler) IgnoreDependencyUpdates(context.Context, *connect.Request[ermite.IgnoreDependencyUpdatesRequest]) (*connect.Response[ermite.IgnoreDependencyUpdatesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.DepsService.IgnoreDependencyUpdates is not implemented"))
+func (UnimplementedDepsServiceHandler) IgnoreDependencyUpdates(context.Context, *ermite.IgnoreDependencyUpdatesRequest) (*ermite.IgnoreDependencyUpdatesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.DepsService.IgnoreDependencyUpdates is not implemented")
 }
 
-func (UnimplementedDepsServiceHandler) SnoozeDependencyUpdates(context.Context, *connect.Request[ermite.SnoozeDependencyUpdatesRequest]) (*connect.Response[ermite.SnoozeDependencyUpdatesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.DepsService.SnoozeDependencyUpdates is not implemented"))
+func (UnimplementedDepsServiceHandler) SnoozeDependencyUpdates(context.Context, *ermite.SnoozeDependencyUpdatesRequest) (*ermite.SnoozeDependencyUpdatesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.DepsService.SnoozeDependencyUpdates is not implemented")
+}
+
+type depsServiceClient struct {
+	client *connect.Client
+}
+
+func (c *depsServiceClient) ListDependencyUpdates(ctx context.Context, req *ermite.ListDependencyUpdatesRequest) (*ermite.ListDependencyUpdatesResponse, error) {
+	var res ermite.ListDependencyUpdatesResponse
+	if err := c.client.CallUnary(ctx, depsServiceListDependencyUpdatesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *depsServiceClient) CheckDependencies(ctx context.Context, req *ermite.CheckDependenciesRequest) (*ermite.CheckDependenciesResponse, error) {
+	var res ermite.CheckDependenciesResponse
+	if err := c.client.CallUnary(ctx, depsServiceCheckDependenciesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *depsServiceClient) OpenDependencyUpdates(ctx context.Context, req *ermite.OpenDependencyUpdatesRequest) (*ermite.OpenDependencyUpdatesResponse, error) {
+	var res ermite.OpenDependencyUpdatesResponse
+	if err := c.client.CallUnary(ctx, depsServiceOpenDependencyUpdatesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *depsServiceClient) IgnoreDependencyUpdates(ctx context.Context, req *ermite.IgnoreDependencyUpdatesRequest) (*ermite.IgnoreDependencyUpdatesResponse, error) {
+	var res ermite.IgnoreDependencyUpdatesResponse
+	if err := c.client.CallUnary(ctx, depsServiceIgnoreDependencyUpdatesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *depsServiceClient) SnoozeDependencyUpdates(ctx context.Context, req *ermite.SnoozeDependencyUpdatesRequest) (*ermite.SnoozeDependencyUpdatesResponse, error) {
+	var res ermite.SnoozeDependencyUpdatesResponse
+	if err := c.client.CallUnary(ctx, depsServiceSnoozeDependencyUpdatesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type depsServiceHandler struct{ svc DepsServiceHandler }
+
+func (h depsServiceHandler) listDependencyUpdates(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListDependencyUpdatesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListDependencyUpdates(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h depsServiceHandler) checkDependencies(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CheckDependenciesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CheckDependencies(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h depsServiceHandler) openDependencyUpdates(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.OpenDependencyUpdatesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.OpenDependencyUpdates(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h depsServiceHandler) ignoreDependencyUpdates(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.IgnoreDependencyUpdatesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.IgnoreDependencyUpdates(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h depsServiceHandler) snoozeDependencyUpdates(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.SnoozeDependencyUpdatesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SnoozeDependencyUpdates(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

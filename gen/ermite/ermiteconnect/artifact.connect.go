@@ -8,19 +8,10 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// JobArtifactServiceName is the fully-qualified name of the JobArtifactService service.
@@ -29,44 +20,96 @@ const (
 	ArtifactServiceName = "ermite.ArtifactService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// JobArtifactServiceCreateJobArtifactProcedure is the fully-qualified name of the
-	// JobArtifactService's CreateJobArtifact RPC.
+	// JobArtifactServiceCreateJobArtifactProcedure is the procedure name of the JobArtifactService's
+	// CreateJobArtifact RPC.
 	JobArtifactServiceCreateJobArtifactProcedure = "/ermite.JobArtifactService/CreateJobArtifact"
-	// JobArtifactServiceUploadJobArtifactBlockProcedure is the fully-qualified name of the
+	// JobArtifactServiceUploadJobArtifactBlockProcedure is the procedure name of the
 	// JobArtifactService's UploadJobArtifactBlock RPC.
 	JobArtifactServiceUploadJobArtifactBlockProcedure = "/ermite.JobArtifactService/UploadJobArtifactBlock"
-	// JobArtifactServiceCommitJobArtifactProcedure is the fully-qualified name of the
-	// JobArtifactService's CommitJobArtifact RPC.
+	// JobArtifactServiceCommitJobArtifactProcedure is the procedure name of the JobArtifactService's
+	// CommitJobArtifact RPC.
 	JobArtifactServiceCommitJobArtifactProcedure = "/ermite.JobArtifactService/CommitJobArtifact"
-	// JobArtifactServiceFinalizeJobArtifactProcedure is the fully-qualified name of the
-	// JobArtifactService's FinalizeJobArtifact RPC.
+	// JobArtifactServiceFinalizeJobArtifactProcedure is the procedure name of the JobArtifactService's
+	// FinalizeJobArtifact RPC.
 	JobArtifactServiceFinalizeJobArtifactProcedure = "/ermite.JobArtifactService/FinalizeJobArtifact"
-	// JobArtifactServiceListJobArtifactsProcedure is the fully-qualified name of the
-	// JobArtifactService's ListJobArtifacts RPC.
+	// JobArtifactServiceListJobArtifactsProcedure is the procedure name of the JobArtifactService's
+	// ListJobArtifacts RPC.
 	JobArtifactServiceListJobArtifactsProcedure = "/ermite.JobArtifactService/ListJobArtifacts"
-	// JobArtifactServiceDownloadJobArtifactProcedure is the fully-qualified name of the
-	// JobArtifactService's DownloadJobArtifact RPC.
+	// JobArtifactServiceDownloadJobArtifactProcedure is the procedure name of the JobArtifactService's
+	// DownloadJobArtifact RPC.
 	JobArtifactServiceDownloadJobArtifactProcedure = "/ermite.JobArtifactService/DownloadJobArtifact"
-	// JobArtifactServiceDeleteJobArtifactProcedure is the fully-qualified name of the
-	// JobArtifactService's DeleteJobArtifact RPC.
+	// JobArtifactServiceDeleteJobArtifactProcedure is the procedure name of the JobArtifactService's
+	// DeleteJobArtifact RPC.
 	JobArtifactServiceDeleteJobArtifactProcedure = "/ermite.JobArtifactService/DeleteJobArtifact"
-	// ArtifactServiceListArtifactsProcedure is the fully-qualified name of the ArtifactService's
+	// ArtifactServiceListArtifactsProcedure is the procedure name of the ArtifactService's
 	// ListArtifacts RPC.
 	ArtifactServiceListArtifactsProcedure = "/ermite.ArtifactService/ListArtifacts"
-	// ArtifactServiceDownloadArtifactProcedure is the fully-qualified name of the ArtifactService's
+	// ArtifactServiceDownloadArtifactProcedure is the procedure name of the ArtifactService's
 	// DownloadArtifact RPC.
 	ArtifactServiceDownloadArtifactProcedure = "/ermite.ArtifactService/DownloadArtifact"
-	// ArtifactServiceDeleteArtifactProcedure is the fully-qualified name of the ArtifactService's
+	// ArtifactServiceDeleteArtifactProcedure is the procedure name of the ArtifactService's
 	// DeleteArtifact RPC.
 	ArtifactServiceDeleteArtifactProcedure = "/ermite.ArtifactService/DeleteArtifact"
+)
+
+var (
+	jobArtifactServiceCreateJobArtifactSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_artifact_proto.Services().ByName("JobArtifactService").Methods().ByName("CreateJobArtifact"),
+			Procedure:  JobArtifactServiceCreateJobArtifactProcedure,
+		}
+	})
+	jobArtifactServiceUploadJobArtifactBlockSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeClient,
+			Schema:     ermite.File_ermite_artifact_proto.Services().ByName("JobArtifactService").Methods().ByName("UploadJobArtifactBlock"),
+			Procedure:  JobArtifactServiceUploadJobArtifactBlockProcedure,
+		}
+	})
+	jobArtifactServiceCommitJobArtifactSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_artifact_proto.Services().ByName("JobArtifactService").Methods().ByName("CommitJobArtifact"),
+			Procedure:  JobArtifactServiceCommitJobArtifactProcedure,
+		}
+	})
+	jobArtifactServiceFinalizeJobArtifactSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_artifact_proto.Services().ByName("JobArtifactService").Methods().ByName("FinalizeJobArtifact"),
+			Procedure:  JobArtifactServiceFinalizeJobArtifactProcedure,
+		}
+	})
+	jobArtifactServiceListJobArtifactsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_artifact_proto.Services().ByName("JobArtifactService").Methods().ByName("ListJobArtifacts"),
+			Procedure:  JobArtifactServiceListJobArtifactsProcedure,
+		}
+	})
+	jobArtifactServiceDownloadJobArtifactSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     ermite.File_ermite_artifact_proto.Services().ByName("JobArtifactService").Methods().ByName("DownloadJobArtifact"),
+			Procedure:  JobArtifactServiceDownloadJobArtifactProcedure,
+		}
+	})
+	jobArtifactServiceDeleteJobArtifactSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_artifact_proto.Services().ByName("JobArtifactService").Methods().ByName("DeleteJobArtifact"),
+			Procedure:  JobArtifactServiceDeleteJobArtifactProcedure,
+		}
+	})
 )
 
 // JobArtifactServiceClient is a client for the ermite.JobArtifactService service.
@@ -78,7 +121,7 @@ type JobArtifactServiceClient interface {
 	// it: DeleteJobArtifact), and resource_exhausted if the artifacts of the
 	// repository already use all their space. A pending artifact of the same
 	// job and name is discarded: a new create is a new upload.
-	CreateJobArtifact(context.Context, *connect.Request[ermite.CreateJobArtifactRequest]) (*connect.Response[ermite.CreateJobArtifactResponse], error)
+	CreateJobArtifact(context.Context, *ermite.CreateJobArtifactRequest) (*ermite.CreateJobArtifactResponse, error)
 	// UploadJobArtifactBlock stores one block of a pending artifact. It is a
 	// client stream: the first message names the job, the artifact and the
 	// block, every message may carry data, and the block is the data of all the
@@ -92,7 +135,7 @@ type JobArtifactServiceClient interface {
 	// of the messages is broken, and resource_exhausted if the blocks of the
 	// artifact would exceed the size of one artifact or the space of the
 	// repository.
-	UploadJobArtifactBlock(context.Context) *connect.ClientStreamForClient[ermite.UploadJobArtifactBlockRequest, ermite.UploadJobArtifactBlockResponse]
+	UploadJobArtifactBlock(context.Context) (JobArtifactServiceUploadJobArtifactBlockClientStream, error)
 	// CommitJobArtifact sets the content of a pending artifact: the blocks named,
 	// in that order (Azure's Put Block List). An empty list is an empty content
 	// (a 0-byte upload). The server then knows the size and the digest, and
@@ -101,7 +144,7 @@ type JobArtifactServiceClient interface {
 	// failed_precondition. Fails with not_found if the artifact is not a pending
 	// artifact of this job, and invalid_argument if a block id was never
 	// uploaded or the list has more than 50,000 ids.
-	CommitJobArtifact(context.Context, *connect.Request[ermite.CommitJobArtifactRequest]) (*connect.Response[ermite.CommitJobArtifactResponse], error)
+	CommitJobArtifact(context.Context, *ermite.CommitJobArtifactRequest) (*ermite.CommitJobArtifactResponse, error)
 	// FinalizeJobArtifact makes the latest committed artifact of the job with
 	// that name visible to the run, and returns it. An artifact of the same name
 	// from an earlier attempt of the run is deleted at the same moment (a re-run
@@ -111,123 +154,78 @@ type JobArtifactServiceClient interface {
 	// invalid_argument if digest is set and differs from the content, and
 	// already_exists if a job of the same attempt finalized an artifact of that
 	// name in the meantime.
-	FinalizeJobArtifact(context.Context, *connect.Request[ermite.FinalizeJobArtifactRequest]) (*connect.Response[ermite.FinalizeJobArtifactResponse], error)
+	FinalizeJobArtifact(context.Context, *ermite.FinalizeJobArtifactRequest) (*ermite.FinalizeJobArtifactResponse, error)
 	// ListJobArtifacts lists the finalized, unexpired artifacts of the job's run,
 	// all attempts, by id. An empty list is not an error.
-	ListJobArtifacts(context.Context, *connect.Request[ermite.ListJobArtifactsRequest]) (*connect.Response[ermite.ListJobArtifactsResponse], error)
+	ListJobArtifacts(context.Context, *ermite.ListJobArtifactsRequest) (*ermite.ListJobArtifactsResponse, error)
 	// DownloadJobArtifact streams the content of an artifact of the job's run.
 	// The first message carries the artifact, then the chunks follow in order
 	// from offset. A client that loses the stream calls again with the offset
 	// after the last byte it received. Fails with not_found if the artifact is
 	// not a finalized artifact of the run (or has expired), and out_of_range if
 	// offset is beyond its size.
-	DownloadJobArtifact(context.Context, *connect.Request[ermite.DownloadJobArtifactRequest]) (*connect.ServerStreamForClient[ermite.DownloadJobArtifactResponse], error)
+	DownloadJobArtifact(context.Context, *ermite.DownloadJobArtifactRequest) (JobArtifactServiceDownloadJobArtifactClientStream, error)
 	// DeleteJobArtifact deletes the finalized artifact of that name of the job's
 	// run (upload-artifact's "overwrite", and its merge action's
 	// "delete-merged"). Fails with not_found if there is none.
-	DeleteJobArtifact(context.Context, *connect.Request[ermite.DeleteJobArtifactRequest]) (*connect.Response[ermite.DeleteJobArtifactResponse], error)
+	DeleteJobArtifact(context.Context, *ermite.DeleteJobArtifactRequest) (*ermite.DeleteJobArtifactResponse, error)
 }
 
-// NewJobArtifactServiceClient constructs a client for the ermite.JobArtifactService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewJobArtifactServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) JobArtifactServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	jobArtifactServiceMethods := ermite.File_ermite_artifact_proto.Services().ByName("JobArtifactService").Methods()
-	return &jobArtifactServiceClient{
-		createJobArtifact: connect.NewClient[ermite.CreateJobArtifactRequest, ermite.CreateJobArtifactResponse](
-			httpClient,
-			baseURL+JobArtifactServiceCreateJobArtifactProcedure,
-			connect.WithSchema(jobArtifactServiceMethods.ByName("CreateJobArtifact")),
-			connect.WithClientOptions(opts...),
-		),
-		uploadJobArtifactBlock: connect.NewClient[ermite.UploadJobArtifactBlockRequest, ermite.UploadJobArtifactBlockResponse](
-			httpClient,
-			baseURL+JobArtifactServiceUploadJobArtifactBlockProcedure,
-			connect.WithSchema(jobArtifactServiceMethods.ByName("UploadJobArtifactBlock")),
-			connect.WithClientOptions(opts...),
-		),
-		commitJobArtifact: connect.NewClient[ermite.CommitJobArtifactRequest, ermite.CommitJobArtifactResponse](
-			httpClient,
-			baseURL+JobArtifactServiceCommitJobArtifactProcedure,
-			connect.WithSchema(jobArtifactServiceMethods.ByName("CommitJobArtifact")),
-			connect.WithClientOptions(opts...),
-		),
-		finalizeJobArtifact: connect.NewClient[ermite.FinalizeJobArtifactRequest, ermite.FinalizeJobArtifactResponse](
-			httpClient,
-			baseURL+JobArtifactServiceFinalizeJobArtifactProcedure,
-			connect.WithSchema(jobArtifactServiceMethods.ByName("FinalizeJobArtifact")),
-			connect.WithClientOptions(opts...),
-		),
-		listJobArtifacts: connect.NewClient[ermite.ListJobArtifactsRequest, ermite.ListJobArtifactsResponse](
-			httpClient,
-			baseURL+JobArtifactServiceListJobArtifactsProcedure,
-			connect.WithSchema(jobArtifactServiceMethods.ByName("ListJobArtifacts")),
-			connect.WithClientOptions(opts...),
-		),
-		downloadJobArtifact: connect.NewClient[ermite.DownloadJobArtifactRequest, ermite.DownloadJobArtifactResponse](
-			httpClient,
-			baseURL+JobArtifactServiceDownloadJobArtifactProcedure,
-			connect.WithSchema(jobArtifactServiceMethods.ByName("DownloadJobArtifact")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteJobArtifact: connect.NewClient[ermite.DeleteJobArtifactRequest, ermite.DeleteJobArtifactResponse](
-			httpClient,
-			baseURL+JobArtifactServiceDeleteJobArtifactProcedure,
-			connect.WithSchema(jobArtifactServiceMethods.ByName("DeleteJobArtifact")),
-			connect.WithClientOptions(opts...),
-		),
+// NewJobArtifactServiceClient constructs a client for the ermite.JobArtifactService service.
+// Multiple service clients may share a single connect.Client.
+func NewJobArtifactServiceClient(client *connect.Client) JobArtifactServiceClient {
+	return &jobArtifactServiceClient{client: client}
+}
+
+// JobArtifactServiceUploadJobArtifactBlockClientStream is the client stream for the
+// JobArtifactService's UploadJobArtifactBlock RPC.
+type JobArtifactServiceUploadJobArtifactBlockClientStream struct {
+	stream connect.ClientStream
+}
+
+// SendHeaders opens the stream and flushes the request headers without a message. The first Send or
+// Receive does this implicitly.
+func (s JobArtifactServiceUploadJobArtifactBlockClientStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a request message to the server.
+func (s JobArtifactServiceUploadJobArtifactBlockClientStream) Send(req *ermite.UploadJobArtifactBlockRequest) error {
+	return s.stream.Send(req)
+}
+
+// CloseAndReceive closes the request side of the stream and returns the single response message. It
+// reads the stream to completion to release its resources.
+func (s JobArtifactServiceUploadJobArtifactBlockClientStream) CloseAndReceive() (*ermite.UploadJobArtifactBlockResponse, error) {
+	if err := s.stream.CloseSend(); err != nil {
+		return nil, err
 	}
+	var res ermite.UploadJobArtifactBlockResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
-// jobArtifactServiceClient implements JobArtifactServiceClient.
-type jobArtifactServiceClient struct {
-	createJobArtifact      *connect.Client[ermite.CreateJobArtifactRequest, ermite.CreateJobArtifactResponse]
-	uploadJobArtifactBlock *connect.Client[ermite.UploadJobArtifactBlockRequest, ermite.UploadJobArtifactBlockResponse]
-	commitJobArtifact      *connect.Client[ermite.CommitJobArtifactRequest, ermite.CommitJobArtifactResponse]
-	finalizeJobArtifact    *connect.Client[ermite.FinalizeJobArtifactRequest, ermite.FinalizeJobArtifactResponse]
-	listJobArtifacts       *connect.Client[ermite.ListJobArtifactsRequest, ermite.ListJobArtifactsResponse]
-	downloadJobArtifact    *connect.Client[ermite.DownloadJobArtifactRequest, ermite.DownloadJobArtifactResponse]
-	deleteJobArtifact      *connect.Client[ermite.DeleteJobArtifactRequest, ermite.DeleteJobArtifactResponse]
+// JobArtifactServiceDownloadJobArtifactClientStream is the client stream for the
+// JobArtifactService's DownloadJobArtifact RPC.
+type JobArtifactServiceDownloadJobArtifactClientStream struct {
+	stream connect.ClientStream
 }
 
-// CreateJobArtifact calls ermite.JobArtifactService.CreateJobArtifact.
-func (c *jobArtifactServiceClient) CreateJobArtifact(ctx context.Context, req *connect.Request[ermite.CreateJobArtifactRequest]) (*connect.Response[ermite.CreateJobArtifactResponse], error) {
-	return c.createJobArtifact.CallUnary(ctx, req)
+// Receive returns the next response message from the server.
+func (s JobArtifactServiceDownloadJobArtifactClientStream) Receive() (*ermite.DownloadJobArtifactResponse, error) {
+	var res ermite.DownloadJobArtifactResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
-// UploadJobArtifactBlock calls ermite.JobArtifactService.UploadJobArtifactBlock.
-func (c *jobArtifactServiceClient) UploadJobArtifactBlock(ctx context.Context) *connect.ClientStreamForClient[ermite.UploadJobArtifactBlockRequest, ermite.UploadJobArtifactBlockResponse] {
-	return c.uploadJobArtifactBlock.CallClientStream(ctx)
-}
-
-// CommitJobArtifact calls ermite.JobArtifactService.CommitJobArtifact.
-func (c *jobArtifactServiceClient) CommitJobArtifact(ctx context.Context, req *connect.Request[ermite.CommitJobArtifactRequest]) (*connect.Response[ermite.CommitJobArtifactResponse], error) {
-	return c.commitJobArtifact.CallUnary(ctx, req)
-}
-
-// FinalizeJobArtifact calls ermite.JobArtifactService.FinalizeJobArtifact.
-func (c *jobArtifactServiceClient) FinalizeJobArtifact(ctx context.Context, req *connect.Request[ermite.FinalizeJobArtifactRequest]) (*connect.Response[ermite.FinalizeJobArtifactResponse], error) {
-	return c.finalizeJobArtifact.CallUnary(ctx, req)
-}
-
-// ListJobArtifacts calls ermite.JobArtifactService.ListJobArtifacts.
-func (c *jobArtifactServiceClient) ListJobArtifacts(ctx context.Context, req *connect.Request[ermite.ListJobArtifactsRequest]) (*connect.Response[ermite.ListJobArtifactsResponse], error) {
-	return c.listJobArtifacts.CallUnary(ctx, req)
-}
-
-// DownloadJobArtifact calls ermite.JobArtifactService.DownloadJobArtifact.
-func (c *jobArtifactServiceClient) DownloadJobArtifact(ctx context.Context, req *connect.Request[ermite.DownloadJobArtifactRequest]) (*connect.ServerStreamForClient[ermite.DownloadJobArtifactResponse], error) {
-	return c.downloadJobArtifact.CallServerStream(ctx, req)
-}
-
-// DeleteJobArtifact calls ermite.JobArtifactService.DeleteJobArtifact.
-func (c *jobArtifactServiceClient) DeleteJobArtifact(ctx context.Context, req *connect.Request[ermite.DeleteJobArtifactRequest]) (*connect.Response[ermite.DeleteJobArtifactResponse], error) {
-	return c.deleteJobArtifact.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s JobArtifactServiceDownloadJobArtifactClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // JobArtifactServiceHandler is an implementation of the ermite.JobArtifactService service.
@@ -239,7 +237,7 @@ type JobArtifactServiceHandler interface {
 	// it: DeleteJobArtifact), and resource_exhausted if the artifacts of the
 	// repository already use all their space. A pending artifact of the same
 	// job and name is discarded: a new create is a new upload.
-	CreateJobArtifact(context.Context, *connect.Request[ermite.CreateJobArtifactRequest]) (*connect.Response[ermite.CreateJobArtifactResponse], error)
+	CreateJobArtifact(context.Context, *ermite.CreateJobArtifactRequest) (*ermite.CreateJobArtifactResponse, error)
 	// UploadJobArtifactBlock stores one block of a pending artifact. It is a
 	// client stream: the first message names the job, the artifact and the
 	// block, every message may carry data, and the block is the data of all the
@@ -253,7 +251,7 @@ type JobArtifactServiceHandler interface {
 	// of the messages is broken, and resource_exhausted if the blocks of the
 	// artifact would exceed the size of one artifact or the space of the
 	// repository.
-	UploadJobArtifactBlock(context.Context, *connect.ClientStream[ermite.UploadJobArtifactBlockRequest]) (*connect.Response[ermite.UploadJobArtifactBlockResponse], error)
+	UploadJobArtifactBlock(context.Context, JobArtifactServiceUploadJobArtifactBlockServerStream) (*ermite.UploadJobArtifactBlockResponse, error)
 	// CommitJobArtifact sets the content of a pending artifact: the blocks named,
 	// in that order (Azure's Put Block List). An empty list is an empty content
 	// (a 0-byte upload). The server then knows the size and the digest, and
@@ -262,7 +260,7 @@ type JobArtifactServiceHandler interface {
 	// failed_precondition. Fails with not_found if the artifact is not a pending
 	// artifact of this job, and invalid_argument if a block id was never
 	// uploaded or the list has more than 50,000 ids.
-	CommitJobArtifact(context.Context, *connect.Request[ermite.CommitJobArtifactRequest]) (*connect.Response[ermite.CommitJobArtifactResponse], error)
+	CommitJobArtifact(context.Context, *ermite.CommitJobArtifactRequest) (*ermite.CommitJobArtifactResponse, error)
 	// FinalizeJobArtifact makes the latest committed artifact of the job with
 	// that name visible to the run, and returns it. An artifact of the same name
 	// from an earlier attempt of the run is deleted at the same moment (a re-run
@@ -272,259 +270,419 @@ type JobArtifactServiceHandler interface {
 	// invalid_argument if digest is set and differs from the content, and
 	// already_exists if a job of the same attempt finalized an artifact of that
 	// name in the meantime.
-	FinalizeJobArtifact(context.Context, *connect.Request[ermite.FinalizeJobArtifactRequest]) (*connect.Response[ermite.FinalizeJobArtifactResponse], error)
+	FinalizeJobArtifact(context.Context, *ermite.FinalizeJobArtifactRequest) (*ermite.FinalizeJobArtifactResponse, error)
 	// ListJobArtifacts lists the finalized, unexpired artifacts of the job's run,
 	// all attempts, by id. An empty list is not an error.
-	ListJobArtifacts(context.Context, *connect.Request[ermite.ListJobArtifactsRequest]) (*connect.Response[ermite.ListJobArtifactsResponse], error)
+	ListJobArtifacts(context.Context, *ermite.ListJobArtifactsRequest) (*ermite.ListJobArtifactsResponse, error)
 	// DownloadJobArtifact streams the content of an artifact of the job's run.
 	// The first message carries the artifact, then the chunks follow in order
 	// from offset. A client that loses the stream calls again with the offset
 	// after the last byte it received. Fails with not_found if the artifact is
 	// not a finalized artifact of the run (or has expired), and out_of_range if
 	// offset is beyond its size.
-	DownloadJobArtifact(context.Context, *connect.Request[ermite.DownloadJobArtifactRequest], *connect.ServerStream[ermite.DownloadJobArtifactResponse]) error
+	DownloadJobArtifact(context.Context, *ermite.DownloadJobArtifactRequest, JobArtifactServiceDownloadJobArtifactServerStream) error
 	// DeleteJobArtifact deletes the finalized artifact of that name of the job's
 	// run (upload-artifact's "overwrite", and its merge action's
 	// "delete-merged"). Fails with not_found if there is none.
-	DeleteJobArtifact(context.Context, *connect.Request[ermite.DeleteJobArtifactRequest]) (*connect.Response[ermite.DeleteJobArtifactResponse], error)
+	DeleteJobArtifact(context.Context, *ermite.DeleteJobArtifactRequest) (*ermite.DeleteJobArtifactResponse, error)
 }
 
-// NewJobArtifactServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewJobArtifactServiceHandler(svc JobArtifactServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	jobArtifactServiceMethods := ermite.File_ermite_artifact_proto.Services().ByName("JobArtifactService").Methods()
-	jobArtifactServiceCreateJobArtifactHandler := connect.NewUnaryHandler(
-		JobArtifactServiceCreateJobArtifactProcedure,
-		svc.CreateJobArtifact,
-		connect.WithSchema(jobArtifactServiceMethods.ByName("CreateJobArtifact")),
-		connect.WithHandlerOptions(opts...),
+// RegisterJobArtifactServiceHandler registers svc as the ermite.JobArtifactService implementation
+// on server.
+func RegisterJobArtifactServiceHandler(server *connect.Server, svc JobArtifactServiceHandler) {
+	adapter := jobArtifactServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: jobArtifactServiceCreateJobArtifactSpec(), Handler: adapter.createJobArtifact},
+		connect.Method{Spec: jobArtifactServiceUploadJobArtifactBlockSpec(), Handler: adapter.uploadJobArtifactBlock},
+		connect.Method{Spec: jobArtifactServiceCommitJobArtifactSpec(), Handler: adapter.commitJobArtifact},
+		connect.Method{Spec: jobArtifactServiceFinalizeJobArtifactSpec(), Handler: adapter.finalizeJobArtifact},
+		connect.Method{Spec: jobArtifactServiceListJobArtifactsSpec(), Handler: adapter.listJobArtifacts},
+		connect.Method{Spec: jobArtifactServiceDownloadJobArtifactSpec(), Handler: adapter.downloadJobArtifact},
+		connect.Method{Spec: jobArtifactServiceDeleteJobArtifactSpec(), Handler: adapter.deleteJobArtifact},
 	)
-	jobArtifactServiceUploadJobArtifactBlockHandler := connect.NewClientStreamHandler(
-		JobArtifactServiceUploadJobArtifactBlockProcedure,
-		svc.UploadJobArtifactBlock,
-		connect.WithSchema(jobArtifactServiceMethods.ByName("UploadJobArtifactBlock")),
-		connect.WithHandlerOptions(opts...),
-	)
-	jobArtifactServiceCommitJobArtifactHandler := connect.NewUnaryHandler(
-		JobArtifactServiceCommitJobArtifactProcedure,
-		svc.CommitJobArtifact,
-		connect.WithSchema(jobArtifactServiceMethods.ByName("CommitJobArtifact")),
-		connect.WithHandlerOptions(opts...),
-	)
-	jobArtifactServiceFinalizeJobArtifactHandler := connect.NewUnaryHandler(
-		JobArtifactServiceFinalizeJobArtifactProcedure,
-		svc.FinalizeJobArtifact,
-		connect.WithSchema(jobArtifactServiceMethods.ByName("FinalizeJobArtifact")),
-		connect.WithHandlerOptions(opts...),
-	)
-	jobArtifactServiceListJobArtifactsHandler := connect.NewUnaryHandler(
-		JobArtifactServiceListJobArtifactsProcedure,
-		svc.ListJobArtifacts,
-		connect.WithSchema(jobArtifactServiceMethods.ByName("ListJobArtifacts")),
-		connect.WithHandlerOptions(opts...),
-	)
-	jobArtifactServiceDownloadJobArtifactHandler := connect.NewServerStreamHandler(
-		JobArtifactServiceDownloadJobArtifactProcedure,
-		svc.DownloadJobArtifact,
-		connect.WithSchema(jobArtifactServiceMethods.ByName("DownloadJobArtifact")),
-		connect.WithHandlerOptions(opts...),
-	)
-	jobArtifactServiceDeleteJobArtifactHandler := connect.NewUnaryHandler(
-		JobArtifactServiceDeleteJobArtifactProcedure,
-		svc.DeleteJobArtifact,
-		connect.WithSchema(jobArtifactServiceMethods.ByName("DeleteJobArtifact")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.JobArtifactService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case JobArtifactServiceCreateJobArtifactProcedure:
-			jobArtifactServiceCreateJobArtifactHandler.ServeHTTP(w, r)
-		case JobArtifactServiceUploadJobArtifactBlockProcedure:
-			jobArtifactServiceUploadJobArtifactBlockHandler.ServeHTTP(w, r)
-		case JobArtifactServiceCommitJobArtifactProcedure:
-			jobArtifactServiceCommitJobArtifactHandler.ServeHTTP(w, r)
-		case JobArtifactServiceFinalizeJobArtifactProcedure:
-			jobArtifactServiceFinalizeJobArtifactHandler.ServeHTTP(w, r)
-		case JobArtifactServiceListJobArtifactsProcedure:
-			jobArtifactServiceListJobArtifactsHandler.ServeHTTP(w, r)
-		case JobArtifactServiceDownloadJobArtifactProcedure:
-			jobArtifactServiceDownloadJobArtifactHandler.ServeHTTP(w, r)
-		case JobArtifactServiceDeleteJobArtifactProcedure:
-			jobArtifactServiceDeleteJobArtifactHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// JobArtifactServiceUploadJobArtifactBlockServerStream is the server stream for the
+// JobArtifactService's UploadJobArtifactBlock RPC.
+type JobArtifactServiceUploadJobArtifactBlockServerStream struct {
+	stream connect.ServerStream
+}
+
+// Receive returns the next request message from the client.
+func (s JobArtifactServiceUploadJobArtifactBlockServerStream) Receive() (*ermite.UploadJobArtifactBlockRequest, error) {
+	var req ermite.UploadJobArtifactBlockRequest
+	if err := s.stream.Receive(&req); err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
+// JobArtifactServiceDownloadJobArtifactServerStream is the server stream for the
+// JobArtifactService's DownloadJobArtifact RPC.
+type JobArtifactServiceDownloadJobArtifactServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s JobArtifactServiceDownloadJobArtifactServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s JobArtifactServiceDownloadJobArtifactServerStream) Send(res *ermite.DownloadJobArtifactResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedJobArtifactServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedJobArtifactServiceHandler struct{}
 
-func (UnimplementedJobArtifactServiceHandler) CreateJobArtifact(context.Context, *connect.Request[ermite.CreateJobArtifactRequest]) (*connect.Response[ermite.CreateJobArtifactResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.JobArtifactService.CreateJobArtifact is not implemented"))
+func (UnimplementedJobArtifactServiceHandler) CreateJobArtifact(context.Context, *ermite.CreateJobArtifactRequest) (*ermite.CreateJobArtifactResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.JobArtifactService.CreateJobArtifact is not implemented")
 }
 
-func (UnimplementedJobArtifactServiceHandler) UploadJobArtifactBlock(context.Context, *connect.ClientStream[ermite.UploadJobArtifactBlockRequest]) (*connect.Response[ermite.UploadJobArtifactBlockResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.JobArtifactService.UploadJobArtifactBlock is not implemented"))
+func (UnimplementedJobArtifactServiceHandler) UploadJobArtifactBlock(context.Context, JobArtifactServiceUploadJobArtifactBlockServerStream) (*ermite.UploadJobArtifactBlockResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.JobArtifactService.UploadJobArtifactBlock is not implemented")
 }
 
-func (UnimplementedJobArtifactServiceHandler) CommitJobArtifact(context.Context, *connect.Request[ermite.CommitJobArtifactRequest]) (*connect.Response[ermite.CommitJobArtifactResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.JobArtifactService.CommitJobArtifact is not implemented"))
+func (UnimplementedJobArtifactServiceHandler) CommitJobArtifact(context.Context, *ermite.CommitJobArtifactRequest) (*ermite.CommitJobArtifactResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.JobArtifactService.CommitJobArtifact is not implemented")
 }
 
-func (UnimplementedJobArtifactServiceHandler) FinalizeJobArtifact(context.Context, *connect.Request[ermite.FinalizeJobArtifactRequest]) (*connect.Response[ermite.FinalizeJobArtifactResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.JobArtifactService.FinalizeJobArtifact is not implemented"))
+func (UnimplementedJobArtifactServiceHandler) FinalizeJobArtifact(context.Context, *ermite.FinalizeJobArtifactRequest) (*ermite.FinalizeJobArtifactResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.JobArtifactService.FinalizeJobArtifact is not implemented")
 }
 
-func (UnimplementedJobArtifactServiceHandler) ListJobArtifacts(context.Context, *connect.Request[ermite.ListJobArtifactsRequest]) (*connect.Response[ermite.ListJobArtifactsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.JobArtifactService.ListJobArtifacts is not implemented"))
+func (UnimplementedJobArtifactServiceHandler) ListJobArtifacts(context.Context, *ermite.ListJobArtifactsRequest) (*ermite.ListJobArtifactsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.JobArtifactService.ListJobArtifacts is not implemented")
 }
 
-func (UnimplementedJobArtifactServiceHandler) DownloadJobArtifact(context.Context, *connect.Request[ermite.DownloadJobArtifactRequest], *connect.ServerStream[ermite.DownloadJobArtifactResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("ermite.JobArtifactService.DownloadJobArtifact is not implemented"))
+func (UnimplementedJobArtifactServiceHandler) DownloadJobArtifact(context.Context, *ermite.DownloadJobArtifactRequest, JobArtifactServiceDownloadJobArtifactServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "ermite.JobArtifactService.DownloadJobArtifact is not implemented")
 }
 
-func (UnimplementedJobArtifactServiceHandler) DeleteJobArtifact(context.Context, *connect.Request[ermite.DeleteJobArtifactRequest]) (*connect.Response[ermite.DeleteJobArtifactResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.JobArtifactService.DeleteJobArtifact is not implemented"))
+func (UnimplementedJobArtifactServiceHandler) DeleteJobArtifact(context.Context, *ermite.DeleteJobArtifactRequest) (*ermite.DeleteJobArtifactResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.JobArtifactService.DeleteJobArtifact is not implemented")
 }
+
+type jobArtifactServiceClient struct {
+	client *connect.Client
+}
+
+func (c *jobArtifactServiceClient) CreateJobArtifact(ctx context.Context, req *ermite.CreateJobArtifactRequest) (*ermite.CreateJobArtifactResponse, error) {
+	var res ermite.CreateJobArtifactResponse
+	if err := c.client.CallUnary(ctx, jobArtifactServiceCreateJobArtifactSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *jobArtifactServiceClient) UploadJobArtifactBlock(ctx context.Context) (JobArtifactServiceUploadJobArtifactBlockClientStream, error) {
+	stream, err := c.client.CallClientStream(ctx, jobArtifactServiceUploadJobArtifactBlockSpec())
+	if err != nil {
+		return JobArtifactServiceUploadJobArtifactBlockClientStream{}, err
+	}
+	return JobArtifactServiceUploadJobArtifactBlockClientStream{stream: stream}, nil
+}
+
+func (c *jobArtifactServiceClient) CommitJobArtifact(ctx context.Context, req *ermite.CommitJobArtifactRequest) (*ermite.CommitJobArtifactResponse, error) {
+	var res ermite.CommitJobArtifactResponse
+	if err := c.client.CallUnary(ctx, jobArtifactServiceCommitJobArtifactSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *jobArtifactServiceClient) FinalizeJobArtifact(ctx context.Context, req *ermite.FinalizeJobArtifactRequest) (*ermite.FinalizeJobArtifactResponse, error) {
+	var res ermite.FinalizeJobArtifactResponse
+	if err := c.client.CallUnary(ctx, jobArtifactServiceFinalizeJobArtifactSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *jobArtifactServiceClient) ListJobArtifacts(ctx context.Context, req *ermite.ListJobArtifactsRequest) (*ermite.ListJobArtifactsResponse, error) {
+	var res ermite.ListJobArtifactsResponse
+	if err := c.client.CallUnary(ctx, jobArtifactServiceListJobArtifactsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *jobArtifactServiceClient) DownloadJobArtifact(ctx context.Context, req *ermite.DownloadJobArtifactRequest) (JobArtifactServiceDownloadJobArtifactClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, jobArtifactServiceDownloadJobArtifactSpec(), req)
+	if err != nil {
+		return JobArtifactServiceDownloadJobArtifactClientStream{}, err
+	}
+	return JobArtifactServiceDownloadJobArtifactClientStream{stream: stream}, nil
+}
+
+func (c *jobArtifactServiceClient) DeleteJobArtifact(ctx context.Context, req *ermite.DeleteJobArtifactRequest) (*ermite.DeleteJobArtifactResponse, error) {
+	var res ermite.DeleteJobArtifactResponse
+	if err := c.client.CallUnary(ctx, jobArtifactServiceDeleteJobArtifactSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type jobArtifactServiceHandler struct{ svc JobArtifactServiceHandler }
+
+func (h jobArtifactServiceHandler) createJobArtifact(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CreateJobArtifactRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateJobArtifact(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h jobArtifactServiceHandler) uploadJobArtifactBlock(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	res, err := h.svc.UploadJobArtifactBlock(ctx, JobArtifactServiceUploadJobArtifactBlockServerStream{stream: stream})
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h jobArtifactServiceHandler) commitJobArtifact(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CommitJobArtifactRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CommitJobArtifact(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h jobArtifactServiceHandler) finalizeJobArtifact(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.FinalizeJobArtifactRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.FinalizeJobArtifact(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h jobArtifactServiceHandler) listJobArtifacts(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListJobArtifactsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListJobArtifacts(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h jobArtifactServiceHandler) downloadJobArtifact(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DownloadJobArtifactRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.DownloadJobArtifact(ctx, &req, JobArtifactServiceDownloadJobArtifactServerStream{stream: stream})
+}
+
+func (h jobArtifactServiceHandler) deleteJobArtifact(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DeleteJobArtifactRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteJobArtifact(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+var (
+	artifactServiceListArtifactsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_artifact_proto.Services().ByName("ArtifactService").Methods().ByName("ListArtifacts"),
+			Procedure:  ArtifactServiceListArtifactsProcedure,
+		}
+	})
+	artifactServiceDownloadArtifactSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     ermite.File_ermite_artifact_proto.Services().ByName("ArtifactService").Methods().ByName("DownloadArtifact"),
+			Procedure:  ArtifactServiceDownloadArtifactProcedure,
+		}
+	})
+	artifactServiceDeleteArtifactSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_artifact_proto.Services().ByName("ArtifactService").Methods().ByName("DeleteArtifact"),
+			Procedure:  ArtifactServiceDeleteArtifactProcedure,
+		}
+	})
+)
 
 // ArtifactServiceClient is a client for the ermite.ArtifactService service.
 type ArtifactServiceClient interface {
 	// ListArtifacts lists the artifacts of a run, by id, with the space that the
 	// artifacts of the repository use.
-	ListArtifacts(context.Context, *connect.Request[ermite.ListArtifactsRequest]) (*connect.Response[ermite.ListArtifactsResponse], error)
+	ListArtifacts(context.Context, *ermite.ListArtifactsRequest) (*ermite.ListArtifactsResponse, error)
 	// DownloadArtifact streams the content of an artifact, as
 	// JobArtifactService.DownloadJobArtifact does. Fails with not_found if the
 	// artifact is not an artifact of the repository, and out_of_range if offset
 	// is beyond its size.
-	DownloadArtifact(context.Context, *connect.Request[ermite.DownloadArtifactRequest]) (*connect.ServerStreamForClient[ermite.DownloadArtifactResponse], error)
+	DownloadArtifact(context.Context, *ermite.DownloadArtifactRequest) (ArtifactServiceDownloadArtifactClientStream, error)
 	// DeleteArtifact deletes an artifact. Fails with not_found if it is not an
 	// artifact of the repository.
-	DeleteArtifact(context.Context, *connect.Request[ermite.DeleteArtifactRequest]) (*connect.Response[ermite.DeleteArtifactResponse], error)
+	DeleteArtifact(context.Context, *ermite.DeleteArtifactRequest) (*ermite.DeleteArtifactResponse, error)
 }
 
-// NewArtifactServiceClient constructs a client for the ermite.ArtifactService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewArtifactServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ArtifactServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	artifactServiceMethods := ermite.File_ermite_artifact_proto.Services().ByName("ArtifactService").Methods()
-	return &artifactServiceClient{
-		listArtifacts: connect.NewClient[ermite.ListArtifactsRequest, ermite.ListArtifactsResponse](
-			httpClient,
-			baseURL+ArtifactServiceListArtifactsProcedure,
-			connect.WithSchema(artifactServiceMethods.ByName("ListArtifacts")),
-			connect.WithClientOptions(opts...),
-		),
-		downloadArtifact: connect.NewClient[ermite.DownloadArtifactRequest, ermite.DownloadArtifactResponse](
-			httpClient,
-			baseURL+ArtifactServiceDownloadArtifactProcedure,
-			connect.WithSchema(artifactServiceMethods.ByName("DownloadArtifact")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteArtifact: connect.NewClient[ermite.DeleteArtifactRequest, ermite.DeleteArtifactResponse](
-			httpClient,
-			baseURL+ArtifactServiceDeleteArtifactProcedure,
-			connect.WithSchema(artifactServiceMethods.ByName("DeleteArtifact")),
-			connect.WithClientOptions(opts...),
-		),
+// NewArtifactServiceClient constructs a client for the ermite.ArtifactService service. Multiple
+// service clients may share a single connect.Client.
+func NewArtifactServiceClient(client *connect.Client) ArtifactServiceClient {
+	return &artifactServiceClient{client: client}
+}
+
+// ArtifactServiceDownloadArtifactClientStream is the client stream for the ArtifactService's
+// DownloadArtifact RPC.
+type ArtifactServiceDownloadArtifactClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s ArtifactServiceDownloadArtifactClientStream) Receive() (*ermite.DownloadArtifactResponse, error) {
+	var res ermite.DownloadArtifactResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// artifactServiceClient implements ArtifactServiceClient.
-type artifactServiceClient struct {
-	listArtifacts    *connect.Client[ermite.ListArtifactsRequest, ermite.ListArtifactsResponse]
-	downloadArtifact *connect.Client[ermite.DownloadArtifactRequest, ermite.DownloadArtifactResponse]
-	deleteArtifact   *connect.Client[ermite.DeleteArtifactRequest, ermite.DeleteArtifactResponse]
-}
-
-// ListArtifacts calls ermite.ArtifactService.ListArtifacts.
-func (c *artifactServiceClient) ListArtifacts(ctx context.Context, req *connect.Request[ermite.ListArtifactsRequest]) (*connect.Response[ermite.ListArtifactsResponse], error) {
-	return c.listArtifacts.CallUnary(ctx, req)
-}
-
-// DownloadArtifact calls ermite.ArtifactService.DownloadArtifact.
-func (c *artifactServiceClient) DownloadArtifact(ctx context.Context, req *connect.Request[ermite.DownloadArtifactRequest]) (*connect.ServerStreamForClient[ermite.DownloadArtifactResponse], error) {
-	return c.downloadArtifact.CallServerStream(ctx, req)
-}
-
-// DeleteArtifact calls ermite.ArtifactService.DeleteArtifact.
-func (c *artifactServiceClient) DeleteArtifact(ctx context.Context, req *connect.Request[ermite.DeleteArtifactRequest]) (*connect.Response[ermite.DeleteArtifactResponse], error) {
-	return c.deleteArtifact.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s ArtifactServiceDownloadArtifactClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // ArtifactServiceHandler is an implementation of the ermite.ArtifactService service.
 type ArtifactServiceHandler interface {
 	// ListArtifacts lists the artifacts of a run, by id, with the space that the
 	// artifacts of the repository use.
-	ListArtifacts(context.Context, *connect.Request[ermite.ListArtifactsRequest]) (*connect.Response[ermite.ListArtifactsResponse], error)
+	ListArtifacts(context.Context, *ermite.ListArtifactsRequest) (*ermite.ListArtifactsResponse, error)
 	// DownloadArtifact streams the content of an artifact, as
 	// JobArtifactService.DownloadJobArtifact does. Fails with not_found if the
 	// artifact is not an artifact of the repository, and out_of_range if offset
 	// is beyond its size.
-	DownloadArtifact(context.Context, *connect.Request[ermite.DownloadArtifactRequest], *connect.ServerStream[ermite.DownloadArtifactResponse]) error
+	DownloadArtifact(context.Context, *ermite.DownloadArtifactRequest, ArtifactServiceDownloadArtifactServerStream) error
 	// DeleteArtifact deletes an artifact. Fails with not_found if it is not an
 	// artifact of the repository.
-	DeleteArtifact(context.Context, *connect.Request[ermite.DeleteArtifactRequest]) (*connect.Response[ermite.DeleteArtifactResponse], error)
+	DeleteArtifact(context.Context, *ermite.DeleteArtifactRequest) (*ermite.DeleteArtifactResponse, error)
 }
 
-// NewArtifactServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewArtifactServiceHandler(svc ArtifactServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	artifactServiceMethods := ermite.File_ermite_artifact_proto.Services().ByName("ArtifactService").Methods()
-	artifactServiceListArtifactsHandler := connect.NewUnaryHandler(
-		ArtifactServiceListArtifactsProcedure,
-		svc.ListArtifacts,
-		connect.WithSchema(artifactServiceMethods.ByName("ListArtifacts")),
-		connect.WithHandlerOptions(opts...),
+// RegisterArtifactServiceHandler registers svc as the ermite.ArtifactService implementation on
+// server.
+func RegisterArtifactServiceHandler(server *connect.Server, svc ArtifactServiceHandler) {
+	adapter := artifactServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: artifactServiceListArtifactsSpec(), Handler: adapter.listArtifacts},
+		connect.Method{Spec: artifactServiceDownloadArtifactSpec(), Handler: adapter.downloadArtifact},
+		connect.Method{Spec: artifactServiceDeleteArtifactSpec(), Handler: adapter.deleteArtifact},
 	)
-	artifactServiceDownloadArtifactHandler := connect.NewServerStreamHandler(
-		ArtifactServiceDownloadArtifactProcedure,
-		svc.DownloadArtifact,
-		connect.WithSchema(artifactServiceMethods.ByName("DownloadArtifact")),
-		connect.WithHandlerOptions(opts...),
-	)
-	artifactServiceDeleteArtifactHandler := connect.NewUnaryHandler(
-		ArtifactServiceDeleteArtifactProcedure,
-		svc.DeleteArtifact,
-		connect.WithSchema(artifactServiceMethods.ByName("DeleteArtifact")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.ArtifactService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ArtifactServiceListArtifactsProcedure:
-			artifactServiceListArtifactsHandler.ServeHTTP(w, r)
-		case ArtifactServiceDownloadArtifactProcedure:
-			artifactServiceDownloadArtifactHandler.ServeHTTP(w, r)
-		case ArtifactServiceDeleteArtifactProcedure:
-			artifactServiceDeleteArtifactHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// ArtifactServiceDownloadArtifactServerStream is the server stream for the ArtifactService's
+// DownloadArtifact RPC.
+type ArtifactServiceDownloadArtifactServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s ArtifactServiceDownloadArtifactServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s ArtifactServiceDownloadArtifactServerStream) Send(res *ermite.DownloadArtifactResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedArtifactServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedArtifactServiceHandler struct{}
 
-func (UnimplementedArtifactServiceHandler) ListArtifacts(context.Context, *connect.Request[ermite.ListArtifactsRequest]) (*connect.Response[ermite.ListArtifactsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ArtifactService.ListArtifacts is not implemented"))
+func (UnimplementedArtifactServiceHandler) ListArtifacts(context.Context, *ermite.ListArtifactsRequest) (*ermite.ListArtifactsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ArtifactService.ListArtifacts is not implemented")
 }
 
-func (UnimplementedArtifactServiceHandler) DownloadArtifact(context.Context, *connect.Request[ermite.DownloadArtifactRequest], *connect.ServerStream[ermite.DownloadArtifactResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ArtifactService.DownloadArtifact is not implemented"))
+func (UnimplementedArtifactServiceHandler) DownloadArtifact(context.Context, *ermite.DownloadArtifactRequest, ArtifactServiceDownloadArtifactServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "ermite.ArtifactService.DownloadArtifact is not implemented")
 }
 
-func (UnimplementedArtifactServiceHandler) DeleteArtifact(context.Context, *connect.Request[ermite.DeleteArtifactRequest]) (*connect.Response[ermite.DeleteArtifactResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ArtifactService.DeleteArtifact is not implemented"))
+func (UnimplementedArtifactServiceHandler) DeleteArtifact(context.Context, *ermite.DeleteArtifactRequest) (*ermite.DeleteArtifactResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ArtifactService.DeleteArtifact is not implemented")
+}
+
+type artifactServiceClient struct {
+	client *connect.Client
+}
+
+func (c *artifactServiceClient) ListArtifacts(ctx context.Context, req *ermite.ListArtifactsRequest) (*ermite.ListArtifactsResponse, error) {
+	var res ermite.ListArtifactsResponse
+	if err := c.client.CallUnary(ctx, artifactServiceListArtifactsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *artifactServiceClient) DownloadArtifact(ctx context.Context, req *ermite.DownloadArtifactRequest) (ArtifactServiceDownloadArtifactClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, artifactServiceDownloadArtifactSpec(), req)
+	if err != nil {
+		return ArtifactServiceDownloadArtifactClientStream{}, err
+	}
+	return ArtifactServiceDownloadArtifactClientStream{stream: stream}, nil
+}
+
+func (c *artifactServiceClient) DeleteArtifact(ctx context.Context, req *ermite.DeleteArtifactRequest) (*ermite.DeleteArtifactResponse, error) {
+	var res ermite.DeleteArtifactResponse
+	if err := c.client.CallUnary(ctx, artifactServiceDeleteArtifactSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type artifactServiceHandler struct{ svc ArtifactServiceHandler }
+
+func (h artifactServiceHandler) listArtifacts(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListArtifactsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListArtifacts(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h artifactServiceHandler) downloadArtifact(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DownloadArtifactRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.DownloadArtifact(ctx, &req, ArtifactServiceDownloadArtifactServerStream{stream: stream})
+}
+
+func (h artifactServiceHandler) deleteArtifact(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DeleteArtifactRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteArtifact(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

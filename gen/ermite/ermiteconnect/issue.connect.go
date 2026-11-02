@@ -8,430 +8,493 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// IssueServiceName is the fully-qualified name of the IssueService service.
 	IssueServiceName = "ermite.IssueService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// IssueServiceCreateIssueProcedure is the fully-qualified name of the IssueService's CreateIssue
-	// RPC.
+	// IssueServiceCreateIssueProcedure is the procedure name of the IssueService's CreateIssue RPC.
 	IssueServiceCreateIssueProcedure = "/ermite.IssueService/CreateIssue"
-	// IssueServiceEditIssueProcedure is the fully-qualified name of the IssueService's EditIssue RPC.
+	// IssueServiceEditIssueProcedure is the procedure name of the IssueService's EditIssue RPC.
 	IssueServiceEditIssueProcedure = "/ermite.IssueService/EditIssue"
-	// IssueServiceListIssuesProcedure is the fully-qualified name of the IssueService's ListIssues RPC.
+	// IssueServiceListIssuesProcedure is the procedure name of the IssueService's ListIssues RPC.
 	IssueServiceListIssuesProcedure = "/ermite.IssueService/ListIssues"
-	// IssueServiceGetIssueProcedure is the fully-qualified name of the IssueService's GetIssue RPC.
+	// IssueServiceGetIssueProcedure is the procedure name of the IssueService's GetIssue RPC.
 	IssueServiceGetIssueProcedure = "/ermite.IssueService/GetIssue"
-	// IssueServiceAddIssueCommentProcedure is the fully-qualified name of the IssueService's
-	// AddIssueComment RPC.
+	// IssueServiceAddIssueCommentProcedure is the procedure name of the IssueService's AddIssueComment
+	// RPC.
 	IssueServiceAddIssueCommentProcedure = "/ermite.IssueService/AddIssueComment"
-	// IssueServiceCloseIssueProcedure is the fully-qualified name of the IssueService's CloseIssue RPC.
+	// IssueServiceCloseIssueProcedure is the procedure name of the IssueService's CloseIssue RPC.
 	IssueServiceCloseIssueProcedure = "/ermite.IssueService/CloseIssue"
-	// IssueServiceResolveIssueProcedure is the fully-qualified name of the IssueService's ResolveIssue
-	// RPC.
+	// IssueServiceResolveIssueProcedure is the procedure name of the IssueService's ResolveIssue RPC.
 	IssueServiceResolveIssueProcedure = "/ermite.IssueService/ResolveIssue"
-	// IssueServiceReopenIssueProcedure is the fully-qualified name of the IssueService's ReopenIssue
-	// RPC.
+	// IssueServiceReopenIssueProcedure is the procedure name of the IssueService's ReopenIssue RPC.
 	IssueServiceReopenIssueProcedure = "/ermite.IssueService/ReopenIssue"
-	// IssueServiceListPendingIssuesProcedure is the fully-qualified name of the IssueService's
+	// IssueServiceListPendingIssuesProcedure is the procedure name of the IssueService's
 	// ListPendingIssues RPC.
 	IssueServiceListPendingIssuesProcedure = "/ermite.IssueService/ListPendingIssues"
-	// IssueServiceApproveIssueProcedure is the fully-qualified name of the IssueService's ApproveIssue
-	// RPC.
+	// IssueServiceApproveIssueProcedure is the procedure name of the IssueService's ApproveIssue RPC.
 	IssueServiceApproveIssueProcedure = "/ermite.IssueService/ApproveIssue"
-	// IssueServiceRejectIssueProcedure is the fully-qualified name of the IssueService's RejectIssue
-	// RPC.
+	// IssueServiceRejectIssueProcedure is the procedure name of the IssueService's RejectIssue RPC.
 	IssueServiceRejectIssueProcedure = "/ermite.IssueService/RejectIssue"
+)
+
+var (
+	issueServiceCreateIssueSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("CreateIssue"),
+			Procedure:  IssueServiceCreateIssueProcedure,
+		}
+	})
+	issueServiceEditIssueSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("EditIssue"),
+			Procedure:  IssueServiceEditIssueProcedure,
+		}
+	})
+	issueServiceListIssuesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("ListIssues"),
+			Procedure:  IssueServiceListIssuesProcedure,
+		}
+	})
+	issueServiceGetIssueSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("GetIssue"),
+			Procedure:  IssueServiceGetIssueProcedure,
+		}
+	})
+	issueServiceAddIssueCommentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("AddIssueComment"),
+			Procedure:  IssueServiceAddIssueCommentProcedure,
+		}
+	})
+	issueServiceCloseIssueSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("CloseIssue"),
+			Procedure:  IssueServiceCloseIssueProcedure,
+		}
+	})
+	issueServiceResolveIssueSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("ResolveIssue"),
+			Procedure:  IssueServiceResolveIssueProcedure,
+		}
+	})
+	issueServiceReopenIssueSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("ReopenIssue"),
+			Procedure:  IssueServiceReopenIssueProcedure,
+		}
+	})
+	issueServiceListPendingIssuesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("ListPendingIssues"),
+			Procedure:  IssueServiceListPendingIssuesProcedure,
+		}
+	})
+	issueServiceApproveIssueSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("ApproveIssue"),
+			Procedure:  IssueServiceApproveIssueProcedure,
+		}
+	})
+	issueServiceRejectIssueSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods().ByName("RejectIssue"),
+			Procedure:  IssueServiceRejectIssueProcedure,
+		}
+	})
 )
 
 // IssueServiceClient is a client for the ermite.IssueService service.
 type IssueServiceClient interface {
 	// CreateIssue opens an issue. Needs the issue:write scope.
-	CreateIssue(context.Context, *connect.Request[ermite.CreateIssueRequest]) (*connect.Response[ermite.CreateIssueResponse], error)
+	CreateIssue(context.Context, *ermite.CreateIssueRequest) (*ermite.CreateIssueResponse, error)
 	// EditIssue updates only present fields. Needs the issue:write scope.
 	// Title and body follow the CreateIssue text rules. Neither field present
 	// gives invalid_argument; a pending issue gives failed_precondition.
 	// Identical values succeed without changing updated_at or emitting events.
 	// History is capped at 500 entries: edits still persist and publish live
 	// events after the cap, but no further history entries are retained.
-	EditIssue(context.Context, *connect.Request[ermite.EditIssueRequest]) (*connect.Response[ermite.EditIssueResponse], error)
+	EditIssue(context.Context, *ermite.EditIssueRequest) (*ermite.EditIssueResponse, error)
 	// ListIssues lists issues, highest number first, optionally in one state.
-	ListIssues(context.Context, *connect.Request[ermite.ListIssuesRequest]) (*connect.Response[ermite.ListIssuesResponse], error)
+	ListIssues(context.Context, *ermite.ListIssuesRequest) (*ermite.ListIssuesResponse, error)
 	// GetIssue returns an issue with its comments.
-	GetIssue(context.Context, *connect.Request[ermite.GetIssueRequest]) (*connect.Response[ermite.GetIssueResponse], error)
+	GetIssue(context.Context, *ermite.GetIssueRequest) (*ermite.GetIssueResponse, error)
 	// AddIssueComment adds a comment. Needs the issue:write scope.
-	AddIssueComment(context.Context, *connect.Request[ermite.AddIssueCommentRequest]) (*connect.Response[ermite.AddIssueCommentResponse], error)
+	AddIssueComment(context.Context, *ermite.AddIssueCommentRequest) (*ermite.AddIssueCommentResponse, error)
 	// CloseIssue closes an issue. Needs the issue:write scope.
-	CloseIssue(context.Context, *connect.Request[ermite.CloseIssueRequest]) (*connect.Response[ermite.CloseIssueResponse], error)
+	CloseIssue(context.Context, *ermite.CloseIssueRequest) (*ermite.CloseIssueResponse, error)
 	// ResolveIssue marks an open issue as resolved. Needs the issue:write scope.
-	ResolveIssue(context.Context, *connect.Request[ermite.ResolveIssueRequest]) (*connect.Response[ermite.ResolveIssueResponse], error)
+	ResolveIssue(context.Context, *ermite.ResolveIssueRequest) (*ermite.ResolveIssueResponse, error)
 	// ReopenIssue reopens a closed or resolved issue. Needs the issue:write
 	// scope.
-	ReopenIssue(context.Context, *connect.Request[ermite.ReopenIssueRequest]) (*connect.Response[ermite.ReopenIssueResponse], error)
+	ReopenIssue(context.Context, *ermite.ReopenIssueRequest) (*ermite.ReopenIssueResponse, error)
 	// ListPendingIssues lists issues awaiting moderation, oldest first. Owner
 	// rights only; anyone else gets NOT_FOUND.
-	ListPendingIssues(context.Context, *connect.Request[ermite.ListPendingIssuesRequest]) (*connect.Response[ermite.ListPendingIssuesResponse], error)
+	ListPendingIssues(context.Context, *ermite.ListPendingIssuesRequest) (*ermite.ListPendingIssuesResponse, error)
 	// ApproveIssue turns a pending issue into an open issue with a new number.
 	// Owner rights only; anyone else gets NOT_FOUND.
-	ApproveIssue(context.Context, *connect.Request[ermite.ApproveIssueRequest]) (*connect.Response[ermite.ApproveIssueResponse], error)
+	ApproveIssue(context.Context, *ermite.ApproveIssueRequest) (*ermite.ApproveIssueResponse, error)
 	// RejectIssue discards a pending issue, optionally banning its submitter.
 	// Owner rights only; anyone else gets NOT_FOUND.
-	RejectIssue(context.Context, *connect.Request[ermite.RejectIssueRequest]) (*connect.Response[ermite.RejectIssueResponse], error)
+	RejectIssue(context.Context, *ermite.RejectIssueRequest) (*ermite.RejectIssueResponse, error)
 }
 
-// NewIssueServiceClient constructs a client for the ermite.IssueService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewIssueServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) IssueServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	issueServiceMethods := ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods()
-	return &issueServiceClient{
-		createIssue: connect.NewClient[ermite.CreateIssueRequest, ermite.CreateIssueResponse](
-			httpClient,
-			baseURL+IssueServiceCreateIssueProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("CreateIssue")),
-			connect.WithClientOptions(opts...),
-		),
-		editIssue: connect.NewClient[ermite.EditIssueRequest, ermite.EditIssueResponse](
-			httpClient,
-			baseURL+IssueServiceEditIssueProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("EditIssue")),
-			connect.WithClientOptions(opts...),
-		),
-		listIssues: connect.NewClient[ermite.ListIssuesRequest, ermite.ListIssuesResponse](
-			httpClient,
-			baseURL+IssueServiceListIssuesProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("ListIssues")),
-			connect.WithClientOptions(opts...),
-		),
-		getIssue: connect.NewClient[ermite.GetIssueRequest, ermite.GetIssueResponse](
-			httpClient,
-			baseURL+IssueServiceGetIssueProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("GetIssue")),
-			connect.WithClientOptions(opts...),
-		),
-		addIssueComment: connect.NewClient[ermite.AddIssueCommentRequest, ermite.AddIssueCommentResponse](
-			httpClient,
-			baseURL+IssueServiceAddIssueCommentProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("AddIssueComment")),
-			connect.WithClientOptions(opts...),
-		),
-		closeIssue: connect.NewClient[ermite.CloseIssueRequest, ermite.CloseIssueResponse](
-			httpClient,
-			baseURL+IssueServiceCloseIssueProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("CloseIssue")),
-			connect.WithClientOptions(opts...),
-		),
-		resolveIssue: connect.NewClient[ermite.ResolveIssueRequest, ermite.ResolveIssueResponse](
-			httpClient,
-			baseURL+IssueServiceResolveIssueProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("ResolveIssue")),
-			connect.WithClientOptions(opts...),
-		),
-		reopenIssue: connect.NewClient[ermite.ReopenIssueRequest, ermite.ReopenIssueResponse](
-			httpClient,
-			baseURL+IssueServiceReopenIssueProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("ReopenIssue")),
-			connect.WithClientOptions(opts...),
-		),
-		listPendingIssues: connect.NewClient[ermite.ListPendingIssuesRequest, ermite.ListPendingIssuesResponse](
-			httpClient,
-			baseURL+IssueServiceListPendingIssuesProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("ListPendingIssues")),
-			connect.WithClientOptions(opts...),
-		),
-		approveIssue: connect.NewClient[ermite.ApproveIssueRequest, ermite.ApproveIssueResponse](
-			httpClient,
-			baseURL+IssueServiceApproveIssueProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("ApproveIssue")),
-			connect.WithClientOptions(opts...),
-		),
-		rejectIssue: connect.NewClient[ermite.RejectIssueRequest, ermite.RejectIssueResponse](
-			httpClient,
-			baseURL+IssueServiceRejectIssueProcedure,
-			connect.WithSchema(issueServiceMethods.ByName("RejectIssue")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// issueServiceClient implements IssueServiceClient.
-type issueServiceClient struct {
-	createIssue       *connect.Client[ermite.CreateIssueRequest, ermite.CreateIssueResponse]
-	editIssue         *connect.Client[ermite.EditIssueRequest, ermite.EditIssueResponse]
-	listIssues        *connect.Client[ermite.ListIssuesRequest, ermite.ListIssuesResponse]
-	getIssue          *connect.Client[ermite.GetIssueRequest, ermite.GetIssueResponse]
-	addIssueComment   *connect.Client[ermite.AddIssueCommentRequest, ermite.AddIssueCommentResponse]
-	closeIssue        *connect.Client[ermite.CloseIssueRequest, ermite.CloseIssueResponse]
-	resolveIssue      *connect.Client[ermite.ResolveIssueRequest, ermite.ResolveIssueResponse]
-	reopenIssue       *connect.Client[ermite.ReopenIssueRequest, ermite.ReopenIssueResponse]
-	listPendingIssues *connect.Client[ermite.ListPendingIssuesRequest, ermite.ListPendingIssuesResponse]
-	approveIssue      *connect.Client[ermite.ApproveIssueRequest, ermite.ApproveIssueResponse]
-	rejectIssue       *connect.Client[ermite.RejectIssueRequest, ermite.RejectIssueResponse]
-}
-
-// CreateIssue calls ermite.IssueService.CreateIssue.
-func (c *issueServiceClient) CreateIssue(ctx context.Context, req *connect.Request[ermite.CreateIssueRequest]) (*connect.Response[ermite.CreateIssueResponse], error) {
-	return c.createIssue.CallUnary(ctx, req)
-}
-
-// EditIssue calls ermite.IssueService.EditIssue.
-func (c *issueServiceClient) EditIssue(ctx context.Context, req *connect.Request[ermite.EditIssueRequest]) (*connect.Response[ermite.EditIssueResponse], error) {
-	return c.editIssue.CallUnary(ctx, req)
-}
-
-// ListIssues calls ermite.IssueService.ListIssues.
-func (c *issueServiceClient) ListIssues(ctx context.Context, req *connect.Request[ermite.ListIssuesRequest]) (*connect.Response[ermite.ListIssuesResponse], error) {
-	return c.listIssues.CallUnary(ctx, req)
-}
-
-// GetIssue calls ermite.IssueService.GetIssue.
-func (c *issueServiceClient) GetIssue(ctx context.Context, req *connect.Request[ermite.GetIssueRequest]) (*connect.Response[ermite.GetIssueResponse], error) {
-	return c.getIssue.CallUnary(ctx, req)
-}
-
-// AddIssueComment calls ermite.IssueService.AddIssueComment.
-func (c *issueServiceClient) AddIssueComment(ctx context.Context, req *connect.Request[ermite.AddIssueCommentRequest]) (*connect.Response[ermite.AddIssueCommentResponse], error) {
-	return c.addIssueComment.CallUnary(ctx, req)
-}
-
-// CloseIssue calls ermite.IssueService.CloseIssue.
-func (c *issueServiceClient) CloseIssue(ctx context.Context, req *connect.Request[ermite.CloseIssueRequest]) (*connect.Response[ermite.CloseIssueResponse], error) {
-	return c.closeIssue.CallUnary(ctx, req)
-}
-
-// ResolveIssue calls ermite.IssueService.ResolveIssue.
-func (c *issueServiceClient) ResolveIssue(ctx context.Context, req *connect.Request[ermite.ResolveIssueRequest]) (*connect.Response[ermite.ResolveIssueResponse], error) {
-	return c.resolveIssue.CallUnary(ctx, req)
-}
-
-// ReopenIssue calls ermite.IssueService.ReopenIssue.
-func (c *issueServiceClient) ReopenIssue(ctx context.Context, req *connect.Request[ermite.ReopenIssueRequest]) (*connect.Response[ermite.ReopenIssueResponse], error) {
-	return c.reopenIssue.CallUnary(ctx, req)
-}
-
-// ListPendingIssues calls ermite.IssueService.ListPendingIssues.
-func (c *issueServiceClient) ListPendingIssues(ctx context.Context, req *connect.Request[ermite.ListPendingIssuesRequest]) (*connect.Response[ermite.ListPendingIssuesResponse], error) {
-	return c.listPendingIssues.CallUnary(ctx, req)
-}
-
-// ApproveIssue calls ermite.IssueService.ApproveIssue.
-func (c *issueServiceClient) ApproveIssue(ctx context.Context, req *connect.Request[ermite.ApproveIssueRequest]) (*connect.Response[ermite.ApproveIssueResponse], error) {
-	return c.approveIssue.CallUnary(ctx, req)
-}
-
-// RejectIssue calls ermite.IssueService.RejectIssue.
-func (c *issueServiceClient) RejectIssue(ctx context.Context, req *connect.Request[ermite.RejectIssueRequest]) (*connect.Response[ermite.RejectIssueResponse], error) {
-	return c.rejectIssue.CallUnary(ctx, req)
+// NewIssueServiceClient constructs a client for the ermite.IssueService service. Multiple service
+// clients may share a single connect.Client.
+func NewIssueServiceClient(client *connect.Client) IssueServiceClient {
+	return &issueServiceClient{client: client}
 }
 
 // IssueServiceHandler is an implementation of the ermite.IssueService service.
 type IssueServiceHandler interface {
 	// CreateIssue opens an issue. Needs the issue:write scope.
-	CreateIssue(context.Context, *connect.Request[ermite.CreateIssueRequest]) (*connect.Response[ermite.CreateIssueResponse], error)
+	CreateIssue(context.Context, *ermite.CreateIssueRequest) (*ermite.CreateIssueResponse, error)
 	// EditIssue updates only present fields. Needs the issue:write scope.
 	// Title and body follow the CreateIssue text rules. Neither field present
 	// gives invalid_argument; a pending issue gives failed_precondition.
 	// Identical values succeed without changing updated_at or emitting events.
 	// History is capped at 500 entries: edits still persist and publish live
 	// events after the cap, but no further history entries are retained.
-	EditIssue(context.Context, *connect.Request[ermite.EditIssueRequest]) (*connect.Response[ermite.EditIssueResponse], error)
+	EditIssue(context.Context, *ermite.EditIssueRequest) (*ermite.EditIssueResponse, error)
 	// ListIssues lists issues, highest number first, optionally in one state.
-	ListIssues(context.Context, *connect.Request[ermite.ListIssuesRequest]) (*connect.Response[ermite.ListIssuesResponse], error)
+	ListIssues(context.Context, *ermite.ListIssuesRequest) (*ermite.ListIssuesResponse, error)
 	// GetIssue returns an issue with its comments.
-	GetIssue(context.Context, *connect.Request[ermite.GetIssueRequest]) (*connect.Response[ermite.GetIssueResponse], error)
+	GetIssue(context.Context, *ermite.GetIssueRequest) (*ermite.GetIssueResponse, error)
 	// AddIssueComment adds a comment. Needs the issue:write scope.
-	AddIssueComment(context.Context, *connect.Request[ermite.AddIssueCommentRequest]) (*connect.Response[ermite.AddIssueCommentResponse], error)
+	AddIssueComment(context.Context, *ermite.AddIssueCommentRequest) (*ermite.AddIssueCommentResponse, error)
 	// CloseIssue closes an issue. Needs the issue:write scope.
-	CloseIssue(context.Context, *connect.Request[ermite.CloseIssueRequest]) (*connect.Response[ermite.CloseIssueResponse], error)
+	CloseIssue(context.Context, *ermite.CloseIssueRequest) (*ermite.CloseIssueResponse, error)
 	// ResolveIssue marks an open issue as resolved. Needs the issue:write scope.
-	ResolveIssue(context.Context, *connect.Request[ermite.ResolveIssueRequest]) (*connect.Response[ermite.ResolveIssueResponse], error)
+	ResolveIssue(context.Context, *ermite.ResolveIssueRequest) (*ermite.ResolveIssueResponse, error)
 	// ReopenIssue reopens a closed or resolved issue. Needs the issue:write
 	// scope.
-	ReopenIssue(context.Context, *connect.Request[ermite.ReopenIssueRequest]) (*connect.Response[ermite.ReopenIssueResponse], error)
+	ReopenIssue(context.Context, *ermite.ReopenIssueRequest) (*ermite.ReopenIssueResponse, error)
 	// ListPendingIssues lists issues awaiting moderation, oldest first. Owner
 	// rights only; anyone else gets NOT_FOUND.
-	ListPendingIssues(context.Context, *connect.Request[ermite.ListPendingIssuesRequest]) (*connect.Response[ermite.ListPendingIssuesResponse], error)
+	ListPendingIssues(context.Context, *ermite.ListPendingIssuesRequest) (*ermite.ListPendingIssuesResponse, error)
 	// ApproveIssue turns a pending issue into an open issue with a new number.
 	// Owner rights only; anyone else gets NOT_FOUND.
-	ApproveIssue(context.Context, *connect.Request[ermite.ApproveIssueRequest]) (*connect.Response[ermite.ApproveIssueResponse], error)
+	ApproveIssue(context.Context, *ermite.ApproveIssueRequest) (*ermite.ApproveIssueResponse, error)
 	// RejectIssue discards a pending issue, optionally banning its submitter.
 	// Owner rights only; anyone else gets NOT_FOUND.
-	RejectIssue(context.Context, *connect.Request[ermite.RejectIssueRequest]) (*connect.Response[ermite.RejectIssueResponse], error)
+	RejectIssue(context.Context, *ermite.RejectIssueRequest) (*ermite.RejectIssueResponse, error)
 }
 
-// NewIssueServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewIssueServiceHandler(svc IssueServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	issueServiceMethods := ermite.File_ermite_issue_proto.Services().ByName("IssueService").Methods()
-	issueServiceCreateIssueHandler := connect.NewUnaryHandler(
-		IssueServiceCreateIssueProcedure,
-		svc.CreateIssue,
-		connect.WithSchema(issueServiceMethods.ByName("CreateIssue")),
-		connect.WithHandlerOptions(opts...),
+// RegisterIssueServiceHandler registers svc as the ermite.IssueService implementation on server.
+func RegisterIssueServiceHandler(server *connect.Server, svc IssueServiceHandler) {
+	adapter := issueServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: issueServiceCreateIssueSpec(), Handler: adapter.createIssue},
+		connect.Method{Spec: issueServiceEditIssueSpec(), Handler: adapter.editIssue},
+		connect.Method{Spec: issueServiceListIssuesSpec(), Handler: adapter.listIssues},
+		connect.Method{Spec: issueServiceGetIssueSpec(), Handler: adapter.getIssue},
+		connect.Method{Spec: issueServiceAddIssueCommentSpec(), Handler: adapter.addIssueComment},
+		connect.Method{Spec: issueServiceCloseIssueSpec(), Handler: adapter.closeIssue},
+		connect.Method{Spec: issueServiceResolveIssueSpec(), Handler: adapter.resolveIssue},
+		connect.Method{Spec: issueServiceReopenIssueSpec(), Handler: adapter.reopenIssue},
+		connect.Method{Spec: issueServiceListPendingIssuesSpec(), Handler: adapter.listPendingIssues},
+		connect.Method{Spec: issueServiceApproveIssueSpec(), Handler: adapter.approveIssue},
+		connect.Method{Spec: issueServiceRejectIssueSpec(), Handler: adapter.rejectIssue},
 	)
-	issueServiceEditIssueHandler := connect.NewUnaryHandler(
-		IssueServiceEditIssueProcedure,
-		svc.EditIssue,
-		connect.WithSchema(issueServiceMethods.ByName("EditIssue")),
-		connect.WithHandlerOptions(opts...),
-	)
-	issueServiceListIssuesHandler := connect.NewUnaryHandler(
-		IssueServiceListIssuesProcedure,
-		svc.ListIssues,
-		connect.WithSchema(issueServiceMethods.ByName("ListIssues")),
-		connect.WithHandlerOptions(opts...),
-	)
-	issueServiceGetIssueHandler := connect.NewUnaryHandler(
-		IssueServiceGetIssueProcedure,
-		svc.GetIssue,
-		connect.WithSchema(issueServiceMethods.ByName("GetIssue")),
-		connect.WithHandlerOptions(opts...),
-	)
-	issueServiceAddIssueCommentHandler := connect.NewUnaryHandler(
-		IssueServiceAddIssueCommentProcedure,
-		svc.AddIssueComment,
-		connect.WithSchema(issueServiceMethods.ByName("AddIssueComment")),
-		connect.WithHandlerOptions(opts...),
-	)
-	issueServiceCloseIssueHandler := connect.NewUnaryHandler(
-		IssueServiceCloseIssueProcedure,
-		svc.CloseIssue,
-		connect.WithSchema(issueServiceMethods.ByName("CloseIssue")),
-		connect.WithHandlerOptions(opts...),
-	)
-	issueServiceResolveIssueHandler := connect.NewUnaryHandler(
-		IssueServiceResolveIssueProcedure,
-		svc.ResolveIssue,
-		connect.WithSchema(issueServiceMethods.ByName("ResolveIssue")),
-		connect.WithHandlerOptions(opts...),
-	)
-	issueServiceReopenIssueHandler := connect.NewUnaryHandler(
-		IssueServiceReopenIssueProcedure,
-		svc.ReopenIssue,
-		connect.WithSchema(issueServiceMethods.ByName("ReopenIssue")),
-		connect.WithHandlerOptions(opts...),
-	)
-	issueServiceListPendingIssuesHandler := connect.NewUnaryHandler(
-		IssueServiceListPendingIssuesProcedure,
-		svc.ListPendingIssues,
-		connect.WithSchema(issueServiceMethods.ByName("ListPendingIssues")),
-		connect.WithHandlerOptions(opts...),
-	)
-	issueServiceApproveIssueHandler := connect.NewUnaryHandler(
-		IssueServiceApproveIssueProcedure,
-		svc.ApproveIssue,
-		connect.WithSchema(issueServiceMethods.ByName("ApproveIssue")),
-		connect.WithHandlerOptions(opts...),
-	)
-	issueServiceRejectIssueHandler := connect.NewUnaryHandler(
-		IssueServiceRejectIssueProcedure,
-		svc.RejectIssue,
-		connect.WithSchema(issueServiceMethods.ByName("RejectIssue")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.IssueService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case IssueServiceCreateIssueProcedure:
-			issueServiceCreateIssueHandler.ServeHTTP(w, r)
-		case IssueServiceEditIssueProcedure:
-			issueServiceEditIssueHandler.ServeHTTP(w, r)
-		case IssueServiceListIssuesProcedure:
-			issueServiceListIssuesHandler.ServeHTTP(w, r)
-		case IssueServiceGetIssueProcedure:
-			issueServiceGetIssueHandler.ServeHTTP(w, r)
-		case IssueServiceAddIssueCommentProcedure:
-			issueServiceAddIssueCommentHandler.ServeHTTP(w, r)
-		case IssueServiceCloseIssueProcedure:
-			issueServiceCloseIssueHandler.ServeHTTP(w, r)
-		case IssueServiceResolveIssueProcedure:
-			issueServiceResolveIssueHandler.ServeHTTP(w, r)
-		case IssueServiceReopenIssueProcedure:
-			issueServiceReopenIssueHandler.ServeHTTP(w, r)
-		case IssueServiceListPendingIssuesProcedure:
-			issueServiceListPendingIssuesHandler.ServeHTTP(w, r)
-		case IssueServiceApproveIssueProcedure:
-			issueServiceApproveIssueHandler.ServeHTTP(w, r)
-		case IssueServiceRejectIssueProcedure:
-			issueServiceRejectIssueHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedIssueServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedIssueServiceHandler struct{}
 
-func (UnimplementedIssueServiceHandler) CreateIssue(context.Context, *connect.Request[ermite.CreateIssueRequest]) (*connect.Response[ermite.CreateIssueResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.CreateIssue is not implemented"))
+func (UnimplementedIssueServiceHandler) CreateIssue(context.Context, *ermite.CreateIssueRequest) (*ermite.CreateIssueResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.CreateIssue is not implemented")
 }
 
-func (UnimplementedIssueServiceHandler) EditIssue(context.Context, *connect.Request[ermite.EditIssueRequest]) (*connect.Response[ermite.EditIssueResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.EditIssue is not implemented"))
+func (UnimplementedIssueServiceHandler) EditIssue(context.Context, *ermite.EditIssueRequest) (*ermite.EditIssueResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.EditIssue is not implemented")
 }
 
-func (UnimplementedIssueServiceHandler) ListIssues(context.Context, *connect.Request[ermite.ListIssuesRequest]) (*connect.Response[ermite.ListIssuesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.ListIssues is not implemented"))
+func (UnimplementedIssueServiceHandler) ListIssues(context.Context, *ermite.ListIssuesRequest) (*ermite.ListIssuesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.ListIssues is not implemented")
 }
 
-func (UnimplementedIssueServiceHandler) GetIssue(context.Context, *connect.Request[ermite.GetIssueRequest]) (*connect.Response[ermite.GetIssueResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.GetIssue is not implemented"))
+func (UnimplementedIssueServiceHandler) GetIssue(context.Context, *ermite.GetIssueRequest) (*ermite.GetIssueResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.GetIssue is not implemented")
 }
 
-func (UnimplementedIssueServiceHandler) AddIssueComment(context.Context, *connect.Request[ermite.AddIssueCommentRequest]) (*connect.Response[ermite.AddIssueCommentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.AddIssueComment is not implemented"))
+func (UnimplementedIssueServiceHandler) AddIssueComment(context.Context, *ermite.AddIssueCommentRequest) (*ermite.AddIssueCommentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.AddIssueComment is not implemented")
 }
 
-func (UnimplementedIssueServiceHandler) CloseIssue(context.Context, *connect.Request[ermite.CloseIssueRequest]) (*connect.Response[ermite.CloseIssueResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.CloseIssue is not implemented"))
+func (UnimplementedIssueServiceHandler) CloseIssue(context.Context, *ermite.CloseIssueRequest) (*ermite.CloseIssueResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.CloseIssue is not implemented")
 }
 
-func (UnimplementedIssueServiceHandler) ResolveIssue(context.Context, *connect.Request[ermite.ResolveIssueRequest]) (*connect.Response[ermite.ResolveIssueResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.ResolveIssue is not implemented"))
+func (UnimplementedIssueServiceHandler) ResolveIssue(context.Context, *ermite.ResolveIssueRequest) (*ermite.ResolveIssueResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.ResolveIssue is not implemented")
 }
 
-func (UnimplementedIssueServiceHandler) ReopenIssue(context.Context, *connect.Request[ermite.ReopenIssueRequest]) (*connect.Response[ermite.ReopenIssueResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.ReopenIssue is not implemented"))
+func (UnimplementedIssueServiceHandler) ReopenIssue(context.Context, *ermite.ReopenIssueRequest) (*ermite.ReopenIssueResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.ReopenIssue is not implemented")
 }
 
-func (UnimplementedIssueServiceHandler) ListPendingIssues(context.Context, *connect.Request[ermite.ListPendingIssuesRequest]) (*connect.Response[ermite.ListPendingIssuesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.ListPendingIssues is not implemented"))
+func (UnimplementedIssueServiceHandler) ListPendingIssues(context.Context, *ermite.ListPendingIssuesRequest) (*ermite.ListPendingIssuesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.ListPendingIssues is not implemented")
 }
 
-func (UnimplementedIssueServiceHandler) ApproveIssue(context.Context, *connect.Request[ermite.ApproveIssueRequest]) (*connect.Response[ermite.ApproveIssueResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.ApproveIssue is not implemented"))
+func (UnimplementedIssueServiceHandler) ApproveIssue(context.Context, *ermite.ApproveIssueRequest) (*ermite.ApproveIssueResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.ApproveIssue is not implemented")
 }
 
-func (UnimplementedIssueServiceHandler) RejectIssue(context.Context, *connect.Request[ermite.RejectIssueRequest]) (*connect.Response[ermite.RejectIssueResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.IssueService.RejectIssue is not implemented"))
+func (UnimplementedIssueServiceHandler) RejectIssue(context.Context, *ermite.RejectIssueRequest) (*ermite.RejectIssueResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.IssueService.RejectIssue is not implemented")
+}
+
+type issueServiceClient struct {
+	client *connect.Client
+}
+
+func (c *issueServiceClient) CreateIssue(ctx context.Context, req *ermite.CreateIssueRequest) (*ermite.CreateIssueResponse, error) {
+	var res ermite.CreateIssueResponse
+	if err := c.client.CallUnary(ctx, issueServiceCreateIssueSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *issueServiceClient) EditIssue(ctx context.Context, req *ermite.EditIssueRequest) (*ermite.EditIssueResponse, error) {
+	var res ermite.EditIssueResponse
+	if err := c.client.CallUnary(ctx, issueServiceEditIssueSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *issueServiceClient) ListIssues(ctx context.Context, req *ermite.ListIssuesRequest) (*ermite.ListIssuesResponse, error) {
+	var res ermite.ListIssuesResponse
+	if err := c.client.CallUnary(ctx, issueServiceListIssuesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *issueServiceClient) GetIssue(ctx context.Context, req *ermite.GetIssueRequest) (*ermite.GetIssueResponse, error) {
+	var res ermite.GetIssueResponse
+	if err := c.client.CallUnary(ctx, issueServiceGetIssueSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *issueServiceClient) AddIssueComment(ctx context.Context, req *ermite.AddIssueCommentRequest) (*ermite.AddIssueCommentResponse, error) {
+	var res ermite.AddIssueCommentResponse
+	if err := c.client.CallUnary(ctx, issueServiceAddIssueCommentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *issueServiceClient) CloseIssue(ctx context.Context, req *ermite.CloseIssueRequest) (*ermite.CloseIssueResponse, error) {
+	var res ermite.CloseIssueResponse
+	if err := c.client.CallUnary(ctx, issueServiceCloseIssueSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *issueServiceClient) ResolveIssue(ctx context.Context, req *ermite.ResolveIssueRequest) (*ermite.ResolveIssueResponse, error) {
+	var res ermite.ResolveIssueResponse
+	if err := c.client.CallUnary(ctx, issueServiceResolveIssueSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *issueServiceClient) ReopenIssue(ctx context.Context, req *ermite.ReopenIssueRequest) (*ermite.ReopenIssueResponse, error) {
+	var res ermite.ReopenIssueResponse
+	if err := c.client.CallUnary(ctx, issueServiceReopenIssueSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *issueServiceClient) ListPendingIssues(ctx context.Context, req *ermite.ListPendingIssuesRequest) (*ermite.ListPendingIssuesResponse, error) {
+	var res ermite.ListPendingIssuesResponse
+	if err := c.client.CallUnary(ctx, issueServiceListPendingIssuesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *issueServiceClient) ApproveIssue(ctx context.Context, req *ermite.ApproveIssueRequest) (*ermite.ApproveIssueResponse, error) {
+	var res ermite.ApproveIssueResponse
+	if err := c.client.CallUnary(ctx, issueServiceApproveIssueSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *issueServiceClient) RejectIssue(ctx context.Context, req *ermite.RejectIssueRequest) (*ermite.RejectIssueResponse, error) {
+	var res ermite.RejectIssueResponse
+	if err := c.client.CallUnary(ctx, issueServiceRejectIssueSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type issueServiceHandler struct{ svc IssueServiceHandler }
+
+func (h issueServiceHandler) createIssue(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CreateIssueRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateIssue(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h issueServiceHandler) editIssue(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.EditIssueRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EditIssue(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h issueServiceHandler) listIssues(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListIssuesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListIssues(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h issueServiceHandler) getIssue(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetIssueRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetIssue(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h issueServiceHandler) addIssueComment(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.AddIssueCommentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddIssueComment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h issueServiceHandler) closeIssue(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CloseIssueRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CloseIssue(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h issueServiceHandler) resolveIssue(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ResolveIssueRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ResolveIssue(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h issueServiceHandler) reopenIssue(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ReopenIssueRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ReopenIssue(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h issueServiceHandler) listPendingIssues(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListPendingIssuesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPendingIssues(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h issueServiceHandler) approveIssue(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ApproveIssueRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ApproveIssue(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h issueServiceHandler) rejectIssue(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.RejectIssueRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RejectIssue(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

@@ -8,41 +8,54 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// TokenServiceName is the fully-qualified name of the TokenService service.
 	TokenServiceName = "ermite.TokenService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// TokenServiceCreateTokenProcedure is the fully-qualified name of the TokenService's CreateToken
-	// RPC.
+	// TokenServiceCreateTokenProcedure is the procedure name of the TokenService's CreateToken RPC.
 	TokenServiceCreateTokenProcedure = "/ermite.TokenService/CreateToken"
-	// TokenServiceListTokensProcedure is the fully-qualified name of the TokenService's ListTokens RPC.
+	// TokenServiceListTokensProcedure is the procedure name of the TokenService's ListTokens RPC.
 	TokenServiceListTokensProcedure = "/ermite.TokenService/ListTokens"
-	// TokenServiceRevokeTokenProcedure is the fully-qualified name of the TokenService's RevokeToken
-	// RPC.
+	// TokenServiceRevokeTokenProcedure is the procedure name of the TokenService's RevokeToken RPC.
 	TokenServiceRevokeTokenProcedure = "/ermite.TokenService/RevokeToken"
+)
+
+var (
+	tokenServiceCreateTokenSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_token_proto.Services().ByName("TokenService").Methods().ByName("CreateToken"),
+			Procedure:  TokenServiceCreateTokenProcedure,
+		}
+	})
+	tokenServiceListTokensSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_token_proto.Services().ByName("TokenService").Methods().ByName("ListTokens"),
+			Procedure:  TokenServiceListTokensProcedure,
+		}
+	})
+	tokenServiceRevokeTokenSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_token_proto.Services().ByName("TokenService").Methods().ByName("RevokeToken"),
+			Procedure:  TokenServiceRevokeTokenProcedure,
+		}
+	})
 )
 
 // TokenServiceClient is a client for the ermite.TokenService service.
@@ -51,66 +64,18 @@ type TokenServiceClient interface {
 	// only in this response and cannot be retrieved later. Fails with
 	// permission_denied when the new token would exceed the caller's limits and
 	// with invalid_argument when scopes is empty or contains SCOPE_UNSPECIFIED.
-	CreateToken(context.Context, *connect.Request[ermite.CreateTokenRequest]) (*connect.Response[ermite.CreateTokenResponse], error)
+	CreateToken(context.Context, *ermite.CreateTokenRequest) (*ermite.CreateTokenResponse, error)
 	// ListTokens lists stored tokens, newest first.
-	ListTokens(context.Context, *connect.Request[ermite.ListTokensRequest]) (*connect.Response[ermite.ListTokensResponse], error)
+	ListTokens(context.Context, *ermite.ListTokensRequest) (*ermite.ListTokensResponse, error)
 	// RevokeToken deletes a token; it stops working immediately. Fails with
 	// not_found if the id is unknown.
-	RevokeToken(context.Context, *connect.Request[ermite.RevokeTokenRequest]) (*connect.Response[ermite.RevokeTokenResponse], error)
+	RevokeToken(context.Context, *ermite.RevokeTokenRequest) (*ermite.RevokeTokenResponse, error)
 }
 
-// NewTokenServiceClient constructs a client for the ermite.TokenService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewTokenServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TokenServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	tokenServiceMethods := ermite.File_ermite_token_proto.Services().ByName("TokenService").Methods()
-	return &tokenServiceClient{
-		createToken: connect.NewClient[ermite.CreateTokenRequest, ermite.CreateTokenResponse](
-			httpClient,
-			baseURL+TokenServiceCreateTokenProcedure,
-			connect.WithSchema(tokenServiceMethods.ByName("CreateToken")),
-			connect.WithClientOptions(opts...),
-		),
-		listTokens: connect.NewClient[ermite.ListTokensRequest, ermite.ListTokensResponse](
-			httpClient,
-			baseURL+TokenServiceListTokensProcedure,
-			connect.WithSchema(tokenServiceMethods.ByName("ListTokens")),
-			connect.WithClientOptions(opts...),
-		),
-		revokeToken: connect.NewClient[ermite.RevokeTokenRequest, ermite.RevokeTokenResponse](
-			httpClient,
-			baseURL+TokenServiceRevokeTokenProcedure,
-			connect.WithSchema(tokenServiceMethods.ByName("RevokeToken")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// tokenServiceClient implements TokenServiceClient.
-type tokenServiceClient struct {
-	createToken *connect.Client[ermite.CreateTokenRequest, ermite.CreateTokenResponse]
-	listTokens  *connect.Client[ermite.ListTokensRequest, ermite.ListTokensResponse]
-	revokeToken *connect.Client[ermite.RevokeTokenRequest, ermite.RevokeTokenResponse]
-}
-
-// CreateToken calls ermite.TokenService.CreateToken.
-func (c *tokenServiceClient) CreateToken(ctx context.Context, req *connect.Request[ermite.CreateTokenRequest]) (*connect.Response[ermite.CreateTokenResponse], error) {
-	return c.createToken.CallUnary(ctx, req)
-}
-
-// ListTokens calls ermite.TokenService.ListTokens.
-func (c *tokenServiceClient) ListTokens(ctx context.Context, req *connect.Request[ermite.ListTokensRequest]) (*connect.Response[ermite.ListTokensResponse], error) {
-	return c.listTokens.CallUnary(ctx, req)
-}
-
-// RevokeToken calls ermite.TokenService.RevokeToken.
-func (c *tokenServiceClient) RevokeToken(ctx context.Context, req *connect.Request[ermite.RevokeTokenRequest]) (*connect.Response[ermite.RevokeTokenResponse], error) {
-	return c.revokeToken.CallUnary(ctx, req)
+// NewTokenServiceClient constructs a client for the ermite.TokenService service. Multiple service
+// clients may share a single connect.Client.
+func NewTokenServiceClient(client *connect.Client) TokenServiceClient {
+	return &tokenServiceClient{client: client}
 }
 
 // TokenServiceHandler is an implementation of the ermite.TokenService service.
@@ -119,64 +84,101 @@ type TokenServiceHandler interface {
 	// only in this response and cannot be retrieved later. Fails with
 	// permission_denied when the new token would exceed the caller's limits and
 	// with invalid_argument when scopes is empty or contains SCOPE_UNSPECIFIED.
-	CreateToken(context.Context, *connect.Request[ermite.CreateTokenRequest]) (*connect.Response[ermite.CreateTokenResponse], error)
+	CreateToken(context.Context, *ermite.CreateTokenRequest) (*ermite.CreateTokenResponse, error)
 	// ListTokens lists stored tokens, newest first.
-	ListTokens(context.Context, *connect.Request[ermite.ListTokensRequest]) (*connect.Response[ermite.ListTokensResponse], error)
+	ListTokens(context.Context, *ermite.ListTokensRequest) (*ermite.ListTokensResponse, error)
 	// RevokeToken deletes a token; it stops working immediately. Fails with
 	// not_found if the id is unknown.
-	RevokeToken(context.Context, *connect.Request[ermite.RevokeTokenRequest]) (*connect.Response[ermite.RevokeTokenResponse], error)
+	RevokeToken(context.Context, *ermite.RevokeTokenRequest) (*ermite.RevokeTokenResponse, error)
 }
 
-// NewTokenServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewTokenServiceHandler(svc TokenServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	tokenServiceMethods := ermite.File_ermite_token_proto.Services().ByName("TokenService").Methods()
-	tokenServiceCreateTokenHandler := connect.NewUnaryHandler(
-		TokenServiceCreateTokenProcedure,
-		svc.CreateToken,
-		connect.WithSchema(tokenServiceMethods.ByName("CreateToken")),
-		connect.WithHandlerOptions(opts...),
+// RegisterTokenServiceHandler registers svc as the ermite.TokenService implementation on server.
+func RegisterTokenServiceHandler(server *connect.Server, svc TokenServiceHandler) {
+	adapter := tokenServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: tokenServiceCreateTokenSpec(), Handler: adapter.createToken},
+		connect.Method{Spec: tokenServiceListTokensSpec(), Handler: adapter.listTokens},
+		connect.Method{Spec: tokenServiceRevokeTokenSpec(), Handler: adapter.revokeToken},
 	)
-	tokenServiceListTokensHandler := connect.NewUnaryHandler(
-		TokenServiceListTokensProcedure,
-		svc.ListTokens,
-		connect.WithSchema(tokenServiceMethods.ByName("ListTokens")),
-		connect.WithHandlerOptions(opts...),
-	)
-	tokenServiceRevokeTokenHandler := connect.NewUnaryHandler(
-		TokenServiceRevokeTokenProcedure,
-		svc.RevokeToken,
-		connect.WithSchema(tokenServiceMethods.ByName("RevokeToken")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.TokenService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case TokenServiceCreateTokenProcedure:
-			tokenServiceCreateTokenHandler.ServeHTTP(w, r)
-		case TokenServiceListTokensProcedure:
-			tokenServiceListTokensHandler.ServeHTTP(w, r)
-		case TokenServiceRevokeTokenProcedure:
-			tokenServiceRevokeTokenHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedTokenServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedTokenServiceHandler struct{}
 
-func (UnimplementedTokenServiceHandler) CreateToken(context.Context, *connect.Request[ermite.CreateTokenRequest]) (*connect.Response[ermite.CreateTokenResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.TokenService.CreateToken is not implemented"))
+func (UnimplementedTokenServiceHandler) CreateToken(context.Context, *ermite.CreateTokenRequest) (*ermite.CreateTokenResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.TokenService.CreateToken is not implemented")
 }
 
-func (UnimplementedTokenServiceHandler) ListTokens(context.Context, *connect.Request[ermite.ListTokensRequest]) (*connect.Response[ermite.ListTokensResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.TokenService.ListTokens is not implemented"))
+func (UnimplementedTokenServiceHandler) ListTokens(context.Context, *ermite.ListTokensRequest) (*ermite.ListTokensResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.TokenService.ListTokens is not implemented")
 }
 
-func (UnimplementedTokenServiceHandler) RevokeToken(context.Context, *connect.Request[ermite.RevokeTokenRequest]) (*connect.Response[ermite.RevokeTokenResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.TokenService.RevokeToken is not implemented"))
+func (UnimplementedTokenServiceHandler) RevokeToken(context.Context, *ermite.RevokeTokenRequest) (*ermite.RevokeTokenResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.TokenService.RevokeToken is not implemented")
+}
+
+type tokenServiceClient struct {
+	client *connect.Client
+}
+
+func (c *tokenServiceClient) CreateToken(ctx context.Context, req *ermite.CreateTokenRequest) (*ermite.CreateTokenResponse, error) {
+	var res ermite.CreateTokenResponse
+	if err := c.client.CallUnary(ctx, tokenServiceCreateTokenSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tokenServiceClient) ListTokens(ctx context.Context, req *ermite.ListTokensRequest) (*ermite.ListTokensResponse, error) {
+	var res ermite.ListTokensResponse
+	if err := c.client.CallUnary(ctx, tokenServiceListTokensSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tokenServiceClient) RevokeToken(ctx context.Context, req *ermite.RevokeTokenRequest) (*ermite.RevokeTokenResponse, error) {
+	var res ermite.RevokeTokenResponse
+	if err := c.client.CallUnary(ctx, tokenServiceRevokeTokenSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type tokenServiceHandler struct{ svc TokenServiceHandler }
+
+func (h tokenServiceHandler) createToken(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CreateTokenRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateToken(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tokenServiceHandler) listTokens(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListTokensRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListTokens(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tokenServiceHandler) revokeToken(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.RevokeTokenRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RevokeToken(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

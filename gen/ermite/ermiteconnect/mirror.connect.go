@@ -8,63 +8,125 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// MirrorServiceName is the fully-qualified name of the MirrorService service.
 	MirrorServiceName = "ermite.MirrorService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// MirrorServiceGetMirrorKeyProcedure is the fully-qualified name of the MirrorService's
-	// GetMirrorKey RPC.
+	// MirrorServiceGetMirrorKeyProcedure is the procedure name of the MirrorService's GetMirrorKey RPC.
 	MirrorServiceGetMirrorKeyProcedure = "/ermite.MirrorService/GetMirrorKey"
-	// MirrorServiceRotateMirrorKeyProcedure is the fully-qualified name of the MirrorService's
+	// MirrorServiceRotateMirrorKeyProcedure is the procedure name of the MirrorService's
 	// RotateMirrorKey RPC.
 	MirrorServiceRotateMirrorKeyProcedure = "/ermite.MirrorService/RotateMirrorKey"
-	// MirrorServiceGetMirrorConfigProcedure is the fully-qualified name of the MirrorService's
+	// MirrorServiceGetMirrorConfigProcedure is the procedure name of the MirrorService's
 	// GetMirrorConfig RPC.
 	MirrorServiceGetMirrorConfigProcedure = "/ermite.MirrorService/GetMirrorConfig"
-	// MirrorServiceSetMirrorConfigProcedure is the fully-qualified name of the MirrorService's
+	// MirrorServiceSetMirrorConfigProcedure is the procedure name of the MirrorService's
 	// SetMirrorConfig RPC.
 	MirrorServiceSetMirrorConfigProcedure = "/ermite.MirrorService/SetMirrorConfig"
-	// MirrorServiceSetRepoMirrorProcedure is the fully-qualified name of the MirrorService's
-	// SetRepoMirror RPC.
+	// MirrorServiceSetRepoMirrorProcedure is the procedure name of the MirrorService's SetRepoMirror
+	// RPC.
 	MirrorServiceSetRepoMirrorProcedure = "/ermite.MirrorService/SetRepoMirror"
-	// MirrorServiceRemoveRepoMirrorProcedure is the fully-qualified name of the MirrorService's
+	// MirrorServiceRemoveRepoMirrorProcedure is the procedure name of the MirrorService's
 	// RemoveRepoMirror RPC.
 	MirrorServiceRemoveRepoMirrorProcedure = "/ermite.MirrorService/RemoveRepoMirror"
-	// MirrorServiceSetRepoMirrorExcludedProcedure is the fully-qualified name of the MirrorService's
+	// MirrorServiceSetRepoMirrorExcludedProcedure is the procedure name of the MirrorService's
 	// SetRepoMirrorExcluded RPC.
 	MirrorServiceSetRepoMirrorExcludedProcedure = "/ermite.MirrorService/SetRepoMirrorExcluded"
-	// MirrorServiceGetMirrorStatusProcedure is the fully-qualified name of the MirrorService's
+	// MirrorServiceGetMirrorStatusProcedure is the procedure name of the MirrorService's
 	// GetMirrorStatus RPC.
 	MirrorServiceGetMirrorStatusProcedure = "/ermite.MirrorService/GetMirrorStatus"
-	// MirrorServiceListMirrorStatusProcedure is the fully-qualified name of the MirrorService's
+	// MirrorServiceListMirrorStatusProcedure is the procedure name of the MirrorService's
 	// ListMirrorStatus RPC.
 	MirrorServiceListMirrorStatusProcedure = "/ermite.MirrorService/ListMirrorStatus"
-	// MirrorServiceSyncMirrorProcedure is the fully-qualified name of the MirrorService's SyncMirror
-	// RPC.
+	// MirrorServiceSyncMirrorProcedure is the procedure name of the MirrorService's SyncMirror RPC.
 	MirrorServiceSyncMirrorProcedure = "/ermite.MirrorService/SyncMirror"
+)
+
+var (
+	mirrorServiceGetMirrorKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods().ByName("GetMirrorKey"),
+			Procedure:  MirrorServiceGetMirrorKeyProcedure,
+		}
+	})
+	mirrorServiceRotateMirrorKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods().ByName("RotateMirrorKey"),
+			Procedure:  MirrorServiceRotateMirrorKeyProcedure,
+		}
+	})
+	mirrorServiceGetMirrorConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods().ByName("GetMirrorConfig"),
+			Procedure:  MirrorServiceGetMirrorConfigProcedure,
+		}
+	})
+	mirrorServiceSetMirrorConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods().ByName("SetMirrorConfig"),
+			Procedure:  MirrorServiceSetMirrorConfigProcedure,
+		}
+	})
+	mirrorServiceSetRepoMirrorSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods().ByName("SetRepoMirror"),
+			Procedure:  MirrorServiceSetRepoMirrorProcedure,
+		}
+	})
+	mirrorServiceRemoveRepoMirrorSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods().ByName("RemoveRepoMirror"),
+			Procedure:  MirrorServiceRemoveRepoMirrorProcedure,
+		}
+	})
+	mirrorServiceSetRepoMirrorExcludedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods().ByName("SetRepoMirrorExcluded"),
+			Procedure:  MirrorServiceSetRepoMirrorExcludedProcedure,
+		}
+	})
+	mirrorServiceGetMirrorStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods().ByName("GetMirrorStatus"),
+			Procedure:  MirrorServiceGetMirrorStatusProcedure,
+		}
+	})
+	mirrorServiceListMirrorStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods().ByName("ListMirrorStatus"),
+			Procedure:  MirrorServiceListMirrorStatusProcedure,
+		}
+	})
+	mirrorServiceSyncMirrorSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods().ByName("SyncMirror"),
+			Procedure:  MirrorServiceSyncMirrorProcedure,
+		}
+	})
 )
 
 // MirrorServiceClient is a client for the ermite.MirrorService service.
@@ -72,167 +134,35 @@ type MirrorServiceClient interface {
 	// GetMirrorKey returns the public mirror key, generating it on first use.
 	// Needs a non-anonymous caller. Fails with failed_precondition without
 	// ERMITE_SECRETS_KEY.
-	GetMirrorKey(context.Context, *connect.Request[ermite.GetMirrorKeyRequest]) (*connect.Response[ermite.GetMirrorKeyResponse], error)
+	GetMirrorKey(context.Context, *ermite.GetMirrorKeyRequest) (*ermite.GetMirrorKeyResponse, error)
 	// RotateMirrorKey replaces the key immediately. Add the new key to remotes
 	// and sync with force to recover from authentication failures.
-	RotateMirrorKey(context.Context, *connect.Request[ermite.RotateMirrorKeyRequest]) (*connect.Response[ermite.RotateMirrorKeyResponse], error)
+	RotateMirrorKey(context.Context, *ermite.RotateMirrorKeyRequest) (*ermite.RotateMirrorKeyResponse, error)
 	// GetMirrorConfig returns the global mirror policy.
-	GetMirrorConfig(context.Context, *connect.Request[ermite.GetMirrorConfigRequest]) (*connect.Response[ermite.GetMirrorConfigResponse], error)
+	GetMirrorConfig(context.Context, *ermite.GetMirrorConfigRequest) (*ermite.GetMirrorConfigResponse, error)
 	// SetMirrorConfig patches the global policy. Unset fields are unchanged.
 	// Invalid fields give invalid_argument with field violations.
-	SetMirrorConfig(context.Context, *connect.Request[ermite.SetMirrorConfigRequest]) (*connect.Response[ermite.SetMirrorConfigResponse], error)
+	SetMirrorConfig(context.Context, *ermite.SetMirrorConfigRequest) (*ermite.SetMirrorConfigResponse, error)
 	// SetRepoMirror sets an override, even when global mirroring is disabled.
-	SetRepoMirror(context.Context, *connect.Request[ermite.SetRepoMirrorRequest]) (*connect.Response[ermite.SetRepoMirrorResponse], error)
+	SetRepoMirror(context.Context, *ermite.SetRepoMirrorRequest) (*ermite.SetRepoMirrorResponse, error)
 	// RemoveRepoMirror removes the override so the global policy applies again.
-	RemoveRepoMirror(context.Context, *connect.Request[ermite.RemoveRepoMirrorRequest]) (*connect.Response[ermite.RemoveRepoMirrorResponse], error)
+	RemoveRepoMirror(context.Context, *ermite.RemoveRepoMirrorRequest) (*ermite.RemoveRepoMirrorResponse, error)
 	// SetRepoMirrorExcluded excludes or includes a repository in the global
 	// policy. An explicit URL override takes precedence.
-	SetRepoMirrorExcluded(context.Context, *connect.Request[ermite.SetRepoMirrorExcludedRequest]) (*connect.Response[ermite.SetRepoMirrorExcludedResponse], error)
+	SetRepoMirrorExcluded(context.Context, *ermite.SetRepoMirrorExcludedRequest) (*ermite.SetRepoMirrorExcludedResponse, error)
 	// GetMirrorStatus returns the resolved target and status of one repository.
-	GetMirrorStatus(context.Context, *connect.Request[ermite.GetMirrorStatusRequest]) (*connect.Response[ermite.GetMirrorStatusResponse], error)
+	GetMirrorStatus(context.Context, *ermite.GetMirrorStatusRequest) (*ermite.GetMirrorStatusResponse, error)
 	// ListMirrorStatus lists mirror statuses and needs owner rights.
-	ListMirrorStatus(context.Context, *connect.Request[ermite.ListMirrorStatusRequest]) (*connect.Response[ermite.ListMirrorStatusResponse], error)
+	ListMirrorStatus(context.Context, *ermite.ListMirrorStatusRequest) (*ermite.ListMirrorStatusResponse, error)
 	// SyncMirror syncs Repo or, with All, every repository. Paused mirrors need
 	// Force. Manual requests without Force are at least 60 seconds apart.
-	SyncMirror(context.Context, *connect.Request[ermite.SyncMirrorRequest]) (*connect.Response[ermite.SyncMirrorResponse], error)
+	SyncMirror(context.Context, *ermite.SyncMirrorRequest) (*ermite.SyncMirrorResponse, error)
 }
 
-// NewMirrorServiceClient constructs a client for the ermite.MirrorService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewMirrorServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) MirrorServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	mirrorServiceMethods := ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods()
-	return &mirrorServiceClient{
-		getMirrorKey: connect.NewClient[ermite.GetMirrorKeyRequest, ermite.GetMirrorKeyResponse](
-			httpClient,
-			baseURL+MirrorServiceGetMirrorKeyProcedure,
-			connect.WithSchema(mirrorServiceMethods.ByName("GetMirrorKey")),
-			connect.WithClientOptions(opts...),
-		),
-		rotateMirrorKey: connect.NewClient[ermite.RotateMirrorKeyRequest, ermite.RotateMirrorKeyResponse](
-			httpClient,
-			baseURL+MirrorServiceRotateMirrorKeyProcedure,
-			connect.WithSchema(mirrorServiceMethods.ByName("RotateMirrorKey")),
-			connect.WithClientOptions(opts...),
-		),
-		getMirrorConfig: connect.NewClient[ermite.GetMirrorConfigRequest, ermite.GetMirrorConfigResponse](
-			httpClient,
-			baseURL+MirrorServiceGetMirrorConfigProcedure,
-			connect.WithSchema(mirrorServiceMethods.ByName("GetMirrorConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		setMirrorConfig: connect.NewClient[ermite.SetMirrorConfigRequest, ermite.SetMirrorConfigResponse](
-			httpClient,
-			baseURL+MirrorServiceSetMirrorConfigProcedure,
-			connect.WithSchema(mirrorServiceMethods.ByName("SetMirrorConfig")),
-			connect.WithClientOptions(opts...),
-		),
-		setRepoMirror: connect.NewClient[ermite.SetRepoMirrorRequest, ermite.SetRepoMirrorResponse](
-			httpClient,
-			baseURL+MirrorServiceSetRepoMirrorProcedure,
-			connect.WithSchema(mirrorServiceMethods.ByName("SetRepoMirror")),
-			connect.WithClientOptions(opts...),
-		),
-		removeRepoMirror: connect.NewClient[ermite.RemoveRepoMirrorRequest, ermite.RemoveRepoMirrorResponse](
-			httpClient,
-			baseURL+MirrorServiceRemoveRepoMirrorProcedure,
-			connect.WithSchema(mirrorServiceMethods.ByName("RemoveRepoMirror")),
-			connect.WithClientOptions(opts...),
-		),
-		setRepoMirrorExcluded: connect.NewClient[ermite.SetRepoMirrorExcludedRequest, ermite.SetRepoMirrorExcludedResponse](
-			httpClient,
-			baseURL+MirrorServiceSetRepoMirrorExcludedProcedure,
-			connect.WithSchema(mirrorServiceMethods.ByName("SetRepoMirrorExcluded")),
-			connect.WithClientOptions(opts...),
-		),
-		getMirrorStatus: connect.NewClient[ermite.GetMirrorStatusRequest, ermite.GetMirrorStatusResponse](
-			httpClient,
-			baseURL+MirrorServiceGetMirrorStatusProcedure,
-			connect.WithSchema(mirrorServiceMethods.ByName("GetMirrorStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		listMirrorStatus: connect.NewClient[ermite.ListMirrorStatusRequest, ermite.ListMirrorStatusResponse](
-			httpClient,
-			baseURL+MirrorServiceListMirrorStatusProcedure,
-			connect.WithSchema(mirrorServiceMethods.ByName("ListMirrorStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		syncMirror: connect.NewClient[ermite.SyncMirrorRequest, ermite.SyncMirrorResponse](
-			httpClient,
-			baseURL+MirrorServiceSyncMirrorProcedure,
-			connect.WithSchema(mirrorServiceMethods.ByName("SyncMirror")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// mirrorServiceClient implements MirrorServiceClient.
-type mirrorServiceClient struct {
-	getMirrorKey          *connect.Client[ermite.GetMirrorKeyRequest, ermite.GetMirrorKeyResponse]
-	rotateMirrorKey       *connect.Client[ermite.RotateMirrorKeyRequest, ermite.RotateMirrorKeyResponse]
-	getMirrorConfig       *connect.Client[ermite.GetMirrorConfigRequest, ermite.GetMirrorConfigResponse]
-	setMirrorConfig       *connect.Client[ermite.SetMirrorConfigRequest, ermite.SetMirrorConfigResponse]
-	setRepoMirror         *connect.Client[ermite.SetRepoMirrorRequest, ermite.SetRepoMirrorResponse]
-	removeRepoMirror      *connect.Client[ermite.RemoveRepoMirrorRequest, ermite.RemoveRepoMirrorResponse]
-	setRepoMirrorExcluded *connect.Client[ermite.SetRepoMirrorExcludedRequest, ermite.SetRepoMirrorExcludedResponse]
-	getMirrorStatus       *connect.Client[ermite.GetMirrorStatusRequest, ermite.GetMirrorStatusResponse]
-	listMirrorStatus      *connect.Client[ermite.ListMirrorStatusRequest, ermite.ListMirrorStatusResponse]
-	syncMirror            *connect.Client[ermite.SyncMirrorRequest, ermite.SyncMirrorResponse]
-}
-
-// GetMirrorKey calls ermite.MirrorService.GetMirrorKey.
-func (c *mirrorServiceClient) GetMirrorKey(ctx context.Context, req *connect.Request[ermite.GetMirrorKeyRequest]) (*connect.Response[ermite.GetMirrorKeyResponse], error) {
-	return c.getMirrorKey.CallUnary(ctx, req)
-}
-
-// RotateMirrorKey calls ermite.MirrorService.RotateMirrorKey.
-func (c *mirrorServiceClient) RotateMirrorKey(ctx context.Context, req *connect.Request[ermite.RotateMirrorKeyRequest]) (*connect.Response[ermite.RotateMirrorKeyResponse], error) {
-	return c.rotateMirrorKey.CallUnary(ctx, req)
-}
-
-// GetMirrorConfig calls ermite.MirrorService.GetMirrorConfig.
-func (c *mirrorServiceClient) GetMirrorConfig(ctx context.Context, req *connect.Request[ermite.GetMirrorConfigRequest]) (*connect.Response[ermite.GetMirrorConfigResponse], error) {
-	return c.getMirrorConfig.CallUnary(ctx, req)
-}
-
-// SetMirrorConfig calls ermite.MirrorService.SetMirrorConfig.
-func (c *mirrorServiceClient) SetMirrorConfig(ctx context.Context, req *connect.Request[ermite.SetMirrorConfigRequest]) (*connect.Response[ermite.SetMirrorConfigResponse], error) {
-	return c.setMirrorConfig.CallUnary(ctx, req)
-}
-
-// SetRepoMirror calls ermite.MirrorService.SetRepoMirror.
-func (c *mirrorServiceClient) SetRepoMirror(ctx context.Context, req *connect.Request[ermite.SetRepoMirrorRequest]) (*connect.Response[ermite.SetRepoMirrorResponse], error) {
-	return c.setRepoMirror.CallUnary(ctx, req)
-}
-
-// RemoveRepoMirror calls ermite.MirrorService.RemoveRepoMirror.
-func (c *mirrorServiceClient) RemoveRepoMirror(ctx context.Context, req *connect.Request[ermite.RemoveRepoMirrorRequest]) (*connect.Response[ermite.RemoveRepoMirrorResponse], error) {
-	return c.removeRepoMirror.CallUnary(ctx, req)
-}
-
-// SetRepoMirrorExcluded calls ermite.MirrorService.SetRepoMirrorExcluded.
-func (c *mirrorServiceClient) SetRepoMirrorExcluded(ctx context.Context, req *connect.Request[ermite.SetRepoMirrorExcludedRequest]) (*connect.Response[ermite.SetRepoMirrorExcludedResponse], error) {
-	return c.setRepoMirrorExcluded.CallUnary(ctx, req)
-}
-
-// GetMirrorStatus calls ermite.MirrorService.GetMirrorStatus.
-func (c *mirrorServiceClient) GetMirrorStatus(ctx context.Context, req *connect.Request[ermite.GetMirrorStatusRequest]) (*connect.Response[ermite.GetMirrorStatusResponse], error) {
-	return c.getMirrorStatus.CallUnary(ctx, req)
-}
-
-// ListMirrorStatus calls ermite.MirrorService.ListMirrorStatus.
-func (c *mirrorServiceClient) ListMirrorStatus(ctx context.Context, req *connect.Request[ermite.ListMirrorStatusRequest]) (*connect.Response[ermite.ListMirrorStatusResponse], error) {
-	return c.listMirrorStatus.CallUnary(ctx, req)
-}
-
-// SyncMirror calls ermite.MirrorService.SyncMirror.
-func (c *mirrorServiceClient) SyncMirror(ctx context.Context, req *connect.Request[ermite.SyncMirrorRequest]) (*connect.Response[ermite.SyncMirrorResponse], error) {
-	return c.syncMirror.CallUnary(ctx, req)
+// NewMirrorServiceClient constructs a client for the ermite.MirrorService service. Multiple service
+// clients may share a single connect.Client.
+func NewMirrorServiceClient(client *connect.Client) MirrorServiceClient {
+	return &mirrorServiceClient{client: client}
 }
 
 // MirrorServiceHandler is an implementation of the ermite.MirrorService service.
@@ -240,165 +170,293 @@ type MirrorServiceHandler interface {
 	// GetMirrorKey returns the public mirror key, generating it on first use.
 	// Needs a non-anonymous caller. Fails with failed_precondition without
 	// ERMITE_SECRETS_KEY.
-	GetMirrorKey(context.Context, *connect.Request[ermite.GetMirrorKeyRequest]) (*connect.Response[ermite.GetMirrorKeyResponse], error)
+	GetMirrorKey(context.Context, *ermite.GetMirrorKeyRequest) (*ermite.GetMirrorKeyResponse, error)
 	// RotateMirrorKey replaces the key immediately. Add the new key to remotes
 	// and sync with force to recover from authentication failures.
-	RotateMirrorKey(context.Context, *connect.Request[ermite.RotateMirrorKeyRequest]) (*connect.Response[ermite.RotateMirrorKeyResponse], error)
+	RotateMirrorKey(context.Context, *ermite.RotateMirrorKeyRequest) (*ermite.RotateMirrorKeyResponse, error)
 	// GetMirrorConfig returns the global mirror policy.
-	GetMirrorConfig(context.Context, *connect.Request[ermite.GetMirrorConfigRequest]) (*connect.Response[ermite.GetMirrorConfigResponse], error)
+	GetMirrorConfig(context.Context, *ermite.GetMirrorConfigRequest) (*ermite.GetMirrorConfigResponse, error)
 	// SetMirrorConfig patches the global policy. Unset fields are unchanged.
 	// Invalid fields give invalid_argument with field violations.
-	SetMirrorConfig(context.Context, *connect.Request[ermite.SetMirrorConfigRequest]) (*connect.Response[ermite.SetMirrorConfigResponse], error)
+	SetMirrorConfig(context.Context, *ermite.SetMirrorConfigRequest) (*ermite.SetMirrorConfigResponse, error)
 	// SetRepoMirror sets an override, even when global mirroring is disabled.
-	SetRepoMirror(context.Context, *connect.Request[ermite.SetRepoMirrorRequest]) (*connect.Response[ermite.SetRepoMirrorResponse], error)
+	SetRepoMirror(context.Context, *ermite.SetRepoMirrorRequest) (*ermite.SetRepoMirrorResponse, error)
 	// RemoveRepoMirror removes the override so the global policy applies again.
-	RemoveRepoMirror(context.Context, *connect.Request[ermite.RemoveRepoMirrorRequest]) (*connect.Response[ermite.RemoveRepoMirrorResponse], error)
+	RemoveRepoMirror(context.Context, *ermite.RemoveRepoMirrorRequest) (*ermite.RemoveRepoMirrorResponse, error)
 	// SetRepoMirrorExcluded excludes or includes a repository in the global
 	// policy. An explicit URL override takes precedence.
-	SetRepoMirrorExcluded(context.Context, *connect.Request[ermite.SetRepoMirrorExcludedRequest]) (*connect.Response[ermite.SetRepoMirrorExcludedResponse], error)
+	SetRepoMirrorExcluded(context.Context, *ermite.SetRepoMirrorExcludedRequest) (*ermite.SetRepoMirrorExcludedResponse, error)
 	// GetMirrorStatus returns the resolved target and status of one repository.
-	GetMirrorStatus(context.Context, *connect.Request[ermite.GetMirrorStatusRequest]) (*connect.Response[ermite.GetMirrorStatusResponse], error)
+	GetMirrorStatus(context.Context, *ermite.GetMirrorStatusRequest) (*ermite.GetMirrorStatusResponse, error)
 	// ListMirrorStatus lists mirror statuses and needs owner rights.
-	ListMirrorStatus(context.Context, *connect.Request[ermite.ListMirrorStatusRequest]) (*connect.Response[ermite.ListMirrorStatusResponse], error)
+	ListMirrorStatus(context.Context, *ermite.ListMirrorStatusRequest) (*ermite.ListMirrorStatusResponse, error)
 	// SyncMirror syncs Repo or, with All, every repository. Paused mirrors need
 	// Force. Manual requests without Force are at least 60 seconds apart.
-	SyncMirror(context.Context, *connect.Request[ermite.SyncMirrorRequest]) (*connect.Response[ermite.SyncMirrorResponse], error)
+	SyncMirror(context.Context, *ermite.SyncMirrorRequest) (*ermite.SyncMirrorResponse, error)
 }
 
-// NewMirrorServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewMirrorServiceHandler(svc MirrorServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	mirrorServiceMethods := ermite.File_ermite_mirror_proto.Services().ByName("MirrorService").Methods()
-	mirrorServiceGetMirrorKeyHandler := connect.NewUnaryHandler(
-		MirrorServiceGetMirrorKeyProcedure,
-		svc.GetMirrorKey,
-		connect.WithSchema(mirrorServiceMethods.ByName("GetMirrorKey")),
-		connect.WithHandlerOptions(opts...),
+// RegisterMirrorServiceHandler registers svc as the ermite.MirrorService implementation on server.
+func RegisterMirrorServiceHandler(server *connect.Server, svc MirrorServiceHandler) {
+	adapter := mirrorServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: mirrorServiceGetMirrorKeySpec(), Handler: adapter.getMirrorKey},
+		connect.Method{Spec: mirrorServiceRotateMirrorKeySpec(), Handler: adapter.rotateMirrorKey},
+		connect.Method{Spec: mirrorServiceGetMirrorConfigSpec(), Handler: adapter.getMirrorConfig},
+		connect.Method{Spec: mirrorServiceSetMirrorConfigSpec(), Handler: adapter.setMirrorConfig},
+		connect.Method{Spec: mirrorServiceSetRepoMirrorSpec(), Handler: adapter.setRepoMirror},
+		connect.Method{Spec: mirrorServiceRemoveRepoMirrorSpec(), Handler: adapter.removeRepoMirror},
+		connect.Method{Spec: mirrorServiceSetRepoMirrorExcludedSpec(), Handler: adapter.setRepoMirrorExcluded},
+		connect.Method{Spec: mirrorServiceGetMirrorStatusSpec(), Handler: adapter.getMirrorStatus},
+		connect.Method{Spec: mirrorServiceListMirrorStatusSpec(), Handler: adapter.listMirrorStatus},
+		connect.Method{Spec: mirrorServiceSyncMirrorSpec(), Handler: adapter.syncMirror},
 	)
-	mirrorServiceRotateMirrorKeyHandler := connect.NewUnaryHandler(
-		MirrorServiceRotateMirrorKeyProcedure,
-		svc.RotateMirrorKey,
-		connect.WithSchema(mirrorServiceMethods.ByName("RotateMirrorKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mirrorServiceGetMirrorConfigHandler := connect.NewUnaryHandler(
-		MirrorServiceGetMirrorConfigProcedure,
-		svc.GetMirrorConfig,
-		connect.WithSchema(mirrorServiceMethods.ByName("GetMirrorConfig")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mirrorServiceSetMirrorConfigHandler := connect.NewUnaryHandler(
-		MirrorServiceSetMirrorConfigProcedure,
-		svc.SetMirrorConfig,
-		connect.WithSchema(mirrorServiceMethods.ByName("SetMirrorConfig")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mirrorServiceSetRepoMirrorHandler := connect.NewUnaryHandler(
-		MirrorServiceSetRepoMirrorProcedure,
-		svc.SetRepoMirror,
-		connect.WithSchema(mirrorServiceMethods.ByName("SetRepoMirror")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mirrorServiceRemoveRepoMirrorHandler := connect.NewUnaryHandler(
-		MirrorServiceRemoveRepoMirrorProcedure,
-		svc.RemoveRepoMirror,
-		connect.WithSchema(mirrorServiceMethods.ByName("RemoveRepoMirror")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mirrorServiceSetRepoMirrorExcludedHandler := connect.NewUnaryHandler(
-		MirrorServiceSetRepoMirrorExcludedProcedure,
-		svc.SetRepoMirrorExcluded,
-		connect.WithSchema(mirrorServiceMethods.ByName("SetRepoMirrorExcluded")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mirrorServiceGetMirrorStatusHandler := connect.NewUnaryHandler(
-		MirrorServiceGetMirrorStatusProcedure,
-		svc.GetMirrorStatus,
-		connect.WithSchema(mirrorServiceMethods.ByName("GetMirrorStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mirrorServiceListMirrorStatusHandler := connect.NewUnaryHandler(
-		MirrorServiceListMirrorStatusProcedure,
-		svc.ListMirrorStatus,
-		connect.WithSchema(mirrorServiceMethods.ByName("ListMirrorStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mirrorServiceSyncMirrorHandler := connect.NewUnaryHandler(
-		MirrorServiceSyncMirrorProcedure,
-		svc.SyncMirror,
-		connect.WithSchema(mirrorServiceMethods.ByName("SyncMirror")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.MirrorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case MirrorServiceGetMirrorKeyProcedure:
-			mirrorServiceGetMirrorKeyHandler.ServeHTTP(w, r)
-		case MirrorServiceRotateMirrorKeyProcedure:
-			mirrorServiceRotateMirrorKeyHandler.ServeHTTP(w, r)
-		case MirrorServiceGetMirrorConfigProcedure:
-			mirrorServiceGetMirrorConfigHandler.ServeHTTP(w, r)
-		case MirrorServiceSetMirrorConfigProcedure:
-			mirrorServiceSetMirrorConfigHandler.ServeHTTP(w, r)
-		case MirrorServiceSetRepoMirrorProcedure:
-			mirrorServiceSetRepoMirrorHandler.ServeHTTP(w, r)
-		case MirrorServiceRemoveRepoMirrorProcedure:
-			mirrorServiceRemoveRepoMirrorHandler.ServeHTTP(w, r)
-		case MirrorServiceSetRepoMirrorExcludedProcedure:
-			mirrorServiceSetRepoMirrorExcludedHandler.ServeHTTP(w, r)
-		case MirrorServiceGetMirrorStatusProcedure:
-			mirrorServiceGetMirrorStatusHandler.ServeHTTP(w, r)
-		case MirrorServiceListMirrorStatusProcedure:
-			mirrorServiceListMirrorStatusHandler.ServeHTTP(w, r)
-		case MirrorServiceSyncMirrorProcedure:
-			mirrorServiceSyncMirrorHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedMirrorServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedMirrorServiceHandler struct{}
 
-func (UnimplementedMirrorServiceHandler) GetMirrorKey(context.Context, *connect.Request[ermite.GetMirrorKeyRequest]) (*connect.Response[ermite.GetMirrorKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MirrorService.GetMirrorKey is not implemented"))
+func (UnimplementedMirrorServiceHandler) GetMirrorKey(context.Context, *ermite.GetMirrorKeyRequest) (*ermite.GetMirrorKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MirrorService.GetMirrorKey is not implemented")
 }
 
-func (UnimplementedMirrorServiceHandler) RotateMirrorKey(context.Context, *connect.Request[ermite.RotateMirrorKeyRequest]) (*connect.Response[ermite.RotateMirrorKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MirrorService.RotateMirrorKey is not implemented"))
+func (UnimplementedMirrorServiceHandler) RotateMirrorKey(context.Context, *ermite.RotateMirrorKeyRequest) (*ermite.RotateMirrorKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MirrorService.RotateMirrorKey is not implemented")
 }
 
-func (UnimplementedMirrorServiceHandler) GetMirrorConfig(context.Context, *connect.Request[ermite.GetMirrorConfigRequest]) (*connect.Response[ermite.GetMirrorConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MirrorService.GetMirrorConfig is not implemented"))
+func (UnimplementedMirrorServiceHandler) GetMirrorConfig(context.Context, *ermite.GetMirrorConfigRequest) (*ermite.GetMirrorConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MirrorService.GetMirrorConfig is not implemented")
 }
 
-func (UnimplementedMirrorServiceHandler) SetMirrorConfig(context.Context, *connect.Request[ermite.SetMirrorConfigRequest]) (*connect.Response[ermite.SetMirrorConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MirrorService.SetMirrorConfig is not implemented"))
+func (UnimplementedMirrorServiceHandler) SetMirrorConfig(context.Context, *ermite.SetMirrorConfigRequest) (*ermite.SetMirrorConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MirrorService.SetMirrorConfig is not implemented")
 }
 
-func (UnimplementedMirrorServiceHandler) SetRepoMirror(context.Context, *connect.Request[ermite.SetRepoMirrorRequest]) (*connect.Response[ermite.SetRepoMirrorResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MirrorService.SetRepoMirror is not implemented"))
+func (UnimplementedMirrorServiceHandler) SetRepoMirror(context.Context, *ermite.SetRepoMirrorRequest) (*ermite.SetRepoMirrorResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MirrorService.SetRepoMirror is not implemented")
 }
 
-func (UnimplementedMirrorServiceHandler) RemoveRepoMirror(context.Context, *connect.Request[ermite.RemoveRepoMirrorRequest]) (*connect.Response[ermite.RemoveRepoMirrorResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MirrorService.RemoveRepoMirror is not implemented"))
+func (UnimplementedMirrorServiceHandler) RemoveRepoMirror(context.Context, *ermite.RemoveRepoMirrorRequest) (*ermite.RemoveRepoMirrorResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MirrorService.RemoveRepoMirror is not implemented")
 }
 
-func (UnimplementedMirrorServiceHandler) SetRepoMirrorExcluded(context.Context, *connect.Request[ermite.SetRepoMirrorExcludedRequest]) (*connect.Response[ermite.SetRepoMirrorExcludedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MirrorService.SetRepoMirrorExcluded is not implemented"))
+func (UnimplementedMirrorServiceHandler) SetRepoMirrorExcluded(context.Context, *ermite.SetRepoMirrorExcludedRequest) (*ermite.SetRepoMirrorExcludedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MirrorService.SetRepoMirrorExcluded is not implemented")
 }
 
-func (UnimplementedMirrorServiceHandler) GetMirrorStatus(context.Context, *connect.Request[ermite.GetMirrorStatusRequest]) (*connect.Response[ermite.GetMirrorStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MirrorService.GetMirrorStatus is not implemented"))
+func (UnimplementedMirrorServiceHandler) GetMirrorStatus(context.Context, *ermite.GetMirrorStatusRequest) (*ermite.GetMirrorStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MirrorService.GetMirrorStatus is not implemented")
 }
 
-func (UnimplementedMirrorServiceHandler) ListMirrorStatus(context.Context, *connect.Request[ermite.ListMirrorStatusRequest]) (*connect.Response[ermite.ListMirrorStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MirrorService.ListMirrorStatus is not implemented"))
+func (UnimplementedMirrorServiceHandler) ListMirrorStatus(context.Context, *ermite.ListMirrorStatusRequest) (*ermite.ListMirrorStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MirrorService.ListMirrorStatus is not implemented")
 }
 
-func (UnimplementedMirrorServiceHandler) SyncMirror(context.Context, *connect.Request[ermite.SyncMirrorRequest]) (*connect.Response[ermite.SyncMirrorResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.MirrorService.SyncMirror is not implemented"))
+func (UnimplementedMirrorServiceHandler) SyncMirror(context.Context, *ermite.SyncMirrorRequest) (*ermite.SyncMirrorResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.MirrorService.SyncMirror is not implemented")
+}
+
+type mirrorServiceClient struct {
+	client *connect.Client
+}
+
+func (c *mirrorServiceClient) GetMirrorKey(ctx context.Context, req *ermite.GetMirrorKeyRequest) (*ermite.GetMirrorKeyResponse, error) {
+	var res ermite.GetMirrorKeyResponse
+	if err := c.client.CallUnary(ctx, mirrorServiceGetMirrorKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mirrorServiceClient) RotateMirrorKey(ctx context.Context, req *ermite.RotateMirrorKeyRequest) (*ermite.RotateMirrorKeyResponse, error) {
+	var res ermite.RotateMirrorKeyResponse
+	if err := c.client.CallUnary(ctx, mirrorServiceRotateMirrorKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mirrorServiceClient) GetMirrorConfig(ctx context.Context, req *ermite.GetMirrorConfigRequest) (*ermite.GetMirrorConfigResponse, error) {
+	var res ermite.GetMirrorConfigResponse
+	if err := c.client.CallUnary(ctx, mirrorServiceGetMirrorConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mirrorServiceClient) SetMirrorConfig(ctx context.Context, req *ermite.SetMirrorConfigRequest) (*ermite.SetMirrorConfigResponse, error) {
+	var res ermite.SetMirrorConfigResponse
+	if err := c.client.CallUnary(ctx, mirrorServiceSetMirrorConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mirrorServiceClient) SetRepoMirror(ctx context.Context, req *ermite.SetRepoMirrorRequest) (*ermite.SetRepoMirrorResponse, error) {
+	var res ermite.SetRepoMirrorResponse
+	if err := c.client.CallUnary(ctx, mirrorServiceSetRepoMirrorSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mirrorServiceClient) RemoveRepoMirror(ctx context.Context, req *ermite.RemoveRepoMirrorRequest) (*ermite.RemoveRepoMirrorResponse, error) {
+	var res ermite.RemoveRepoMirrorResponse
+	if err := c.client.CallUnary(ctx, mirrorServiceRemoveRepoMirrorSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mirrorServiceClient) SetRepoMirrorExcluded(ctx context.Context, req *ermite.SetRepoMirrorExcludedRequest) (*ermite.SetRepoMirrorExcludedResponse, error) {
+	var res ermite.SetRepoMirrorExcludedResponse
+	if err := c.client.CallUnary(ctx, mirrorServiceSetRepoMirrorExcludedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mirrorServiceClient) GetMirrorStatus(ctx context.Context, req *ermite.GetMirrorStatusRequest) (*ermite.GetMirrorStatusResponse, error) {
+	var res ermite.GetMirrorStatusResponse
+	if err := c.client.CallUnary(ctx, mirrorServiceGetMirrorStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mirrorServiceClient) ListMirrorStatus(ctx context.Context, req *ermite.ListMirrorStatusRequest) (*ermite.ListMirrorStatusResponse, error) {
+	var res ermite.ListMirrorStatusResponse
+	if err := c.client.CallUnary(ctx, mirrorServiceListMirrorStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mirrorServiceClient) SyncMirror(ctx context.Context, req *ermite.SyncMirrorRequest) (*ermite.SyncMirrorResponse, error) {
+	var res ermite.SyncMirrorResponse
+	if err := c.client.CallUnary(ctx, mirrorServiceSyncMirrorSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type mirrorServiceHandler struct{ svc MirrorServiceHandler }
+
+func (h mirrorServiceHandler) getMirrorKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetMirrorKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetMirrorKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mirrorServiceHandler) rotateMirrorKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.RotateMirrorKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RotateMirrorKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mirrorServiceHandler) getMirrorConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetMirrorConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetMirrorConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mirrorServiceHandler) setMirrorConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.SetMirrorConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetMirrorConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mirrorServiceHandler) setRepoMirror(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.SetRepoMirrorRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetRepoMirror(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mirrorServiceHandler) removeRepoMirror(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.RemoveRepoMirrorRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveRepoMirror(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mirrorServiceHandler) setRepoMirrorExcluded(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.SetRepoMirrorExcludedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetRepoMirrorExcluded(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mirrorServiceHandler) getMirrorStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetMirrorStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetMirrorStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mirrorServiceHandler) listMirrorStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListMirrorStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListMirrorStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mirrorServiceHandler) syncMirror(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.SyncMirrorRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SyncMirror(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

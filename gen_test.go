@@ -3,10 +3,10 @@
 package api_test
 
 import (
-	"errors"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connectproto"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -369,13 +369,12 @@ func TestWatchJobRoundTrip(t *testing.T) {
 		}
 	}
 	// The detail travels in a Connect error.
-	d, err := connect.NewErrorDetail(&ermite.JobEnded{Conclusion: ermite.CiConclusion_CI_CONCLUSION_TIMED_OUT})
+	d, err := connectproto.NewErrorDetail(&ermite.JobEnded{Conclusion: ermite.CiConclusion_CI_CONCLUSION_TIMED_OUT})
 	if err != nil {
 		t.Fatal(err)
 	}
-	cerr := connect.NewError(connect.CodeFailedPrecondition, errors.New("job ended"))
-	cerr.AddDetail(d)
-	v, err := cerr.Details()[0].Value()
+	cerr := connect.NewError(connect.CodeFailedPrecondition, "job ended").WithDetail(d)
+	v, err := connectproto.UnmarshalErrorDetail(cerr.Details()[0])
 	if err != nil {
 		t.Fatal(err)
 	}

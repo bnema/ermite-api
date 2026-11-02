@@ -8,19 +8,10 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// SecretServiceName is the fully-qualified name of the SecretService service.
@@ -31,43 +22,65 @@ const (
 	EnvironmentServiceName = "ermite.EnvironmentService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// SecretServiceSetSecretProcedure is the fully-qualified name of the SecretService's SetSecret RPC.
+	// SecretServiceSetSecretProcedure is the procedure name of the SecretService's SetSecret RPC.
 	SecretServiceSetSecretProcedure = "/ermite.SecretService/SetSecret"
-	// SecretServiceListSecretsProcedure is the fully-qualified name of the SecretService's ListSecrets
-	// RPC.
+	// SecretServiceListSecretsProcedure is the procedure name of the SecretService's ListSecrets RPC.
 	SecretServiceListSecretsProcedure = "/ermite.SecretService/ListSecrets"
-	// SecretServiceDeleteSecretProcedure is the fully-qualified name of the SecretService's
-	// DeleteSecret RPC.
+	// SecretServiceDeleteSecretProcedure is the procedure name of the SecretService's DeleteSecret RPC.
 	SecretServiceDeleteSecretProcedure = "/ermite.SecretService/DeleteSecret"
-	// VariableServiceSetVariableProcedure is the fully-qualified name of the VariableService's
-	// SetVariable RPC.
+	// VariableServiceSetVariableProcedure is the procedure name of the VariableService's SetVariable
+	// RPC.
 	VariableServiceSetVariableProcedure = "/ermite.VariableService/SetVariable"
-	// VariableServiceGetVariableProcedure is the fully-qualified name of the VariableService's
-	// GetVariable RPC.
+	// VariableServiceGetVariableProcedure is the procedure name of the VariableService's GetVariable
+	// RPC.
 	VariableServiceGetVariableProcedure = "/ermite.VariableService/GetVariable"
-	// VariableServiceListVariablesProcedure is the fully-qualified name of the VariableService's
+	// VariableServiceListVariablesProcedure is the procedure name of the VariableService's
 	// ListVariables RPC.
 	VariableServiceListVariablesProcedure = "/ermite.VariableService/ListVariables"
-	// VariableServiceDeleteVariableProcedure is the fully-qualified name of the VariableService's
+	// VariableServiceDeleteVariableProcedure is the procedure name of the VariableService's
 	// DeleteVariable RPC.
 	VariableServiceDeleteVariableProcedure = "/ermite.VariableService/DeleteVariable"
-	// EnvironmentServiceCreateEnvironmentProcedure is the fully-qualified name of the
-	// EnvironmentService's CreateEnvironment RPC.
+	// EnvironmentServiceCreateEnvironmentProcedure is the procedure name of the EnvironmentService's
+	// CreateEnvironment RPC.
 	EnvironmentServiceCreateEnvironmentProcedure = "/ermite.EnvironmentService/CreateEnvironment"
-	// EnvironmentServiceListEnvironmentsProcedure is the fully-qualified name of the
-	// EnvironmentService's ListEnvironments RPC.
+	// EnvironmentServiceListEnvironmentsProcedure is the procedure name of the EnvironmentService's
+	// ListEnvironments RPC.
 	EnvironmentServiceListEnvironmentsProcedure = "/ermite.EnvironmentService/ListEnvironments"
-	// EnvironmentServiceDeleteEnvironmentProcedure is the fully-qualified name of the
-	// EnvironmentService's DeleteEnvironment RPC.
+	// EnvironmentServiceDeleteEnvironmentProcedure is the procedure name of the EnvironmentService's
+	// DeleteEnvironment RPC.
 	EnvironmentServiceDeleteEnvironmentProcedure = "/ermite.EnvironmentService/DeleteEnvironment"
+)
+
+var (
+	secretServiceSetSecretSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_ci_settings_proto.Services().ByName("SecretService").Methods().ByName("SetSecret"),
+			Procedure:  SecretServiceSetSecretProcedure,
+		}
+	})
+	secretServiceListSecretsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_ci_settings_proto.Services().ByName("SecretService").Methods().ByName("ListSecrets"),
+			Procedure:  SecretServiceListSecretsProcedure,
+		}
+	})
+	secretServiceDeleteSecretSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_ci_settings_proto.Services().ByName("SecretService").Methods().ByName("DeleteSecret"),
+			Procedure:  SecretServiceDeleteSecretProcedure,
+		}
+	})
 )
 
 // SecretServiceClient is a client for the ermite.SecretService service.
@@ -77,67 +90,19 @@ type SecretServiceClient interface {
 	// than 48 KiB (49,152 bytes), or if scope is not set, with not_found if the
 	// environment of the scope does not exist, and with failed_precondition if
 	// the server has no encryption key.
-	SetSecret(context.Context, *connect.Request[ermite.SetSecretRequest]) (*connect.Response[ermite.SetSecretResponse], error)
+	SetSecret(context.Context, *ermite.SetSecretRequest) (*ermite.SetSecretResponse, error)
 	// ListSecrets lists the secrets of one scope, ordered by name. It lists only
 	// the secrets set in that scope, not the ones the scope inherits. It never
 	// returns values.
-	ListSecrets(context.Context, *connect.Request[ermite.ListSecretsRequest]) (*connect.Response[ermite.ListSecretsResponse], error)
+	ListSecrets(context.Context, *ermite.ListSecretsRequest) (*ermite.ListSecretsResponse, error)
 	// DeleteSecret deletes a secret. Fails with not_found if it does not exist.
-	DeleteSecret(context.Context, *connect.Request[ermite.DeleteSecretRequest]) (*connect.Response[ermite.DeleteSecretResponse], error)
+	DeleteSecret(context.Context, *ermite.DeleteSecretRequest) (*ermite.DeleteSecretResponse, error)
 }
 
-// NewSecretServiceClient constructs a client for the ermite.SecretService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewSecretServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) SecretServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	secretServiceMethods := ermite.File_ermite_ci_settings_proto.Services().ByName("SecretService").Methods()
-	return &secretServiceClient{
-		setSecret: connect.NewClient[ermite.SetSecretRequest, ermite.SetSecretResponse](
-			httpClient,
-			baseURL+SecretServiceSetSecretProcedure,
-			connect.WithSchema(secretServiceMethods.ByName("SetSecret")),
-			connect.WithClientOptions(opts...),
-		),
-		listSecrets: connect.NewClient[ermite.ListSecretsRequest, ermite.ListSecretsResponse](
-			httpClient,
-			baseURL+SecretServiceListSecretsProcedure,
-			connect.WithSchema(secretServiceMethods.ByName("ListSecrets")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteSecret: connect.NewClient[ermite.DeleteSecretRequest, ermite.DeleteSecretResponse](
-			httpClient,
-			baseURL+SecretServiceDeleteSecretProcedure,
-			connect.WithSchema(secretServiceMethods.ByName("DeleteSecret")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// secretServiceClient implements SecretServiceClient.
-type secretServiceClient struct {
-	setSecret    *connect.Client[ermite.SetSecretRequest, ermite.SetSecretResponse]
-	listSecrets  *connect.Client[ermite.ListSecretsRequest, ermite.ListSecretsResponse]
-	deleteSecret *connect.Client[ermite.DeleteSecretRequest, ermite.DeleteSecretResponse]
-}
-
-// SetSecret calls ermite.SecretService.SetSecret.
-func (c *secretServiceClient) SetSecret(ctx context.Context, req *connect.Request[ermite.SetSecretRequest]) (*connect.Response[ermite.SetSecretResponse], error) {
-	return c.setSecret.CallUnary(ctx, req)
-}
-
-// ListSecrets calls ermite.SecretService.ListSecrets.
-func (c *secretServiceClient) ListSecrets(ctx context.Context, req *connect.Request[ermite.ListSecretsRequest]) (*connect.Response[ermite.ListSecretsResponse], error) {
-	return c.listSecrets.CallUnary(ctx, req)
-}
-
-// DeleteSecret calls ermite.SecretService.DeleteSecret.
-func (c *secretServiceClient) DeleteSecret(ctx context.Context, req *connect.Request[ermite.DeleteSecretRequest]) (*connect.Response[ermite.DeleteSecretResponse], error) {
-	return c.deleteSecret.CallUnary(ctx, req)
+// NewSecretServiceClient constructs a client for the ermite.SecretService service. Multiple service
+// clients may share a single connect.Client.
+func NewSecretServiceClient(client *connect.Client) SecretServiceClient {
+	return &secretServiceClient{client: client}
 }
 
 // SecretServiceHandler is an implementation of the ermite.SecretService service.
@@ -147,68 +112,136 @@ type SecretServiceHandler interface {
 	// than 48 KiB (49,152 bytes), or if scope is not set, with not_found if the
 	// environment of the scope does not exist, and with failed_precondition if
 	// the server has no encryption key.
-	SetSecret(context.Context, *connect.Request[ermite.SetSecretRequest]) (*connect.Response[ermite.SetSecretResponse], error)
+	SetSecret(context.Context, *ermite.SetSecretRequest) (*ermite.SetSecretResponse, error)
 	// ListSecrets lists the secrets of one scope, ordered by name. It lists only
 	// the secrets set in that scope, not the ones the scope inherits. It never
 	// returns values.
-	ListSecrets(context.Context, *connect.Request[ermite.ListSecretsRequest]) (*connect.Response[ermite.ListSecretsResponse], error)
+	ListSecrets(context.Context, *ermite.ListSecretsRequest) (*ermite.ListSecretsResponse, error)
 	// DeleteSecret deletes a secret. Fails with not_found if it does not exist.
-	DeleteSecret(context.Context, *connect.Request[ermite.DeleteSecretRequest]) (*connect.Response[ermite.DeleteSecretResponse], error)
+	DeleteSecret(context.Context, *ermite.DeleteSecretRequest) (*ermite.DeleteSecretResponse, error)
 }
 
-// NewSecretServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewSecretServiceHandler(svc SecretServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	secretServiceMethods := ermite.File_ermite_ci_settings_proto.Services().ByName("SecretService").Methods()
-	secretServiceSetSecretHandler := connect.NewUnaryHandler(
-		SecretServiceSetSecretProcedure,
-		svc.SetSecret,
-		connect.WithSchema(secretServiceMethods.ByName("SetSecret")),
-		connect.WithHandlerOptions(opts...),
+// RegisterSecretServiceHandler registers svc as the ermite.SecretService implementation on server.
+func RegisterSecretServiceHandler(server *connect.Server, svc SecretServiceHandler) {
+	adapter := secretServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: secretServiceSetSecretSpec(), Handler: adapter.setSecret},
+		connect.Method{Spec: secretServiceListSecretsSpec(), Handler: adapter.listSecrets},
+		connect.Method{Spec: secretServiceDeleteSecretSpec(), Handler: adapter.deleteSecret},
 	)
-	secretServiceListSecretsHandler := connect.NewUnaryHandler(
-		SecretServiceListSecretsProcedure,
-		svc.ListSecrets,
-		connect.WithSchema(secretServiceMethods.ByName("ListSecrets")),
-		connect.WithHandlerOptions(opts...),
-	)
-	secretServiceDeleteSecretHandler := connect.NewUnaryHandler(
-		SecretServiceDeleteSecretProcedure,
-		svc.DeleteSecret,
-		connect.WithSchema(secretServiceMethods.ByName("DeleteSecret")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.SecretService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case SecretServiceSetSecretProcedure:
-			secretServiceSetSecretHandler.ServeHTTP(w, r)
-		case SecretServiceListSecretsProcedure:
-			secretServiceListSecretsHandler.ServeHTTP(w, r)
-		case SecretServiceDeleteSecretProcedure:
-			secretServiceDeleteSecretHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedSecretServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedSecretServiceHandler struct{}
 
-func (UnimplementedSecretServiceHandler) SetSecret(context.Context, *connect.Request[ermite.SetSecretRequest]) (*connect.Response[ermite.SetSecretResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.SecretService.SetSecret is not implemented"))
+func (UnimplementedSecretServiceHandler) SetSecret(context.Context, *ermite.SetSecretRequest) (*ermite.SetSecretResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.SecretService.SetSecret is not implemented")
 }
 
-func (UnimplementedSecretServiceHandler) ListSecrets(context.Context, *connect.Request[ermite.ListSecretsRequest]) (*connect.Response[ermite.ListSecretsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.SecretService.ListSecrets is not implemented"))
+func (UnimplementedSecretServiceHandler) ListSecrets(context.Context, *ermite.ListSecretsRequest) (*ermite.ListSecretsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.SecretService.ListSecrets is not implemented")
 }
 
-func (UnimplementedSecretServiceHandler) DeleteSecret(context.Context, *connect.Request[ermite.DeleteSecretRequest]) (*connect.Response[ermite.DeleteSecretResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.SecretService.DeleteSecret is not implemented"))
+func (UnimplementedSecretServiceHandler) DeleteSecret(context.Context, *ermite.DeleteSecretRequest) (*ermite.DeleteSecretResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.SecretService.DeleteSecret is not implemented")
 }
+
+type secretServiceClient struct {
+	client *connect.Client
+}
+
+func (c *secretServiceClient) SetSecret(ctx context.Context, req *ermite.SetSecretRequest) (*ermite.SetSecretResponse, error) {
+	var res ermite.SetSecretResponse
+	if err := c.client.CallUnary(ctx, secretServiceSetSecretSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *secretServiceClient) ListSecrets(ctx context.Context, req *ermite.ListSecretsRequest) (*ermite.ListSecretsResponse, error) {
+	var res ermite.ListSecretsResponse
+	if err := c.client.CallUnary(ctx, secretServiceListSecretsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *secretServiceClient) DeleteSecret(ctx context.Context, req *ermite.DeleteSecretRequest) (*ermite.DeleteSecretResponse, error) {
+	var res ermite.DeleteSecretResponse
+	if err := c.client.CallUnary(ctx, secretServiceDeleteSecretSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type secretServiceHandler struct{ svc SecretServiceHandler }
+
+func (h secretServiceHandler) setSecret(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.SetSecretRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetSecret(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h secretServiceHandler) listSecrets(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListSecretsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListSecrets(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h secretServiceHandler) deleteSecret(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DeleteSecretRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteSecret(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+var (
+	variableServiceSetVariableSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_ci_settings_proto.Services().ByName("VariableService").Methods().ByName("SetVariable"),
+			Procedure:  VariableServiceSetVariableProcedure,
+		}
+	})
+	variableServiceGetVariableSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_ci_settings_proto.Services().ByName("VariableService").Methods().ByName("GetVariable"),
+			Procedure:  VariableServiceGetVariableProcedure,
+		}
+	})
+	variableServiceListVariablesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_ci_settings_proto.Services().ByName("VariableService").Methods().ByName("ListVariables"),
+			Procedure:  VariableServiceListVariablesProcedure,
+		}
+	})
+	variableServiceDeleteVariableSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_ci_settings_proto.Services().ByName("VariableService").Methods().ByName("DeleteVariable"),
+			Procedure:  VariableServiceDeleteVariableProcedure,
+		}
+	})
+)
 
 // VariableServiceClient is a client for the ermite.VariableService service.
 type VariableServiceClient interface {
@@ -216,82 +249,22 @@ type VariableServiceClient interface {
 	// invalid_argument if the name is not valid, if the value is longer than 48
 	// KiB (49,152 bytes) or if scope is not set, and with not_found if the
 	// environment of the scope does not exist. An empty value is allowed.
-	SetVariable(context.Context, *connect.Request[ermite.SetVariableRequest]) (*connect.Response[ermite.SetVariableResponse], error)
+	SetVariable(context.Context, *ermite.SetVariableRequest) (*ermite.SetVariableResponse, error)
 	// GetVariable returns one variable of one scope, with its value. Fails with
 	// not_found if it does not exist in that scope.
-	GetVariable(context.Context, *connect.Request[ermite.GetVariableRequest]) (*connect.Response[ermite.GetVariableResponse], error)
+	GetVariable(context.Context, *ermite.GetVariableRequest) (*ermite.GetVariableResponse, error)
 	// ListVariables lists the variables of one scope, ordered by name, with
 	// their values. It lists only the variables set in that scope.
-	ListVariables(context.Context, *connect.Request[ermite.ListVariablesRequest]) (*connect.Response[ermite.ListVariablesResponse], error)
+	ListVariables(context.Context, *ermite.ListVariablesRequest) (*ermite.ListVariablesResponse, error)
 	// DeleteVariable deletes a variable. Fails with not_found if it does not
 	// exist.
-	DeleteVariable(context.Context, *connect.Request[ermite.DeleteVariableRequest]) (*connect.Response[ermite.DeleteVariableResponse], error)
+	DeleteVariable(context.Context, *ermite.DeleteVariableRequest) (*ermite.DeleteVariableResponse, error)
 }
 
-// NewVariableServiceClient constructs a client for the ermite.VariableService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewVariableServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) VariableServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	variableServiceMethods := ermite.File_ermite_ci_settings_proto.Services().ByName("VariableService").Methods()
-	return &variableServiceClient{
-		setVariable: connect.NewClient[ermite.SetVariableRequest, ermite.SetVariableResponse](
-			httpClient,
-			baseURL+VariableServiceSetVariableProcedure,
-			connect.WithSchema(variableServiceMethods.ByName("SetVariable")),
-			connect.WithClientOptions(opts...),
-		),
-		getVariable: connect.NewClient[ermite.GetVariableRequest, ermite.GetVariableResponse](
-			httpClient,
-			baseURL+VariableServiceGetVariableProcedure,
-			connect.WithSchema(variableServiceMethods.ByName("GetVariable")),
-			connect.WithClientOptions(opts...),
-		),
-		listVariables: connect.NewClient[ermite.ListVariablesRequest, ermite.ListVariablesResponse](
-			httpClient,
-			baseURL+VariableServiceListVariablesProcedure,
-			connect.WithSchema(variableServiceMethods.ByName("ListVariables")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteVariable: connect.NewClient[ermite.DeleteVariableRequest, ermite.DeleteVariableResponse](
-			httpClient,
-			baseURL+VariableServiceDeleteVariableProcedure,
-			connect.WithSchema(variableServiceMethods.ByName("DeleteVariable")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// variableServiceClient implements VariableServiceClient.
-type variableServiceClient struct {
-	setVariable    *connect.Client[ermite.SetVariableRequest, ermite.SetVariableResponse]
-	getVariable    *connect.Client[ermite.GetVariableRequest, ermite.GetVariableResponse]
-	listVariables  *connect.Client[ermite.ListVariablesRequest, ermite.ListVariablesResponse]
-	deleteVariable *connect.Client[ermite.DeleteVariableRequest, ermite.DeleteVariableResponse]
-}
-
-// SetVariable calls ermite.VariableService.SetVariable.
-func (c *variableServiceClient) SetVariable(ctx context.Context, req *connect.Request[ermite.SetVariableRequest]) (*connect.Response[ermite.SetVariableResponse], error) {
-	return c.setVariable.CallUnary(ctx, req)
-}
-
-// GetVariable calls ermite.VariableService.GetVariable.
-func (c *variableServiceClient) GetVariable(ctx context.Context, req *connect.Request[ermite.GetVariableRequest]) (*connect.Response[ermite.GetVariableResponse], error) {
-	return c.getVariable.CallUnary(ctx, req)
-}
-
-// ListVariables calls ermite.VariableService.ListVariables.
-func (c *variableServiceClient) ListVariables(ctx context.Context, req *connect.Request[ermite.ListVariablesRequest]) (*connect.Response[ermite.ListVariablesResponse], error) {
-	return c.listVariables.CallUnary(ctx, req)
-}
-
-// DeleteVariable calls ermite.VariableService.DeleteVariable.
-func (c *variableServiceClient) DeleteVariable(ctx context.Context, req *connect.Request[ermite.DeleteVariableRequest]) (*connect.Response[ermite.DeleteVariableResponse], error) {
-	return c.deleteVariable.CallUnary(ctx, req)
+// NewVariableServiceClient constructs a client for the ermite.VariableService service. Multiple
+// service clients may share a single connect.Client.
+func NewVariableServiceClient(client *connect.Client) VariableServiceClient {
+	return &variableServiceClient{client: client}
 }
 
 // VariableServiceHandler is an implementation of the ermite.VariableService service.
@@ -300,83 +273,158 @@ type VariableServiceHandler interface {
 	// invalid_argument if the name is not valid, if the value is longer than 48
 	// KiB (49,152 bytes) or if scope is not set, and with not_found if the
 	// environment of the scope does not exist. An empty value is allowed.
-	SetVariable(context.Context, *connect.Request[ermite.SetVariableRequest]) (*connect.Response[ermite.SetVariableResponse], error)
+	SetVariable(context.Context, *ermite.SetVariableRequest) (*ermite.SetVariableResponse, error)
 	// GetVariable returns one variable of one scope, with its value. Fails with
 	// not_found if it does not exist in that scope.
-	GetVariable(context.Context, *connect.Request[ermite.GetVariableRequest]) (*connect.Response[ermite.GetVariableResponse], error)
+	GetVariable(context.Context, *ermite.GetVariableRequest) (*ermite.GetVariableResponse, error)
 	// ListVariables lists the variables of one scope, ordered by name, with
 	// their values. It lists only the variables set in that scope.
-	ListVariables(context.Context, *connect.Request[ermite.ListVariablesRequest]) (*connect.Response[ermite.ListVariablesResponse], error)
+	ListVariables(context.Context, *ermite.ListVariablesRequest) (*ermite.ListVariablesResponse, error)
 	// DeleteVariable deletes a variable. Fails with not_found if it does not
 	// exist.
-	DeleteVariable(context.Context, *connect.Request[ermite.DeleteVariableRequest]) (*connect.Response[ermite.DeleteVariableResponse], error)
+	DeleteVariable(context.Context, *ermite.DeleteVariableRequest) (*ermite.DeleteVariableResponse, error)
 }
 
-// NewVariableServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewVariableServiceHandler(svc VariableServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	variableServiceMethods := ermite.File_ermite_ci_settings_proto.Services().ByName("VariableService").Methods()
-	variableServiceSetVariableHandler := connect.NewUnaryHandler(
-		VariableServiceSetVariableProcedure,
-		svc.SetVariable,
-		connect.WithSchema(variableServiceMethods.ByName("SetVariable")),
-		connect.WithHandlerOptions(opts...),
+// RegisterVariableServiceHandler registers svc as the ermite.VariableService implementation on
+// server.
+func RegisterVariableServiceHandler(server *connect.Server, svc VariableServiceHandler) {
+	adapter := variableServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: variableServiceSetVariableSpec(), Handler: adapter.setVariable},
+		connect.Method{Spec: variableServiceGetVariableSpec(), Handler: adapter.getVariable},
+		connect.Method{Spec: variableServiceListVariablesSpec(), Handler: adapter.listVariables},
+		connect.Method{Spec: variableServiceDeleteVariableSpec(), Handler: adapter.deleteVariable},
 	)
-	variableServiceGetVariableHandler := connect.NewUnaryHandler(
-		VariableServiceGetVariableProcedure,
-		svc.GetVariable,
-		connect.WithSchema(variableServiceMethods.ByName("GetVariable")),
-		connect.WithHandlerOptions(opts...),
-	)
-	variableServiceListVariablesHandler := connect.NewUnaryHandler(
-		VariableServiceListVariablesProcedure,
-		svc.ListVariables,
-		connect.WithSchema(variableServiceMethods.ByName("ListVariables")),
-		connect.WithHandlerOptions(opts...),
-	)
-	variableServiceDeleteVariableHandler := connect.NewUnaryHandler(
-		VariableServiceDeleteVariableProcedure,
-		svc.DeleteVariable,
-		connect.WithSchema(variableServiceMethods.ByName("DeleteVariable")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.VariableService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case VariableServiceSetVariableProcedure:
-			variableServiceSetVariableHandler.ServeHTTP(w, r)
-		case VariableServiceGetVariableProcedure:
-			variableServiceGetVariableHandler.ServeHTTP(w, r)
-		case VariableServiceListVariablesProcedure:
-			variableServiceListVariablesHandler.ServeHTTP(w, r)
-		case VariableServiceDeleteVariableProcedure:
-			variableServiceDeleteVariableHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedVariableServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedVariableServiceHandler struct{}
 
-func (UnimplementedVariableServiceHandler) SetVariable(context.Context, *connect.Request[ermite.SetVariableRequest]) (*connect.Response[ermite.SetVariableResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.VariableService.SetVariable is not implemented"))
+func (UnimplementedVariableServiceHandler) SetVariable(context.Context, *ermite.SetVariableRequest) (*ermite.SetVariableResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.VariableService.SetVariable is not implemented")
 }
 
-func (UnimplementedVariableServiceHandler) GetVariable(context.Context, *connect.Request[ermite.GetVariableRequest]) (*connect.Response[ermite.GetVariableResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.VariableService.GetVariable is not implemented"))
+func (UnimplementedVariableServiceHandler) GetVariable(context.Context, *ermite.GetVariableRequest) (*ermite.GetVariableResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.VariableService.GetVariable is not implemented")
 }
 
-func (UnimplementedVariableServiceHandler) ListVariables(context.Context, *connect.Request[ermite.ListVariablesRequest]) (*connect.Response[ermite.ListVariablesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.VariableService.ListVariables is not implemented"))
+func (UnimplementedVariableServiceHandler) ListVariables(context.Context, *ermite.ListVariablesRequest) (*ermite.ListVariablesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.VariableService.ListVariables is not implemented")
 }
 
-func (UnimplementedVariableServiceHandler) DeleteVariable(context.Context, *connect.Request[ermite.DeleteVariableRequest]) (*connect.Response[ermite.DeleteVariableResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.VariableService.DeleteVariable is not implemented"))
+func (UnimplementedVariableServiceHandler) DeleteVariable(context.Context, *ermite.DeleteVariableRequest) (*ermite.DeleteVariableResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.VariableService.DeleteVariable is not implemented")
 }
+
+type variableServiceClient struct {
+	client *connect.Client
+}
+
+func (c *variableServiceClient) SetVariable(ctx context.Context, req *ermite.SetVariableRequest) (*ermite.SetVariableResponse, error) {
+	var res ermite.SetVariableResponse
+	if err := c.client.CallUnary(ctx, variableServiceSetVariableSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *variableServiceClient) GetVariable(ctx context.Context, req *ermite.GetVariableRequest) (*ermite.GetVariableResponse, error) {
+	var res ermite.GetVariableResponse
+	if err := c.client.CallUnary(ctx, variableServiceGetVariableSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *variableServiceClient) ListVariables(ctx context.Context, req *ermite.ListVariablesRequest) (*ermite.ListVariablesResponse, error) {
+	var res ermite.ListVariablesResponse
+	if err := c.client.CallUnary(ctx, variableServiceListVariablesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *variableServiceClient) DeleteVariable(ctx context.Context, req *ermite.DeleteVariableRequest) (*ermite.DeleteVariableResponse, error) {
+	var res ermite.DeleteVariableResponse
+	if err := c.client.CallUnary(ctx, variableServiceDeleteVariableSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type variableServiceHandler struct{ svc VariableServiceHandler }
+
+func (h variableServiceHandler) setVariable(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.SetVariableRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetVariable(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h variableServiceHandler) getVariable(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetVariableRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetVariable(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h variableServiceHandler) listVariables(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListVariablesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListVariables(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h variableServiceHandler) deleteVariable(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DeleteVariableRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteVariable(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+var (
+	environmentServiceCreateEnvironmentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_ci_settings_proto.Services().ByName("EnvironmentService").Methods().ByName("CreateEnvironment"),
+			Procedure:  EnvironmentServiceCreateEnvironmentProcedure,
+		}
+	})
+	environmentServiceListEnvironmentsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_ci_settings_proto.Services().ByName("EnvironmentService").Methods().ByName("ListEnvironments"),
+			Procedure:  EnvironmentServiceListEnvironmentsProcedure,
+		}
+	})
+	environmentServiceDeleteEnvironmentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_ci_settings_proto.Services().ByName("EnvironmentService").Methods().ByName("DeleteEnvironment"),
+			Procedure:  EnvironmentServiceDeleteEnvironmentProcedure,
+		}
+	})
+)
 
 // EnvironmentServiceClient is a client for the ermite.EnvironmentService service.
 type EnvironmentServiceClient interface {
@@ -384,66 +432,18 @@ type EnvironmentServiceClient interface {
 	// if the environment already exists (without regard to case), as GitHub's
 	// create-or-update does. Fails with invalid_argument if the name is not
 	// valid and with not_found if the repository does not exist.
-	CreateEnvironment(context.Context, *connect.Request[ermite.CreateEnvironmentRequest]) (*connect.Response[ermite.CreateEnvironmentResponse], error)
+	CreateEnvironment(context.Context, *ermite.CreateEnvironmentRequest) (*ermite.CreateEnvironmentResponse, error)
 	// ListEnvironments lists the environments of a repository, ordered by name.
-	ListEnvironments(context.Context, *connect.Request[ermite.ListEnvironmentsRequest]) (*connect.Response[ermite.ListEnvironmentsResponse], error)
+	ListEnvironments(context.Context, *ermite.ListEnvironmentsRequest) (*ermite.ListEnvironmentsResponse, error)
 	// DeleteEnvironment deletes an environment with its secrets and variables.
 	// Fails with not_found if it does not exist.
-	DeleteEnvironment(context.Context, *connect.Request[ermite.DeleteEnvironmentRequest]) (*connect.Response[ermite.DeleteEnvironmentResponse], error)
+	DeleteEnvironment(context.Context, *ermite.DeleteEnvironmentRequest) (*ermite.DeleteEnvironmentResponse, error)
 }
 
-// NewEnvironmentServiceClient constructs a client for the ermite.EnvironmentService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewEnvironmentServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) EnvironmentServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	environmentServiceMethods := ermite.File_ermite_ci_settings_proto.Services().ByName("EnvironmentService").Methods()
-	return &environmentServiceClient{
-		createEnvironment: connect.NewClient[ermite.CreateEnvironmentRequest, ermite.CreateEnvironmentResponse](
-			httpClient,
-			baseURL+EnvironmentServiceCreateEnvironmentProcedure,
-			connect.WithSchema(environmentServiceMethods.ByName("CreateEnvironment")),
-			connect.WithClientOptions(opts...),
-		),
-		listEnvironments: connect.NewClient[ermite.ListEnvironmentsRequest, ermite.ListEnvironmentsResponse](
-			httpClient,
-			baseURL+EnvironmentServiceListEnvironmentsProcedure,
-			connect.WithSchema(environmentServiceMethods.ByName("ListEnvironments")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteEnvironment: connect.NewClient[ermite.DeleteEnvironmentRequest, ermite.DeleteEnvironmentResponse](
-			httpClient,
-			baseURL+EnvironmentServiceDeleteEnvironmentProcedure,
-			connect.WithSchema(environmentServiceMethods.ByName("DeleteEnvironment")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// environmentServiceClient implements EnvironmentServiceClient.
-type environmentServiceClient struct {
-	createEnvironment *connect.Client[ermite.CreateEnvironmentRequest, ermite.CreateEnvironmentResponse]
-	listEnvironments  *connect.Client[ermite.ListEnvironmentsRequest, ermite.ListEnvironmentsResponse]
-	deleteEnvironment *connect.Client[ermite.DeleteEnvironmentRequest, ermite.DeleteEnvironmentResponse]
-}
-
-// CreateEnvironment calls ermite.EnvironmentService.CreateEnvironment.
-func (c *environmentServiceClient) CreateEnvironment(ctx context.Context, req *connect.Request[ermite.CreateEnvironmentRequest]) (*connect.Response[ermite.CreateEnvironmentResponse], error) {
-	return c.createEnvironment.CallUnary(ctx, req)
-}
-
-// ListEnvironments calls ermite.EnvironmentService.ListEnvironments.
-func (c *environmentServiceClient) ListEnvironments(ctx context.Context, req *connect.Request[ermite.ListEnvironmentsRequest]) (*connect.Response[ermite.ListEnvironmentsResponse], error) {
-	return c.listEnvironments.CallUnary(ctx, req)
-}
-
-// DeleteEnvironment calls ermite.EnvironmentService.DeleteEnvironment.
-func (c *environmentServiceClient) DeleteEnvironment(ctx context.Context, req *connect.Request[ermite.DeleteEnvironmentRequest]) (*connect.Response[ermite.DeleteEnvironmentResponse], error) {
-	return c.deleteEnvironment.CallUnary(ctx, req)
+// NewEnvironmentServiceClient constructs a client for the ermite.EnvironmentService service.
+// Multiple service clients may share a single connect.Client.
+func NewEnvironmentServiceClient(client *connect.Client) EnvironmentServiceClient {
+	return &environmentServiceClient{client: client}
 }
 
 // EnvironmentServiceHandler is an implementation of the ermite.EnvironmentService service.
@@ -452,64 +452,102 @@ type EnvironmentServiceHandler interface {
 	// if the environment already exists (without regard to case), as GitHub's
 	// create-or-update does. Fails with invalid_argument if the name is not
 	// valid and with not_found if the repository does not exist.
-	CreateEnvironment(context.Context, *connect.Request[ermite.CreateEnvironmentRequest]) (*connect.Response[ermite.CreateEnvironmentResponse], error)
+	CreateEnvironment(context.Context, *ermite.CreateEnvironmentRequest) (*ermite.CreateEnvironmentResponse, error)
 	// ListEnvironments lists the environments of a repository, ordered by name.
-	ListEnvironments(context.Context, *connect.Request[ermite.ListEnvironmentsRequest]) (*connect.Response[ermite.ListEnvironmentsResponse], error)
+	ListEnvironments(context.Context, *ermite.ListEnvironmentsRequest) (*ermite.ListEnvironmentsResponse, error)
 	// DeleteEnvironment deletes an environment with its secrets and variables.
 	// Fails with not_found if it does not exist.
-	DeleteEnvironment(context.Context, *connect.Request[ermite.DeleteEnvironmentRequest]) (*connect.Response[ermite.DeleteEnvironmentResponse], error)
+	DeleteEnvironment(context.Context, *ermite.DeleteEnvironmentRequest) (*ermite.DeleteEnvironmentResponse, error)
 }
 
-// NewEnvironmentServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewEnvironmentServiceHandler(svc EnvironmentServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	environmentServiceMethods := ermite.File_ermite_ci_settings_proto.Services().ByName("EnvironmentService").Methods()
-	environmentServiceCreateEnvironmentHandler := connect.NewUnaryHandler(
-		EnvironmentServiceCreateEnvironmentProcedure,
-		svc.CreateEnvironment,
-		connect.WithSchema(environmentServiceMethods.ByName("CreateEnvironment")),
-		connect.WithHandlerOptions(opts...),
+// RegisterEnvironmentServiceHandler registers svc as the ermite.EnvironmentService implementation
+// on server.
+func RegisterEnvironmentServiceHandler(server *connect.Server, svc EnvironmentServiceHandler) {
+	adapter := environmentServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: environmentServiceCreateEnvironmentSpec(), Handler: adapter.createEnvironment},
+		connect.Method{Spec: environmentServiceListEnvironmentsSpec(), Handler: adapter.listEnvironments},
+		connect.Method{Spec: environmentServiceDeleteEnvironmentSpec(), Handler: adapter.deleteEnvironment},
 	)
-	environmentServiceListEnvironmentsHandler := connect.NewUnaryHandler(
-		EnvironmentServiceListEnvironmentsProcedure,
-		svc.ListEnvironments,
-		connect.WithSchema(environmentServiceMethods.ByName("ListEnvironments")),
-		connect.WithHandlerOptions(opts...),
-	)
-	environmentServiceDeleteEnvironmentHandler := connect.NewUnaryHandler(
-		EnvironmentServiceDeleteEnvironmentProcedure,
-		svc.DeleteEnvironment,
-		connect.WithSchema(environmentServiceMethods.ByName("DeleteEnvironment")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.EnvironmentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case EnvironmentServiceCreateEnvironmentProcedure:
-			environmentServiceCreateEnvironmentHandler.ServeHTTP(w, r)
-		case EnvironmentServiceListEnvironmentsProcedure:
-			environmentServiceListEnvironmentsHandler.ServeHTTP(w, r)
-		case EnvironmentServiceDeleteEnvironmentProcedure:
-			environmentServiceDeleteEnvironmentHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedEnvironmentServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedEnvironmentServiceHandler struct{}
 
-func (UnimplementedEnvironmentServiceHandler) CreateEnvironment(context.Context, *connect.Request[ermite.CreateEnvironmentRequest]) (*connect.Response[ermite.CreateEnvironmentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.EnvironmentService.CreateEnvironment is not implemented"))
+func (UnimplementedEnvironmentServiceHandler) CreateEnvironment(context.Context, *ermite.CreateEnvironmentRequest) (*ermite.CreateEnvironmentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.EnvironmentService.CreateEnvironment is not implemented")
 }
 
-func (UnimplementedEnvironmentServiceHandler) ListEnvironments(context.Context, *connect.Request[ermite.ListEnvironmentsRequest]) (*connect.Response[ermite.ListEnvironmentsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.EnvironmentService.ListEnvironments is not implemented"))
+func (UnimplementedEnvironmentServiceHandler) ListEnvironments(context.Context, *ermite.ListEnvironmentsRequest) (*ermite.ListEnvironmentsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.EnvironmentService.ListEnvironments is not implemented")
 }
 
-func (UnimplementedEnvironmentServiceHandler) DeleteEnvironment(context.Context, *connect.Request[ermite.DeleteEnvironmentRequest]) (*connect.Response[ermite.DeleteEnvironmentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.EnvironmentService.DeleteEnvironment is not implemented"))
+func (UnimplementedEnvironmentServiceHandler) DeleteEnvironment(context.Context, *ermite.DeleteEnvironmentRequest) (*ermite.DeleteEnvironmentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.EnvironmentService.DeleteEnvironment is not implemented")
+}
+
+type environmentServiceClient struct {
+	client *connect.Client
+}
+
+func (c *environmentServiceClient) CreateEnvironment(ctx context.Context, req *ermite.CreateEnvironmentRequest) (*ermite.CreateEnvironmentResponse, error) {
+	var res ermite.CreateEnvironmentResponse
+	if err := c.client.CallUnary(ctx, environmentServiceCreateEnvironmentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *environmentServiceClient) ListEnvironments(ctx context.Context, req *ermite.ListEnvironmentsRequest) (*ermite.ListEnvironmentsResponse, error) {
+	var res ermite.ListEnvironmentsResponse
+	if err := c.client.CallUnary(ctx, environmentServiceListEnvironmentsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *environmentServiceClient) DeleteEnvironment(ctx context.Context, req *ermite.DeleteEnvironmentRequest) (*ermite.DeleteEnvironmentResponse, error) {
+	var res ermite.DeleteEnvironmentResponse
+	if err := c.client.CallUnary(ctx, environmentServiceDeleteEnvironmentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type environmentServiceHandler struct{ svc EnvironmentServiceHandler }
+
+func (h environmentServiceHandler) createEnvironment(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CreateEnvironmentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateEnvironment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h environmentServiceHandler) listEnvironments(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListEnvironmentsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListEnvironments(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h environmentServiceHandler) deleteEnvironment(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DeleteEnvironmentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteEnvironment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

@@ -8,237 +8,257 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// RepoServiceName is the fully-qualified name of the RepoService service.
 	RepoServiceName = "ermite.RepoService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// RepoServiceListReposProcedure is the fully-qualified name of the RepoService's ListRepos RPC.
+	// RepoServiceListReposProcedure is the procedure name of the RepoService's ListRepos RPC.
 	RepoServiceListReposProcedure = "/ermite.RepoService/ListRepos"
-	// RepoServiceGetRepoProcedure is the fully-qualified name of the RepoService's GetRepo RPC.
+	// RepoServiceGetRepoProcedure is the procedure name of the RepoService's GetRepo RPC.
 	RepoServiceGetRepoProcedure = "/ermite.RepoService/GetRepo"
-	// RepoServiceCreateRepoProcedure is the fully-qualified name of the RepoService's CreateRepo RPC.
+	// RepoServiceCreateRepoProcedure is the procedure name of the RepoService's CreateRepo RPC.
 	RepoServiceCreateRepoProcedure = "/ermite.RepoService/CreateRepo"
-	// RepoServiceUpdateRepoProcedure is the fully-qualified name of the RepoService's UpdateRepo RPC.
+	// RepoServiceUpdateRepoProcedure is the procedure name of the RepoService's UpdateRepo RPC.
 	RepoServiceUpdateRepoProcedure = "/ermite.RepoService/UpdateRepo"
-	// RepoServiceDeleteRepoProcedure is the fully-qualified name of the RepoService's DeleteRepo RPC.
+	// RepoServiceDeleteRepoProcedure is the procedure name of the RepoService's DeleteRepo RPC.
 	RepoServiceDeleteRepoProcedure = "/ermite.RepoService/DeleteRepo"
+)
+
+var (
+	repoServiceListReposSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_repo_proto.Services().ByName("RepoService").Methods().ByName("ListRepos"),
+			Procedure:  RepoServiceListReposProcedure,
+		}
+	})
+	repoServiceGetRepoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_repo_proto.Services().ByName("RepoService").Methods().ByName("GetRepo"),
+			Procedure:  RepoServiceGetRepoProcedure,
+		}
+	})
+	repoServiceCreateRepoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_repo_proto.Services().ByName("RepoService").Methods().ByName("CreateRepo"),
+			Procedure:  RepoServiceCreateRepoProcedure,
+		}
+	})
+	repoServiceUpdateRepoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_repo_proto.Services().ByName("RepoService").Methods().ByName("UpdateRepo"),
+			Procedure:  RepoServiceUpdateRepoProcedure,
+		}
+	})
+	repoServiceDeleteRepoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_repo_proto.Services().ByName("RepoService").Methods().ByName("DeleteRepo"),
+			Procedure:  RepoServiceDeleteRepoProcedure,
+		}
+	})
 )
 
 // RepoServiceClient is a client for the ermite.RepoService service.
 type RepoServiceClient interface {
 	// ListRepos lists the repositories the caller may see, ordered by name.
-	ListRepos(context.Context, *connect.Request[ermite.ListReposRequest]) (*connect.Response[ermite.ListReposResponse], error)
+	ListRepos(context.Context, *ermite.ListReposRequest) (*ermite.ListReposResponse, error)
 	// GetRepo returns one repository. Fails with not_found if it does not exist
 	// or is private and not readable by the caller.
-	GetRepo(context.Context, *connect.Request[ermite.GetRepoRequest]) (*connect.Response[ermite.GetRepoResponse], error)
+	GetRepo(context.Context, *ermite.GetRepoRequest) (*ermite.GetRepoResponse, error)
 	// CreateRepo creates an empty repository with the default settings. Needs
 	// the repo:write scope. Fails
 	// with already_exists if the name is taken and invalid_argument if the name
 	// is not valid.
-	CreateRepo(context.Context, *connect.Request[ermite.CreateRepoRequest]) (*connect.Response[ermite.CreateRepoResponse], error)
+	CreateRepo(context.Context, *ermite.CreateRepoRequest) (*ermite.CreateRepoResponse, error)
 	// UpdateRepo changes the fields named in update_mask, including the merge
 	// settings. Needs the repo:admin scope.
-	UpdateRepo(context.Context, *connect.Request[ermite.UpdateRepoRequest]) (*connect.Response[ermite.UpdateRepoResponse], error)
+	UpdateRepo(context.Context, *ermite.UpdateRepoRequest) (*ermite.UpdateRepoResponse, error)
 	// DeleteRepo deletes a repository. Needs the repo:admin scope. The server
 	// moves the data aside rather than destroying it; there is no undelete RPC.
-	DeleteRepo(context.Context, *connect.Request[ermite.DeleteRepoRequest]) (*connect.Response[ermite.DeleteRepoResponse], error)
+	DeleteRepo(context.Context, *ermite.DeleteRepoRequest) (*ermite.DeleteRepoResponse, error)
 }
 
-// NewRepoServiceClient constructs a client for the ermite.RepoService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewRepoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RepoServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	repoServiceMethods := ermite.File_ermite_repo_proto.Services().ByName("RepoService").Methods()
-	return &repoServiceClient{
-		listRepos: connect.NewClient[ermite.ListReposRequest, ermite.ListReposResponse](
-			httpClient,
-			baseURL+RepoServiceListReposProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("ListRepos")),
-			connect.WithClientOptions(opts...),
-		),
-		getRepo: connect.NewClient[ermite.GetRepoRequest, ermite.GetRepoResponse](
-			httpClient,
-			baseURL+RepoServiceGetRepoProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("GetRepo")),
-			connect.WithClientOptions(opts...),
-		),
-		createRepo: connect.NewClient[ermite.CreateRepoRequest, ermite.CreateRepoResponse](
-			httpClient,
-			baseURL+RepoServiceCreateRepoProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("CreateRepo")),
-			connect.WithClientOptions(opts...),
-		),
-		updateRepo: connect.NewClient[ermite.UpdateRepoRequest, ermite.UpdateRepoResponse](
-			httpClient,
-			baseURL+RepoServiceUpdateRepoProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("UpdateRepo")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteRepo: connect.NewClient[ermite.DeleteRepoRequest, ermite.DeleteRepoResponse](
-			httpClient,
-			baseURL+RepoServiceDeleteRepoProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("DeleteRepo")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// repoServiceClient implements RepoServiceClient.
-type repoServiceClient struct {
-	listRepos  *connect.Client[ermite.ListReposRequest, ermite.ListReposResponse]
-	getRepo    *connect.Client[ermite.GetRepoRequest, ermite.GetRepoResponse]
-	createRepo *connect.Client[ermite.CreateRepoRequest, ermite.CreateRepoResponse]
-	updateRepo *connect.Client[ermite.UpdateRepoRequest, ermite.UpdateRepoResponse]
-	deleteRepo *connect.Client[ermite.DeleteRepoRequest, ermite.DeleteRepoResponse]
-}
-
-// ListRepos calls ermite.RepoService.ListRepos.
-func (c *repoServiceClient) ListRepos(ctx context.Context, req *connect.Request[ermite.ListReposRequest]) (*connect.Response[ermite.ListReposResponse], error) {
-	return c.listRepos.CallUnary(ctx, req)
-}
-
-// GetRepo calls ermite.RepoService.GetRepo.
-func (c *repoServiceClient) GetRepo(ctx context.Context, req *connect.Request[ermite.GetRepoRequest]) (*connect.Response[ermite.GetRepoResponse], error) {
-	return c.getRepo.CallUnary(ctx, req)
-}
-
-// CreateRepo calls ermite.RepoService.CreateRepo.
-func (c *repoServiceClient) CreateRepo(ctx context.Context, req *connect.Request[ermite.CreateRepoRequest]) (*connect.Response[ermite.CreateRepoResponse], error) {
-	return c.createRepo.CallUnary(ctx, req)
-}
-
-// UpdateRepo calls ermite.RepoService.UpdateRepo.
-func (c *repoServiceClient) UpdateRepo(ctx context.Context, req *connect.Request[ermite.UpdateRepoRequest]) (*connect.Response[ermite.UpdateRepoResponse], error) {
-	return c.updateRepo.CallUnary(ctx, req)
-}
-
-// DeleteRepo calls ermite.RepoService.DeleteRepo.
-func (c *repoServiceClient) DeleteRepo(ctx context.Context, req *connect.Request[ermite.DeleteRepoRequest]) (*connect.Response[ermite.DeleteRepoResponse], error) {
-	return c.deleteRepo.CallUnary(ctx, req)
+// NewRepoServiceClient constructs a client for the ermite.RepoService service. Multiple service
+// clients may share a single connect.Client.
+func NewRepoServiceClient(client *connect.Client) RepoServiceClient {
+	return &repoServiceClient{client: client}
 }
 
 // RepoServiceHandler is an implementation of the ermite.RepoService service.
 type RepoServiceHandler interface {
 	// ListRepos lists the repositories the caller may see, ordered by name.
-	ListRepos(context.Context, *connect.Request[ermite.ListReposRequest]) (*connect.Response[ermite.ListReposResponse], error)
+	ListRepos(context.Context, *ermite.ListReposRequest) (*ermite.ListReposResponse, error)
 	// GetRepo returns one repository. Fails with not_found if it does not exist
 	// or is private and not readable by the caller.
-	GetRepo(context.Context, *connect.Request[ermite.GetRepoRequest]) (*connect.Response[ermite.GetRepoResponse], error)
+	GetRepo(context.Context, *ermite.GetRepoRequest) (*ermite.GetRepoResponse, error)
 	// CreateRepo creates an empty repository with the default settings. Needs
 	// the repo:write scope. Fails
 	// with already_exists if the name is taken and invalid_argument if the name
 	// is not valid.
-	CreateRepo(context.Context, *connect.Request[ermite.CreateRepoRequest]) (*connect.Response[ermite.CreateRepoResponse], error)
+	CreateRepo(context.Context, *ermite.CreateRepoRequest) (*ermite.CreateRepoResponse, error)
 	// UpdateRepo changes the fields named in update_mask, including the merge
 	// settings. Needs the repo:admin scope.
-	UpdateRepo(context.Context, *connect.Request[ermite.UpdateRepoRequest]) (*connect.Response[ermite.UpdateRepoResponse], error)
+	UpdateRepo(context.Context, *ermite.UpdateRepoRequest) (*ermite.UpdateRepoResponse, error)
 	// DeleteRepo deletes a repository. Needs the repo:admin scope. The server
 	// moves the data aside rather than destroying it; there is no undelete RPC.
-	DeleteRepo(context.Context, *connect.Request[ermite.DeleteRepoRequest]) (*connect.Response[ermite.DeleteRepoResponse], error)
+	DeleteRepo(context.Context, *ermite.DeleteRepoRequest) (*ermite.DeleteRepoResponse, error)
 }
 
-// NewRepoServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewRepoServiceHandler(svc RepoServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	repoServiceMethods := ermite.File_ermite_repo_proto.Services().ByName("RepoService").Methods()
-	repoServiceListReposHandler := connect.NewUnaryHandler(
-		RepoServiceListReposProcedure,
-		svc.ListRepos,
-		connect.WithSchema(repoServiceMethods.ByName("ListRepos")),
-		connect.WithHandlerOptions(opts...),
+// RegisterRepoServiceHandler registers svc as the ermite.RepoService implementation on server.
+func RegisterRepoServiceHandler(server *connect.Server, svc RepoServiceHandler) {
+	adapter := repoServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: repoServiceListReposSpec(), Handler: adapter.listRepos},
+		connect.Method{Spec: repoServiceGetRepoSpec(), Handler: adapter.getRepo},
+		connect.Method{Spec: repoServiceCreateRepoSpec(), Handler: adapter.createRepo},
+		connect.Method{Spec: repoServiceUpdateRepoSpec(), Handler: adapter.updateRepo},
+		connect.Method{Spec: repoServiceDeleteRepoSpec(), Handler: adapter.deleteRepo},
 	)
-	repoServiceGetRepoHandler := connect.NewUnaryHandler(
-		RepoServiceGetRepoProcedure,
-		svc.GetRepo,
-		connect.WithSchema(repoServiceMethods.ByName("GetRepo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	repoServiceCreateRepoHandler := connect.NewUnaryHandler(
-		RepoServiceCreateRepoProcedure,
-		svc.CreateRepo,
-		connect.WithSchema(repoServiceMethods.ByName("CreateRepo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	repoServiceUpdateRepoHandler := connect.NewUnaryHandler(
-		RepoServiceUpdateRepoProcedure,
-		svc.UpdateRepo,
-		connect.WithSchema(repoServiceMethods.ByName("UpdateRepo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	repoServiceDeleteRepoHandler := connect.NewUnaryHandler(
-		RepoServiceDeleteRepoProcedure,
-		svc.DeleteRepo,
-		connect.WithSchema(repoServiceMethods.ByName("DeleteRepo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.RepoService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case RepoServiceListReposProcedure:
-			repoServiceListReposHandler.ServeHTTP(w, r)
-		case RepoServiceGetRepoProcedure:
-			repoServiceGetRepoHandler.ServeHTTP(w, r)
-		case RepoServiceCreateRepoProcedure:
-			repoServiceCreateRepoHandler.ServeHTTP(w, r)
-		case RepoServiceUpdateRepoProcedure:
-			repoServiceUpdateRepoHandler.ServeHTTP(w, r)
-		case RepoServiceDeleteRepoProcedure:
-			repoServiceDeleteRepoHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedRepoServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedRepoServiceHandler struct{}
 
-func (UnimplementedRepoServiceHandler) ListRepos(context.Context, *connect.Request[ermite.ListReposRequest]) (*connect.Response[ermite.ListReposResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RepoService.ListRepos is not implemented"))
+func (UnimplementedRepoServiceHandler) ListRepos(context.Context, *ermite.ListReposRequest) (*ermite.ListReposResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RepoService.ListRepos is not implemented")
 }
 
-func (UnimplementedRepoServiceHandler) GetRepo(context.Context, *connect.Request[ermite.GetRepoRequest]) (*connect.Response[ermite.GetRepoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RepoService.GetRepo is not implemented"))
+func (UnimplementedRepoServiceHandler) GetRepo(context.Context, *ermite.GetRepoRequest) (*ermite.GetRepoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RepoService.GetRepo is not implemented")
 }
 
-func (UnimplementedRepoServiceHandler) CreateRepo(context.Context, *connect.Request[ermite.CreateRepoRequest]) (*connect.Response[ermite.CreateRepoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RepoService.CreateRepo is not implemented"))
+func (UnimplementedRepoServiceHandler) CreateRepo(context.Context, *ermite.CreateRepoRequest) (*ermite.CreateRepoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RepoService.CreateRepo is not implemented")
 }
 
-func (UnimplementedRepoServiceHandler) UpdateRepo(context.Context, *connect.Request[ermite.UpdateRepoRequest]) (*connect.Response[ermite.UpdateRepoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RepoService.UpdateRepo is not implemented"))
+func (UnimplementedRepoServiceHandler) UpdateRepo(context.Context, *ermite.UpdateRepoRequest) (*ermite.UpdateRepoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RepoService.UpdateRepo is not implemented")
 }
 
-func (UnimplementedRepoServiceHandler) DeleteRepo(context.Context, *connect.Request[ermite.DeleteRepoRequest]) (*connect.Response[ermite.DeleteRepoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.RepoService.DeleteRepo is not implemented"))
+func (UnimplementedRepoServiceHandler) DeleteRepo(context.Context, *ermite.DeleteRepoRequest) (*ermite.DeleteRepoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.RepoService.DeleteRepo is not implemented")
+}
+
+type repoServiceClient struct {
+	client *connect.Client
+}
+
+func (c *repoServiceClient) ListRepos(ctx context.Context, req *ermite.ListReposRequest) (*ermite.ListReposResponse, error) {
+	var res ermite.ListReposResponse
+	if err := c.client.CallUnary(ctx, repoServiceListReposSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *repoServiceClient) GetRepo(ctx context.Context, req *ermite.GetRepoRequest) (*ermite.GetRepoResponse, error) {
+	var res ermite.GetRepoResponse
+	if err := c.client.CallUnary(ctx, repoServiceGetRepoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *repoServiceClient) CreateRepo(ctx context.Context, req *ermite.CreateRepoRequest) (*ermite.CreateRepoResponse, error) {
+	var res ermite.CreateRepoResponse
+	if err := c.client.CallUnary(ctx, repoServiceCreateRepoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *repoServiceClient) UpdateRepo(ctx context.Context, req *ermite.UpdateRepoRequest) (*ermite.UpdateRepoResponse, error) {
+	var res ermite.UpdateRepoResponse
+	if err := c.client.CallUnary(ctx, repoServiceUpdateRepoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *repoServiceClient) DeleteRepo(ctx context.Context, req *ermite.DeleteRepoRequest) (*ermite.DeleteRepoResponse, error) {
+	var res ermite.DeleteRepoResponse
+	if err := c.client.CallUnary(ctx, repoServiceDeleteRepoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type repoServiceHandler struct{ svc RepoServiceHandler }
+
+func (h repoServiceHandler) listRepos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListReposRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListRepos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h repoServiceHandler) getRepo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetRepoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetRepo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h repoServiceHandler) createRepo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CreateRepoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateRepo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h repoServiceHandler) updateRepo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.UpdateRepoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateRepo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h repoServiceHandler) deleteRepo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DeleteRepoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteRepo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

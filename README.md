@@ -20,7 +20,7 @@ import (
 ```
 
 - The server mounts the services under `/-/api/`. Errors are Connect codes.
-- No version number: the contract only changes in backward-compatible ways, and CI rejects breaking changes (`buf breaking`).
+- No version number: the protobuf wire contract only changes in backward-compatible ways, and CI rejects breaking changes (`buf breaking`). Go runtime major-version migrations can require source changes; see [Connect v2 migration](docs/connect-v2.md).
 - Tokens carry scopes only; presets such as `cli` or `agent` are a client concern.
 
 Status: early development.

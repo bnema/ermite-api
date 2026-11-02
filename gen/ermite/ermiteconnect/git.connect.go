@@ -8,316 +8,382 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// GitServiceName is the fully-qualified name of the GitService service.
 	GitServiceName = "ermite.GitService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// GitServiceListRefsProcedure is the fully-qualified name of the GitService's ListRefs RPC.
+	// GitServiceListRefsProcedure is the procedure name of the GitService's ListRefs RPC.
 	GitServiceListRefsProcedure = "/ermite.GitService/ListRefs"
-	// GitServiceGetTreeProcedure is the fully-qualified name of the GitService's GetTree RPC.
+	// GitServiceGetTreeProcedure is the procedure name of the GitService's GetTree RPC.
 	GitServiceGetTreeProcedure = "/ermite.GitService/GetTree"
-	// GitServiceListPathsProcedure is the fully-qualified name of the GitService's ListPaths RPC.
+	// GitServiceListPathsProcedure is the procedure name of the GitService's ListPaths RPC.
 	GitServiceListPathsProcedure = "/ermite.GitService/ListPaths"
-	// GitServiceGetBlobProcedure is the fully-qualified name of the GitService's GetBlob RPC.
+	// GitServiceGetBlobProcedure is the procedure name of the GitService's GetBlob RPC.
 	GitServiceGetBlobProcedure = "/ermite.GitService/GetBlob"
-	// GitServiceListCommitsProcedure is the fully-qualified name of the GitService's ListCommits RPC.
+	// GitServiceListCommitsProcedure is the procedure name of the GitService's ListCommits RPC.
 	GitServiceListCommitsProcedure = "/ermite.GitService/ListCommits"
-	// GitServiceGetCommitProcedure is the fully-qualified name of the GitService's GetCommit RPC.
+	// GitServiceGetCommitProcedure is the procedure name of the GitService's GetCommit RPC.
 	GitServiceGetCommitProcedure = "/ermite.GitService/GetCommit"
-	// GitServiceResolveRevisionProcedure is the fully-qualified name of the GitService's
-	// ResolveRevision RPC.
+	// GitServiceResolveRevisionProcedure is the procedure name of the GitService's ResolveRevision RPC.
 	GitServiceResolveRevisionProcedure = "/ermite.GitService/ResolveRevision"
+)
+
+var (
+	gitServiceListRefsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_git_proto.Services().ByName("GitService").Methods().ByName("ListRefs"),
+			Procedure:  GitServiceListRefsProcedure,
+		}
+	})
+	gitServiceGetTreeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_git_proto.Services().ByName("GitService").Methods().ByName("GetTree"),
+			Procedure:  GitServiceGetTreeProcedure,
+		}
+	})
+	gitServiceListPathsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_git_proto.Services().ByName("GitService").Methods().ByName("ListPaths"),
+			Procedure:  GitServiceListPathsProcedure,
+		}
+	})
+	gitServiceGetBlobSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     ermite.File_ermite_git_proto.Services().ByName("GitService").Methods().ByName("GetBlob"),
+			Procedure:  GitServiceGetBlobProcedure,
+		}
+	})
+	gitServiceListCommitsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_git_proto.Services().ByName("GitService").Methods().ByName("ListCommits"),
+			Procedure:  GitServiceListCommitsProcedure,
+		}
+	})
+	gitServiceGetCommitSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_git_proto.Services().ByName("GitService").Methods().ByName("GetCommit"),
+			Procedure:  GitServiceGetCommitProcedure,
+		}
+	})
+	gitServiceResolveRevisionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_git_proto.Services().ByName("GitService").Methods().ByName("ResolveRevision"),
+			Procedure:  GitServiceResolveRevisionProcedure,
+		}
+	})
 )
 
 // GitServiceClient is a client for the ermite.GitService service.
 type GitServiceClient interface {
 	// ListRefs lists the branches, tags and HEAD of a repository. Refs are
 	// ordered by kind (HEAD, branches, tags) then by name.
-	ListRefs(context.Context, *connect.Request[ermite.ListRefsRequest]) (*connect.Response[ermite.ListRefsResponse], error)
+	ListRefs(context.Context, *ermite.ListRefsRequest) (*ermite.ListRefsResponse, error)
 	// GetTree lists the entries of a directory at a revision. Fails with
 	// not_found if the path does not exist and invalid_argument if it is not a
 	// directory.
-	GetTree(context.Context, *connect.Request[ermite.GetTreeRequest]) (*connect.Response[ermite.GetTreeResponse], error)
+	GetTree(context.Context, *ermite.GetTreeRequest) (*ermite.GetTreeResponse, error)
 	// ListPaths lists the paths of every file and symbolic link of a revision,
 	// recursively, in Git tree order (the order of `git ls-tree -r`). Directories
 	// and submodules are not listed, nor paths GetBlob cannot address (not valid
 	// UTF-8, or with a control character). Fails with not_found for an unknown
 	// revision or an empty repository. Servers that have it advertise the
 	// feature "git.list_paths" in GetVersion.
-	ListPaths(context.Context, *connect.Request[ermite.ListPathsRequest]) (*connect.Response[ermite.ListPathsResponse], error)
+	ListPaths(context.Context, *ermite.ListPathsRequest) (*ermite.ListPathsResponse, error)
 	// GetBlob streams the content of a file at a revision, in chunks of at most
 	// 64 KiB. The first message carries the metadata in info, then the chunks
 	// follow; the memory used by the server does not depend on the file size.
 	// Fails with not_found if the path does not exist and invalid_argument if it
 	// is not a file.
-	GetBlob(context.Context, *connect.Request[ermite.GetBlobRequest]) (*connect.ServerStreamForClient[ermite.GetBlobResponse], error)
+	GetBlob(context.Context, *ermite.GetBlobRequest) (GitServiceGetBlobClientStream, error)
 	// ListCommits lists the history reachable from a revision, newest first
 	// (Git's default order), optionally limited to the commits that touched a
 	// path. A page_token that points deeper than 100,000 commits into the
 	// history is invalid_argument.
-	ListCommits(context.Context, *connect.Request[ermite.ListCommitsRequest]) (*connect.Response[ermite.ListCommitsResponse], error)
+	ListCommits(context.Context, *ermite.ListCommitsRequest) (*ermite.ListCommitsResponse, error)
 	// GetCommit returns one commit with its statistics and its diff.
-	GetCommit(context.Context, *connect.Request[ermite.GetCommitRequest]) (*connect.Response[ermite.GetCommitResponse], error)
+	GetCommit(context.Context, *ermite.GetCommitRequest) (*ermite.GetCommitResponse, error)
 	// ResolveRevision turns a revision into the id of the commit it designates.
-	ResolveRevision(context.Context, *connect.Request[ermite.ResolveRevisionRequest]) (*connect.Response[ermite.ResolveRevisionResponse], error)
+	ResolveRevision(context.Context, *ermite.ResolveRevisionRequest) (*ermite.ResolveRevisionResponse, error)
 }
 
-// NewGitServiceClient constructs a client for the ermite.GitService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewGitServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) GitServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	gitServiceMethods := ermite.File_ermite_git_proto.Services().ByName("GitService").Methods()
-	return &gitServiceClient{
-		listRefs: connect.NewClient[ermite.ListRefsRequest, ermite.ListRefsResponse](
-			httpClient,
-			baseURL+GitServiceListRefsProcedure,
-			connect.WithSchema(gitServiceMethods.ByName("ListRefs")),
-			connect.WithClientOptions(opts...),
-		),
-		getTree: connect.NewClient[ermite.GetTreeRequest, ermite.GetTreeResponse](
-			httpClient,
-			baseURL+GitServiceGetTreeProcedure,
-			connect.WithSchema(gitServiceMethods.ByName("GetTree")),
-			connect.WithClientOptions(opts...),
-		),
-		listPaths: connect.NewClient[ermite.ListPathsRequest, ermite.ListPathsResponse](
-			httpClient,
-			baseURL+GitServiceListPathsProcedure,
-			connect.WithSchema(gitServiceMethods.ByName("ListPaths")),
-			connect.WithClientOptions(opts...),
-		),
-		getBlob: connect.NewClient[ermite.GetBlobRequest, ermite.GetBlobResponse](
-			httpClient,
-			baseURL+GitServiceGetBlobProcedure,
-			connect.WithSchema(gitServiceMethods.ByName("GetBlob")),
-			connect.WithClientOptions(opts...),
-		),
-		listCommits: connect.NewClient[ermite.ListCommitsRequest, ermite.ListCommitsResponse](
-			httpClient,
-			baseURL+GitServiceListCommitsProcedure,
-			connect.WithSchema(gitServiceMethods.ByName("ListCommits")),
-			connect.WithClientOptions(opts...),
-		),
-		getCommit: connect.NewClient[ermite.GetCommitRequest, ermite.GetCommitResponse](
-			httpClient,
-			baseURL+GitServiceGetCommitProcedure,
-			connect.WithSchema(gitServiceMethods.ByName("GetCommit")),
-			connect.WithClientOptions(opts...),
-		),
-		resolveRevision: connect.NewClient[ermite.ResolveRevisionRequest, ermite.ResolveRevisionResponse](
-			httpClient,
-			baseURL+GitServiceResolveRevisionProcedure,
-			connect.WithSchema(gitServiceMethods.ByName("ResolveRevision")),
-			connect.WithClientOptions(opts...),
-		),
+// NewGitServiceClient constructs a client for the ermite.GitService service. Multiple service
+// clients may share a single connect.Client.
+func NewGitServiceClient(client *connect.Client) GitServiceClient {
+	return &gitServiceClient{client: client}
+}
+
+// GitServiceGetBlobClientStream is the client stream for the GitService's GetBlob RPC.
+type GitServiceGetBlobClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s GitServiceGetBlobClientStream) Receive() (*ermite.GetBlobResponse, error) {
+	var res ermite.GetBlobResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// gitServiceClient implements GitServiceClient.
-type gitServiceClient struct {
-	listRefs        *connect.Client[ermite.ListRefsRequest, ermite.ListRefsResponse]
-	getTree         *connect.Client[ermite.GetTreeRequest, ermite.GetTreeResponse]
-	listPaths       *connect.Client[ermite.ListPathsRequest, ermite.ListPathsResponse]
-	getBlob         *connect.Client[ermite.GetBlobRequest, ermite.GetBlobResponse]
-	listCommits     *connect.Client[ermite.ListCommitsRequest, ermite.ListCommitsResponse]
-	getCommit       *connect.Client[ermite.GetCommitRequest, ermite.GetCommitResponse]
-	resolveRevision *connect.Client[ermite.ResolveRevisionRequest, ermite.ResolveRevisionResponse]
-}
-
-// ListRefs calls ermite.GitService.ListRefs.
-func (c *gitServiceClient) ListRefs(ctx context.Context, req *connect.Request[ermite.ListRefsRequest]) (*connect.Response[ermite.ListRefsResponse], error) {
-	return c.listRefs.CallUnary(ctx, req)
-}
-
-// GetTree calls ermite.GitService.GetTree.
-func (c *gitServiceClient) GetTree(ctx context.Context, req *connect.Request[ermite.GetTreeRequest]) (*connect.Response[ermite.GetTreeResponse], error) {
-	return c.getTree.CallUnary(ctx, req)
-}
-
-// ListPaths calls ermite.GitService.ListPaths.
-func (c *gitServiceClient) ListPaths(ctx context.Context, req *connect.Request[ermite.ListPathsRequest]) (*connect.Response[ermite.ListPathsResponse], error) {
-	return c.listPaths.CallUnary(ctx, req)
-}
-
-// GetBlob calls ermite.GitService.GetBlob.
-func (c *gitServiceClient) GetBlob(ctx context.Context, req *connect.Request[ermite.GetBlobRequest]) (*connect.ServerStreamForClient[ermite.GetBlobResponse], error) {
-	return c.getBlob.CallServerStream(ctx, req)
-}
-
-// ListCommits calls ermite.GitService.ListCommits.
-func (c *gitServiceClient) ListCommits(ctx context.Context, req *connect.Request[ermite.ListCommitsRequest]) (*connect.Response[ermite.ListCommitsResponse], error) {
-	return c.listCommits.CallUnary(ctx, req)
-}
-
-// GetCommit calls ermite.GitService.GetCommit.
-func (c *gitServiceClient) GetCommit(ctx context.Context, req *connect.Request[ermite.GetCommitRequest]) (*connect.Response[ermite.GetCommitResponse], error) {
-	return c.getCommit.CallUnary(ctx, req)
-}
-
-// ResolveRevision calls ermite.GitService.ResolveRevision.
-func (c *gitServiceClient) ResolveRevision(ctx context.Context, req *connect.Request[ermite.ResolveRevisionRequest]) (*connect.Response[ermite.ResolveRevisionResponse], error) {
-	return c.resolveRevision.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s GitServiceGetBlobClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // GitServiceHandler is an implementation of the ermite.GitService service.
 type GitServiceHandler interface {
 	// ListRefs lists the branches, tags and HEAD of a repository. Refs are
 	// ordered by kind (HEAD, branches, tags) then by name.
-	ListRefs(context.Context, *connect.Request[ermite.ListRefsRequest]) (*connect.Response[ermite.ListRefsResponse], error)
+	ListRefs(context.Context, *ermite.ListRefsRequest) (*ermite.ListRefsResponse, error)
 	// GetTree lists the entries of a directory at a revision. Fails with
 	// not_found if the path does not exist and invalid_argument if it is not a
 	// directory.
-	GetTree(context.Context, *connect.Request[ermite.GetTreeRequest]) (*connect.Response[ermite.GetTreeResponse], error)
+	GetTree(context.Context, *ermite.GetTreeRequest) (*ermite.GetTreeResponse, error)
 	// ListPaths lists the paths of every file and symbolic link of a revision,
 	// recursively, in Git tree order (the order of `git ls-tree -r`). Directories
 	// and submodules are not listed, nor paths GetBlob cannot address (not valid
 	// UTF-8, or with a control character). Fails with not_found for an unknown
 	// revision or an empty repository. Servers that have it advertise the
 	// feature "git.list_paths" in GetVersion.
-	ListPaths(context.Context, *connect.Request[ermite.ListPathsRequest]) (*connect.Response[ermite.ListPathsResponse], error)
+	ListPaths(context.Context, *ermite.ListPathsRequest) (*ermite.ListPathsResponse, error)
 	// GetBlob streams the content of a file at a revision, in chunks of at most
 	// 64 KiB. The first message carries the metadata in info, then the chunks
 	// follow; the memory used by the server does not depend on the file size.
 	// Fails with not_found if the path does not exist and invalid_argument if it
 	// is not a file.
-	GetBlob(context.Context, *connect.Request[ermite.GetBlobRequest], *connect.ServerStream[ermite.GetBlobResponse]) error
+	GetBlob(context.Context, *ermite.GetBlobRequest, GitServiceGetBlobServerStream) error
 	// ListCommits lists the history reachable from a revision, newest first
 	// (Git's default order), optionally limited to the commits that touched a
 	// path. A page_token that points deeper than 100,000 commits into the
 	// history is invalid_argument.
-	ListCommits(context.Context, *connect.Request[ermite.ListCommitsRequest]) (*connect.Response[ermite.ListCommitsResponse], error)
+	ListCommits(context.Context, *ermite.ListCommitsRequest) (*ermite.ListCommitsResponse, error)
 	// GetCommit returns one commit with its statistics and its diff.
-	GetCommit(context.Context, *connect.Request[ermite.GetCommitRequest]) (*connect.Response[ermite.GetCommitResponse], error)
+	GetCommit(context.Context, *ermite.GetCommitRequest) (*ermite.GetCommitResponse, error)
 	// ResolveRevision turns a revision into the id of the commit it designates.
-	ResolveRevision(context.Context, *connect.Request[ermite.ResolveRevisionRequest]) (*connect.Response[ermite.ResolveRevisionResponse], error)
+	ResolveRevision(context.Context, *ermite.ResolveRevisionRequest) (*ermite.ResolveRevisionResponse, error)
 }
 
-// NewGitServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewGitServiceHandler(svc GitServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	gitServiceMethods := ermite.File_ermite_git_proto.Services().ByName("GitService").Methods()
-	gitServiceListRefsHandler := connect.NewUnaryHandler(
-		GitServiceListRefsProcedure,
-		svc.ListRefs,
-		connect.WithSchema(gitServiceMethods.ByName("ListRefs")),
-		connect.WithHandlerOptions(opts...),
+// RegisterGitServiceHandler registers svc as the ermite.GitService implementation on server.
+func RegisterGitServiceHandler(server *connect.Server, svc GitServiceHandler) {
+	adapter := gitServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: gitServiceListRefsSpec(), Handler: adapter.listRefs},
+		connect.Method{Spec: gitServiceGetTreeSpec(), Handler: adapter.getTree},
+		connect.Method{Spec: gitServiceListPathsSpec(), Handler: adapter.listPaths},
+		connect.Method{Spec: gitServiceGetBlobSpec(), Handler: adapter.getBlob},
+		connect.Method{Spec: gitServiceListCommitsSpec(), Handler: adapter.listCommits},
+		connect.Method{Spec: gitServiceGetCommitSpec(), Handler: adapter.getCommit},
+		connect.Method{Spec: gitServiceResolveRevisionSpec(), Handler: adapter.resolveRevision},
 	)
-	gitServiceGetTreeHandler := connect.NewUnaryHandler(
-		GitServiceGetTreeProcedure,
-		svc.GetTree,
-		connect.WithSchema(gitServiceMethods.ByName("GetTree")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gitServiceListPathsHandler := connect.NewUnaryHandler(
-		GitServiceListPathsProcedure,
-		svc.ListPaths,
-		connect.WithSchema(gitServiceMethods.ByName("ListPaths")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gitServiceGetBlobHandler := connect.NewServerStreamHandler(
-		GitServiceGetBlobProcedure,
-		svc.GetBlob,
-		connect.WithSchema(gitServiceMethods.ByName("GetBlob")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gitServiceListCommitsHandler := connect.NewUnaryHandler(
-		GitServiceListCommitsProcedure,
-		svc.ListCommits,
-		connect.WithSchema(gitServiceMethods.ByName("ListCommits")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gitServiceGetCommitHandler := connect.NewUnaryHandler(
-		GitServiceGetCommitProcedure,
-		svc.GetCommit,
-		connect.WithSchema(gitServiceMethods.ByName("GetCommit")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gitServiceResolveRevisionHandler := connect.NewUnaryHandler(
-		GitServiceResolveRevisionProcedure,
-		svc.ResolveRevision,
-		connect.WithSchema(gitServiceMethods.ByName("ResolveRevision")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.GitService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case GitServiceListRefsProcedure:
-			gitServiceListRefsHandler.ServeHTTP(w, r)
-		case GitServiceGetTreeProcedure:
-			gitServiceGetTreeHandler.ServeHTTP(w, r)
-		case GitServiceListPathsProcedure:
-			gitServiceListPathsHandler.ServeHTTP(w, r)
-		case GitServiceGetBlobProcedure:
-			gitServiceGetBlobHandler.ServeHTTP(w, r)
-		case GitServiceListCommitsProcedure:
-			gitServiceListCommitsHandler.ServeHTTP(w, r)
-		case GitServiceGetCommitProcedure:
-			gitServiceGetCommitHandler.ServeHTTP(w, r)
-		case GitServiceResolveRevisionProcedure:
-			gitServiceResolveRevisionHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// GitServiceGetBlobServerStream is the server stream for the GitService's GetBlob RPC.
+type GitServiceGetBlobServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s GitServiceGetBlobServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s GitServiceGetBlobServerStream) Send(res *ermite.GetBlobResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedGitServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedGitServiceHandler struct{}
 
-func (UnimplementedGitServiceHandler) ListRefs(context.Context, *connect.Request[ermite.ListRefsRequest]) (*connect.Response[ermite.ListRefsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.GitService.ListRefs is not implemented"))
+func (UnimplementedGitServiceHandler) ListRefs(context.Context, *ermite.ListRefsRequest) (*ermite.ListRefsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.GitService.ListRefs is not implemented")
 }
 
-func (UnimplementedGitServiceHandler) GetTree(context.Context, *connect.Request[ermite.GetTreeRequest]) (*connect.Response[ermite.GetTreeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.GitService.GetTree is not implemented"))
+func (UnimplementedGitServiceHandler) GetTree(context.Context, *ermite.GetTreeRequest) (*ermite.GetTreeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.GitService.GetTree is not implemented")
 }
 
-func (UnimplementedGitServiceHandler) ListPaths(context.Context, *connect.Request[ermite.ListPathsRequest]) (*connect.Response[ermite.ListPathsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.GitService.ListPaths is not implemented"))
+func (UnimplementedGitServiceHandler) ListPaths(context.Context, *ermite.ListPathsRequest) (*ermite.ListPathsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.GitService.ListPaths is not implemented")
 }
 
-func (UnimplementedGitServiceHandler) GetBlob(context.Context, *connect.Request[ermite.GetBlobRequest], *connect.ServerStream[ermite.GetBlobResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("ermite.GitService.GetBlob is not implemented"))
+func (UnimplementedGitServiceHandler) GetBlob(context.Context, *ermite.GetBlobRequest, GitServiceGetBlobServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "ermite.GitService.GetBlob is not implemented")
 }
 
-func (UnimplementedGitServiceHandler) ListCommits(context.Context, *connect.Request[ermite.ListCommitsRequest]) (*connect.Response[ermite.ListCommitsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.GitService.ListCommits is not implemented"))
+func (UnimplementedGitServiceHandler) ListCommits(context.Context, *ermite.ListCommitsRequest) (*ermite.ListCommitsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.GitService.ListCommits is not implemented")
 }
 
-func (UnimplementedGitServiceHandler) GetCommit(context.Context, *connect.Request[ermite.GetCommitRequest]) (*connect.Response[ermite.GetCommitResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.GitService.GetCommit is not implemented"))
+func (UnimplementedGitServiceHandler) GetCommit(context.Context, *ermite.GetCommitRequest) (*ermite.GetCommitResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.GitService.GetCommit is not implemented")
 }
 
-func (UnimplementedGitServiceHandler) ResolveRevision(context.Context, *connect.Request[ermite.ResolveRevisionRequest]) (*connect.Response[ermite.ResolveRevisionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.GitService.ResolveRevision is not implemented"))
+func (UnimplementedGitServiceHandler) ResolveRevision(context.Context, *ermite.ResolveRevisionRequest) (*ermite.ResolveRevisionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.GitService.ResolveRevision is not implemented")
+}
+
+type gitServiceClient struct {
+	client *connect.Client
+}
+
+func (c *gitServiceClient) ListRefs(ctx context.Context, req *ermite.ListRefsRequest) (*ermite.ListRefsResponse, error) {
+	var res ermite.ListRefsResponse
+	if err := c.client.CallUnary(ctx, gitServiceListRefsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gitServiceClient) GetTree(ctx context.Context, req *ermite.GetTreeRequest) (*ermite.GetTreeResponse, error) {
+	var res ermite.GetTreeResponse
+	if err := c.client.CallUnary(ctx, gitServiceGetTreeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gitServiceClient) ListPaths(ctx context.Context, req *ermite.ListPathsRequest) (*ermite.ListPathsResponse, error) {
+	var res ermite.ListPathsResponse
+	if err := c.client.CallUnary(ctx, gitServiceListPathsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gitServiceClient) GetBlob(ctx context.Context, req *ermite.GetBlobRequest) (GitServiceGetBlobClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, gitServiceGetBlobSpec(), req)
+	if err != nil {
+		return GitServiceGetBlobClientStream{}, err
+	}
+	return GitServiceGetBlobClientStream{stream: stream}, nil
+}
+
+func (c *gitServiceClient) ListCommits(ctx context.Context, req *ermite.ListCommitsRequest) (*ermite.ListCommitsResponse, error) {
+	var res ermite.ListCommitsResponse
+	if err := c.client.CallUnary(ctx, gitServiceListCommitsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gitServiceClient) GetCommit(ctx context.Context, req *ermite.GetCommitRequest) (*ermite.GetCommitResponse, error) {
+	var res ermite.GetCommitResponse
+	if err := c.client.CallUnary(ctx, gitServiceGetCommitSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gitServiceClient) ResolveRevision(ctx context.Context, req *ermite.ResolveRevisionRequest) (*ermite.ResolveRevisionResponse, error) {
+	var res ermite.ResolveRevisionResponse
+	if err := c.client.CallUnary(ctx, gitServiceResolveRevisionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type gitServiceHandler struct{ svc GitServiceHandler }
+
+func (h gitServiceHandler) listRefs(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListRefsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListRefs(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gitServiceHandler) getTree(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetTreeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTree(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gitServiceHandler) listPaths(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListPathsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPaths(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gitServiceHandler) getBlob(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetBlobRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.GetBlob(ctx, &req, GitServiceGetBlobServerStream{stream: stream})
+}
+
+func (h gitServiceHandler) listCommits(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListCommitsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListCommits(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gitServiceHandler) getCommit(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetCommitRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetCommit(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gitServiceHandler) resolveRevision(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ResolveRevisionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ResolveRevision(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

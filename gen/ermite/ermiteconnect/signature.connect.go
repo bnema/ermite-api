@@ -8,176 +8,181 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// TrustedKeyServiceName is the fully-qualified name of the TrustedKeyService service.
 	TrustedKeyServiceName = "ermite.TrustedKeyService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// TrustedKeyServiceListTrustedKeysProcedure is the fully-qualified name of the TrustedKeyService's
+	// TrustedKeyServiceListTrustedKeysProcedure is the procedure name of the TrustedKeyService's
 	// ListTrustedKeys RPC.
 	TrustedKeyServiceListTrustedKeysProcedure = "/ermite.TrustedKeyService/ListTrustedKeys"
-	// TrustedKeyServiceAddTrustedKeyProcedure is the fully-qualified name of the TrustedKeyService's
+	// TrustedKeyServiceAddTrustedKeyProcedure is the procedure name of the TrustedKeyService's
 	// AddTrustedKey RPC.
 	TrustedKeyServiceAddTrustedKeyProcedure = "/ermite.TrustedKeyService/AddTrustedKey"
-	// TrustedKeyServiceRemoveTrustedKeyProcedure is the fully-qualified name of the TrustedKeyService's
+	// TrustedKeyServiceRemoveTrustedKeyProcedure is the procedure name of the TrustedKeyService's
 	// RemoveTrustedKey RPC.
 	TrustedKeyServiceRemoveTrustedKeyProcedure = "/ermite.TrustedKeyService/RemoveTrustedKey"
+)
+
+var (
+	trustedKeyServiceListTrustedKeysSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_signature_proto.Services().ByName("TrustedKeyService").Methods().ByName("ListTrustedKeys"),
+			Procedure:  TrustedKeyServiceListTrustedKeysProcedure,
+		}
+	})
+	trustedKeyServiceAddTrustedKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_signature_proto.Services().ByName("TrustedKeyService").Methods().ByName("AddTrustedKey"),
+			Procedure:  TrustedKeyServiceAddTrustedKeyProcedure,
+		}
+	})
+	trustedKeyServiceRemoveTrustedKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_signature_proto.Services().ByName("TrustedKeyService").Methods().ByName("RemoveTrustedKey"),
+			Procedure:  TrustedKeyServiceRemoveTrustedKeyProcedure,
+		}
+	})
 )
 
 // TrustedKeyServiceClient is a client for the ermite.TrustedKeyService service.
 type TrustedKeyServiceClient interface {
 	// ListTrustedKeys lists the keys, the builtin key first. Any authenticated
 	// caller may.
-	ListTrustedKeys(context.Context, *connect.Request[ermite.ListTrustedKeysRequest]) (*connect.Response[ermite.ListTrustedKeysResponse], error)
+	ListTrustedKeys(context.Context, *ermite.ListTrustedKeysRequest) (*ermite.ListTrustedKeysResponse, error)
 	// AddTrustedKey adds a key. Owner only. invalid_argument for a key that
 	// does not parse, a private key, no or too many emails; already_exists for
 	// a key already listed; resource_exhausted beyond 100 keys.
-	AddTrustedKey(context.Context, *connect.Request[ermite.AddTrustedKeyRequest]) (*connect.Response[ermite.AddTrustedKeyResponse], error)
+	AddTrustedKey(context.Context, *ermite.AddTrustedKeyRequest) (*ermite.AddTrustedKeyResponse, error)
 	// RemoveTrustedKey removes a key. Owner only. not_found for an unknown id;
 	// failed_precondition for the builtin key.
-	RemoveTrustedKey(context.Context, *connect.Request[ermite.RemoveTrustedKeyRequest]) (*connect.Response[ermite.RemoveTrustedKeyResponse], error)
+	RemoveTrustedKey(context.Context, *ermite.RemoveTrustedKeyRequest) (*ermite.RemoveTrustedKeyResponse, error)
 }
 
-// NewTrustedKeyServiceClient constructs a client for the ermite.TrustedKeyService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewTrustedKeyServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TrustedKeyServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	trustedKeyServiceMethods := ermite.File_ermite_signature_proto.Services().ByName("TrustedKeyService").Methods()
-	return &trustedKeyServiceClient{
-		listTrustedKeys: connect.NewClient[ermite.ListTrustedKeysRequest, ermite.ListTrustedKeysResponse](
-			httpClient,
-			baseURL+TrustedKeyServiceListTrustedKeysProcedure,
-			connect.WithSchema(trustedKeyServiceMethods.ByName("ListTrustedKeys")),
-			connect.WithClientOptions(opts...),
-		),
-		addTrustedKey: connect.NewClient[ermite.AddTrustedKeyRequest, ermite.AddTrustedKeyResponse](
-			httpClient,
-			baseURL+TrustedKeyServiceAddTrustedKeyProcedure,
-			connect.WithSchema(trustedKeyServiceMethods.ByName("AddTrustedKey")),
-			connect.WithClientOptions(opts...),
-		),
-		removeTrustedKey: connect.NewClient[ermite.RemoveTrustedKeyRequest, ermite.RemoveTrustedKeyResponse](
-			httpClient,
-			baseURL+TrustedKeyServiceRemoveTrustedKeyProcedure,
-			connect.WithSchema(trustedKeyServiceMethods.ByName("RemoveTrustedKey")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// trustedKeyServiceClient implements TrustedKeyServiceClient.
-type trustedKeyServiceClient struct {
-	listTrustedKeys  *connect.Client[ermite.ListTrustedKeysRequest, ermite.ListTrustedKeysResponse]
-	addTrustedKey    *connect.Client[ermite.AddTrustedKeyRequest, ermite.AddTrustedKeyResponse]
-	removeTrustedKey *connect.Client[ermite.RemoveTrustedKeyRequest, ermite.RemoveTrustedKeyResponse]
-}
-
-// ListTrustedKeys calls ermite.TrustedKeyService.ListTrustedKeys.
-func (c *trustedKeyServiceClient) ListTrustedKeys(ctx context.Context, req *connect.Request[ermite.ListTrustedKeysRequest]) (*connect.Response[ermite.ListTrustedKeysResponse], error) {
-	return c.listTrustedKeys.CallUnary(ctx, req)
-}
-
-// AddTrustedKey calls ermite.TrustedKeyService.AddTrustedKey.
-func (c *trustedKeyServiceClient) AddTrustedKey(ctx context.Context, req *connect.Request[ermite.AddTrustedKeyRequest]) (*connect.Response[ermite.AddTrustedKeyResponse], error) {
-	return c.addTrustedKey.CallUnary(ctx, req)
-}
-
-// RemoveTrustedKey calls ermite.TrustedKeyService.RemoveTrustedKey.
-func (c *trustedKeyServiceClient) RemoveTrustedKey(ctx context.Context, req *connect.Request[ermite.RemoveTrustedKeyRequest]) (*connect.Response[ermite.RemoveTrustedKeyResponse], error) {
-	return c.removeTrustedKey.CallUnary(ctx, req)
+// NewTrustedKeyServiceClient constructs a client for the ermite.TrustedKeyService service. Multiple
+// service clients may share a single connect.Client.
+func NewTrustedKeyServiceClient(client *connect.Client) TrustedKeyServiceClient {
+	return &trustedKeyServiceClient{client: client}
 }
 
 // TrustedKeyServiceHandler is an implementation of the ermite.TrustedKeyService service.
 type TrustedKeyServiceHandler interface {
 	// ListTrustedKeys lists the keys, the builtin key first. Any authenticated
 	// caller may.
-	ListTrustedKeys(context.Context, *connect.Request[ermite.ListTrustedKeysRequest]) (*connect.Response[ermite.ListTrustedKeysResponse], error)
+	ListTrustedKeys(context.Context, *ermite.ListTrustedKeysRequest) (*ermite.ListTrustedKeysResponse, error)
 	// AddTrustedKey adds a key. Owner only. invalid_argument for a key that
 	// does not parse, a private key, no or too many emails; already_exists for
 	// a key already listed; resource_exhausted beyond 100 keys.
-	AddTrustedKey(context.Context, *connect.Request[ermite.AddTrustedKeyRequest]) (*connect.Response[ermite.AddTrustedKeyResponse], error)
+	AddTrustedKey(context.Context, *ermite.AddTrustedKeyRequest) (*ermite.AddTrustedKeyResponse, error)
 	// RemoveTrustedKey removes a key. Owner only. not_found for an unknown id;
 	// failed_precondition for the builtin key.
-	RemoveTrustedKey(context.Context, *connect.Request[ermite.RemoveTrustedKeyRequest]) (*connect.Response[ermite.RemoveTrustedKeyResponse], error)
+	RemoveTrustedKey(context.Context, *ermite.RemoveTrustedKeyRequest) (*ermite.RemoveTrustedKeyResponse, error)
 }
 
-// NewTrustedKeyServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewTrustedKeyServiceHandler(svc TrustedKeyServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	trustedKeyServiceMethods := ermite.File_ermite_signature_proto.Services().ByName("TrustedKeyService").Methods()
-	trustedKeyServiceListTrustedKeysHandler := connect.NewUnaryHandler(
-		TrustedKeyServiceListTrustedKeysProcedure,
-		svc.ListTrustedKeys,
-		connect.WithSchema(trustedKeyServiceMethods.ByName("ListTrustedKeys")),
-		connect.WithHandlerOptions(opts...),
+// RegisterTrustedKeyServiceHandler registers svc as the ermite.TrustedKeyService implementation on
+// server.
+func RegisterTrustedKeyServiceHandler(server *connect.Server, svc TrustedKeyServiceHandler) {
+	adapter := trustedKeyServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: trustedKeyServiceListTrustedKeysSpec(), Handler: adapter.listTrustedKeys},
+		connect.Method{Spec: trustedKeyServiceAddTrustedKeySpec(), Handler: adapter.addTrustedKey},
+		connect.Method{Spec: trustedKeyServiceRemoveTrustedKeySpec(), Handler: adapter.removeTrustedKey},
 	)
-	trustedKeyServiceAddTrustedKeyHandler := connect.NewUnaryHandler(
-		TrustedKeyServiceAddTrustedKeyProcedure,
-		svc.AddTrustedKey,
-		connect.WithSchema(trustedKeyServiceMethods.ByName("AddTrustedKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	trustedKeyServiceRemoveTrustedKeyHandler := connect.NewUnaryHandler(
-		TrustedKeyServiceRemoveTrustedKeyProcedure,
-		svc.RemoveTrustedKey,
-		connect.WithSchema(trustedKeyServiceMethods.ByName("RemoveTrustedKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.TrustedKeyService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case TrustedKeyServiceListTrustedKeysProcedure:
-			trustedKeyServiceListTrustedKeysHandler.ServeHTTP(w, r)
-		case TrustedKeyServiceAddTrustedKeyProcedure:
-			trustedKeyServiceAddTrustedKeyHandler.ServeHTTP(w, r)
-		case TrustedKeyServiceRemoveTrustedKeyProcedure:
-			trustedKeyServiceRemoveTrustedKeyHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedTrustedKeyServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedTrustedKeyServiceHandler struct{}
 
-func (UnimplementedTrustedKeyServiceHandler) ListTrustedKeys(context.Context, *connect.Request[ermite.ListTrustedKeysRequest]) (*connect.Response[ermite.ListTrustedKeysResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.TrustedKeyService.ListTrustedKeys is not implemented"))
+func (UnimplementedTrustedKeyServiceHandler) ListTrustedKeys(context.Context, *ermite.ListTrustedKeysRequest) (*ermite.ListTrustedKeysResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.TrustedKeyService.ListTrustedKeys is not implemented")
 }
 
-func (UnimplementedTrustedKeyServiceHandler) AddTrustedKey(context.Context, *connect.Request[ermite.AddTrustedKeyRequest]) (*connect.Response[ermite.AddTrustedKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.TrustedKeyService.AddTrustedKey is not implemented"))
+func (UnimplementedTrustedKeyServiceHandler) AddTrustedKey(context.Context, *ermite.AddTrustedKeyRequest) (*ermite.AddTrustedKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.TrustedKeyService.AddTrustedKey is not implemented")
 }
 
-func (UnimplementedTrustedKeyServiceHandler) RemoveTrustedKey(context.Context, *connect.Request[ermite.RemoveTrustedKeyRequest]) (*connect.Response[ermite.RemoveTrustedKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.TrustedKeyService.RemoveTrustedKey is not implemented"))
+func (UnimplementedTrustedKeyServiceHandler) RemoveTrustedKey(context.Context, *ermite.RemoveTrustedKeyRequest) (*ermite.RemoveTrustedKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.TrustedKeyService.RemoveTrustedKey is not implemented")
+}
+
+type trustedKeyServiceClient struct {
+	client *connect.Client
+}
+
+func (c *trustedKeyServiceClient) ListTrustedKeys(ctx context.Context, req *ermite.ListTrustedKeysRequest) (*ermite.ListTrustedKeysResponse, error) {
+	var res ermite.ListTrustedKeysResponse
+	if err := c.client.CallUnary(ctx, trustedKeyServiceListTrustedKeysSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *trustedKeyServiceClient) AddTrustedKey(ctx context.Context, req *ermite.AddTrustedKeyRequest) (*ermite.AddTrustedKeyResponse, error) {
+	var res ermite.AddTrustedKeyResponse
+	if err := c.client.CallUnary(ctx, trustedKeyServiceAddTrustedKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *trustedKeyServiceClient) RemoveTrustedKey(ctx context.Context, req *ermite.RemoveTrustedKeyRequest) (*ermite.RemoveTrustedKeyResponse, error) {
+	var res ermite.RemoveTrustedKeyResponse
+	if err := c.client.CallUnary(ctx, trustedKeyServiceRemoveTrustedKeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type trustedKeyServiceHandler struct{ svc TrustedKeyServiceHandler }
+
+func (h trustedKeyServiceHandler) listTrustedKeys(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListTrustedKeysRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListTrustedKeys(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h trustedKeyServiceHandler) addTrustedKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.AddTrustedKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddTrustedKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h trustedKeyServiceHandler) removeTrustedKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.RemoveTrustedKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveTrustedKey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

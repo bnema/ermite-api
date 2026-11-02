@@ -8,69 +8,146 @@ package ermiteconnect
 
 import (
 	ermite "bnema.dev/ermite-api/gen/ermite"
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ReleaseServiceName is the fully-qualified name of the ReleaseService service.
 	ReleaseServiceName = "ermite.ReleaseService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ReleaseServiceCreateReleaseProcedure is the fully-qualified name of the ReleaseService's
-	// CreateRelease RPC.
-	ReleaseServiceCreateReleaseProcedure = "/ermite.ReleaseService/CreateRelease"
-	// ReleaseServiceGetReleaseProcedure is the fully-qualified name of the ReleaseService's GetRelease
+	// ReleaseServiceCreateReleaseProcedure is the procedure name of the ReleaseService's CreateRelease
 	// RPC.
+	ReleaseServiceCreateReleaseProcedure = "/ermite.ReleaseService/CreateRelease"
+	// ReleaseServiceGetReleaseProcedure is the procedure name of the ReleaseService's GetRelease RPC.
 	ReleaseServiceGetReleaseProcedure = "/ermite.ReleaseService/GetRelease"
-	// ReleaseServiceListReleasesProcedure is the fully-qualified name of the ReleaseService's
-	// ListReleases RPC.
+	// ReleaseServiceListReleasesProcedure is the procedure name of the ReleaseService's ListReleases
+	// RPC.
 	ReleaseServiceListReleasesProcedure = "/ermite.ReleaseService/ListReleases"
-	// ReleaseServiceUpdateReleaseProcedure is the fully-qualified name of the ReleaseService's
-	// UpdateRelease RPC.
+	// ReleaseServiceUpdateReleaseProcedure is the procedure name of the ReleaseService's UpdateRelease
+	// RPC.
 	ReleaseServiceUpdateReleaseProcedure = "/ermite.ReleaseService/UpdateRelease"
-	// ReleaseServiceDeleteReleaseProcedure is the fully-qualified name of the ReleaseService's
-	// DeleteRelease RPC.
+	// ReleaseServiceDeleteReleaseProcedure is the procedure name of the ReleaseService's DeleteRelease
+	// RPC.
 	ReleaseServiceDeleteReleaseProcedure = "/ermite.ReleaseService/DeleteRelease"
-	// ReleaseServiceUploadReleaseAssetProcedure is the fully-qualified name of the ReleaseService's
+	// ReleaseServiceUploadReleaseAssetProcedure is the procedure name of the ReleaseService's
 	// UploadReleaseAsset RPC.
 	ReleaseServiceUploadReleaseAssetProcedure = "/ermite.ReleaseService/UploadReleaseAsset"
-	// ReleaseServiceUpdateReleaseAssetProcedure is the fully-qualified name of the ReleaseService's
+	// ReleaseServiceUpdateReleaseAssetProcedure is the procedure name of the ReleaseService's
 	// UpdateReleaseAsset RPC.
 	ReleaseServiceUpdateReleaseAssetProcedure = "/ermite.ReleaseService/UpdateReleaseAsset"
-	// ReleaseServiceDeleteReleaseAssetProcedure is the fully-qualified name of the ReleaseService's
+	// ReleaseServiceDeleteReleaseAssetProcedure is the procedure name of the ReleaseService's
 	// DeleteReleaseAsset RPC.
 	ReleaseServiceDeleteReleaseAssetProcedure = "/ermite.ReleaseService/DeleteReleaseAsset"
-	// ReleaseServiceDownloadReleaseAssetProcedure is the fully-qualified name of the ReleaseService's
+	// ReleaseServiceDownloadReleaseAssetProcedure is the procedure name of the ReleaseService's
 	// DownloadReleaseAsset RPC.
 	ReleaseServiceDownloadReleaseAssetProcedure = "/ermite.ReleaseService/DownloadReleaseAsset"
-	// ReleaseServiceListReleaseAssetsProcedure is the fully-qualified name of the ReleaseService's
+	// ReleaseServiceListReleaseAssetsProcedure is the procedure name of the ReleaseService's
 	// ListReleaseAssets RPC.
 	ReleaseServiceListReleaseAssetsProcedure = "/ermite.ReleaseService/ListReleaseAssets"
-	// ReleaseServiceGetReleaseUsageProcedure is the fully-qualified name of the ReleaseService's
+	// ReleaseServiceGetReleaseUsageProcedure is the procedure name of the ReleaseService's
 	// GetReleaseUsage RPC.
 	ReleaseServiceGetReleaseUsageProcedure = "/ermite.ReleaseService/GetReleaseUsage"
-	// ReleaseServiceListUnreleasedProcedure is the fully-qualified name of the ReleaseService's
+	// ReleaseServiceListUnreleasedProcedure is the procedure name of the ReleaseService's
 	// ListUnreleased RPC.
 	ReleaseServiceListUnreleasedProcedure = "/ermite.ReleaseService/ListUnreleased"
+)
+
+var (
+	releaseServiceCreateReleaseSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("CreateRelease"),
+			Procedure:  ReleaseServiceCreateReleaseProcedure,
+		}
+	})
+	releaseServiceGetReleaseSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("GetRelease"),
+			Procedure:  ReleaseServiceGetReleaseProcedure,
+		}
+	})
+	releaseServiceListReleasesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("ListReleases"),
+			Procedure:  ReleaseServiceListReleasesProcedure,
+		}
+	})
+	releaseServiceUpdateReleaseSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("UpdateRelease"),
+			Procedure:  ReleaseServiceUpdateReleaseProcedure,
+		}
+	})
+	releaseServiceDeleteReleaseSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("DeleteRelease"),
+			Procedure:  ReleaseServiceDeleteReleaseProcedure,
+		}
+	})
+	releaseServiceUploadReleaseAssetSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeClient,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("UploadReleaseAsset"),
+			Procedure:  ReleaseServiceUploadReleaseAssetProcedure,
+		}
+	})
+	releaseServiceUpdateReleaseAssetSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("UpdateReleaseAsset"),
+			Procedure:  ReleaseServiceUpdateReleaseAssetProcedure,
+		}
+	})
+	releaseServiceDeleteReleaseAssetSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("DeleteReleaseAsset"),
+			Procedure:  ReleaseServiceDeleteReleaseAssetProcedure,
+		}
+	})
+	releaseServiceDownloadReleaseAssetSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("DownloadReleaseAsset"),
+			Procedure:  ReleaseServiceDownloadReleaseAssetProcedure,
+		}
+	})
+	releaseServiceListReleaseAssetsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("ListReleaseAssets"),
+			Procedure:  ReleaseServiceListReleaseAssetsProcedure,
+		}
+	})
+	releaseServiceGetReleaseUsageSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("GetReleaseUsage"),
+			Procedure:  ReleaseServiceGetReleaseUsageProcedure,
+		}
+	})
+	releaseServiceListUnreleasedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods().ByName("ListUnreleased"),
+			Procedure:  ReleaseServiceListUnreleasedProcedure,
+		}
+	})
 )
 
 // ReleaseServiceClient is a client for the ermite.ReleaseService service.
@@ -78,202 +155,97 @@ type ReleaseServiceClient interface {
 	// CreateRelease creates one release per tag (already_exists on duplication).
 	// Publishing without an existing tag is failed_precondition, unless
 	// target_commitish is supplied to create it; existing tags never move.
-	CreateRelease(context.Context, *connect.Request[ermite.CreateReleaseRequest]) (*connect.Response[ermite.CreateReleaseResponse], error)
+	CreateRelease(context.Context, *ermite.CreateReleaseRequest) (*ermite.CreateReleaseResponse, error)
 	// GetRelease selects by id, tag or latest (latest must be true).
-	GetRelease(context.Context, *connect.Request[ermite.GetReleaseRequest]) (*connect.Response[ermite.GetReleaseResponse], error)
+	GetRelease(context.Context, *ermite.GetReleaseRequest) (*ermite.GetReleaseResponse, error)
 	// ListReleases lists newest first, including drafts only for writers.
-	ListReleases(context.Context, *connect.Request[ermite.ListReleasesRequest]) (*connect.Response[ermite.ListReleasesResponse], error)
+	ListReleases(context.Context, *ermite.ListReleasesRequest) (*ermite.ListReleasesResponse, error)
 	// UpdateRelease changes masked fields. Publishing requires an existing tag
 	// or target_commitish to create it; otherwise failed_precondition.
-	UpdateRelease(context.Context, *connect.Request[ermite.UpdateReleaseRequest]) (*connect.Response[ermite.UpdateReleaseResponse], error)
+	UpdateRelease(context.Context, *ermite.UpdateReleaseRequest) (*ermite.UpdateReleaseResponse, error)
 	// DeleteRelease removes a release and its assets.
-	DeleteRelease(context.Context, *connect.Request[ermite.DeleteReleaseRequest]) (*connect.Response[ermite.DeleteReleaseResponse], error)
+	DeleteRelease(context.Context, *ermite.DeleteReleaseRequest) (*ermite.DeleteReleaseResponse, error)
 	// UploadReleaseAsset reserves size before reading. The first message carries
 	// metadata; subsequent messages carry only data, at most 1 MiB per message.
 	// Size must be nonnegative (-1 is refused). An interrupted stream stores no
 	// asset. A taken name gives already_exists unless replace is true. Uploading
 	// to a release of another repo gives failed_precondition.
-	UploadReleaseAsset(context.Context) *connect.ClientStreamForClient[ermite.UploadReleaseAssetRequest, ermite.UploadReleaseAssetResponse]
+	UploadReleaseAsset(context.Context) (ReleaseServiceUploadReleaseAssetClientStream, error)
 	// UpdateReleaseAsset changes masked name and label; a taken name gives already_exists.
-	UpdateReleaseAsset(context.Context, *connect.Request[ermite.UpdateReleaseAssetRequest]) (*connect.Response[ermite.UpdateReleaseAssetResponse], error)
+	UpdateReleaseAsset(context.Context, *ermite.UpdateReleaseAssetRequest) (*ermite.UpdateReleaseAssetResponse, error)
 	// DeleteReleaseAsset removes an asset.
-	DeleteReleaseAsset(context.Context, *connect.Request[ermite.DeleteReleaseAssetRequest]) (*connect.Response[ermite.DeleteReleaseAssetResponse], error)
+	DeleteReleaseAsset(context.Context, *ermite.DeleteReleaseAssetRequest) (*ermite.DeleteReleaseAssetResponse, error)
 	// DownloadReleaseAsset sends asset metadata first, then chunks of at most
 	// 1 MiB. Resume with the offset after the last byte received. An offset
 	// beyond the size gives out_of_range.
-	DownloadReleaseAsset(context.Context, *connect.Request[ermite.DownloadReleaseAssetRequest]) (*connect.ServerStreamForClient[ermite.DownloadReleaseAssetResponse], error)
+	DownloadReleaseAsset(context.Context, *ermite.DownloadReleaseAssetRequest) (ReleaseServiceDownloadReleaseAssetClientStream, error)
 	// ListReleaseAssets lists uploaded assets, ordered by name.
-	ListReleaseAssets(context.Context, *connect.Request[ermite.ListReleaseAssetsRequest]) (*connect.Response[ermite.ListReleaseAssetsResponse], error)
+	ListReleaseAssets(context.Context, *ermite.ListReleaseAssetsRequest) (*ermite.ListReleaseAssetsResponse, error)
 	// GetReleaseUsage returns usage (including reserved uploads) and limits.
-	GetReleaseUsage(context.Context, *connect.Request[ermite.GetReleaseUsageRequest]) (*connect.Response[ermite.GetReleaseUsageResponse], error)
+	GetReleaseUsage(context.Context, *ermite.GetReleaseUsageRequest) (*ermite.GetReleaseUsageResponse, error)
 	// ListUnreleased lists the non-archived repositories whose default branch
 	// has commits after its nearest tag, by name. Repositories without a tag
 	// are left out. It follows the access rule of JournalService (owner rights
 	// or journal:read, repository list respected) and needs the "journal"
 	// feature. An unknown or invisible repo is not_found.
-	ListUnreleased(context.Context, *connect.Request[ermite.ListUnreleasedRequest]) (*connect.Response[ermite.ListUnreleasedResponse], error)
+	ListUnreleased(context.Context, *ermite.ListUnreleasedRequest) (*ermite.ListUnreleasedResponse, error)
 }
 
-// NewReleaseServiceClient constructs a client for the ermite.ReleaseService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewReleaseServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ReleaseServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	releaseServiceMethods := ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods()
-	return &releaseServiceClient{
-		createRelease: connect.NewClient[ermite.CreateReleaseRequest, ermite.CreateReleaseResponse](
-			httpClient,
-			baseURL+ReleaseServiceCreateReleaseProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("CreateRelease")),
-			connect.WithClientOptions(opts...),
-		),
-		getRelease: connect.NewClient[ermite.GetReleaseRequest, ermite.GetReleaseResponse](
-			httpClient,
-			baseURL+ReleaseServiceGetReleaseProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("GetRelease")),
-			connect.WithClientOptions(opts...),
-		),
-		listReleases: connect.NewClient[ermite.ListReleasesRequest, ermite.ListReleasesResponse](
-			httpClient,
-			baseURL+ReleaseServiceListReleasesProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("ListReleases")),
-			connect.WithClientOptions(opts...),
-		),
-		updateRelease: connect.NewClient[ermite.UpdateReleaseRequest, ermite.UpdateReleaseResponse](
-			httpClient,
-			baseURL+ReleaseServiceUpdateReleaseProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("UpdateRelease")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteRelease: connect.NewClient[ermite.DeleteReleaseRequest, ermite.DeleteReleaseResponse](
-			httpClient,
-			baseURL+ReleaseServiceDeleteReleaseProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("DeleteRelease")),
-			connect.WithClientOptions(opts...),
-		),
-		uploadReleaseAsset: connect.NewClient[ermite.UploadReleaseAssetRequest, ermite.UploadReleaseAssetResponse](
-			httpClient,
-			baseURL+ReleaseServiceUploadReleaseAssetProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("UploadReleaseAsset")),
-			connect.WithClientOptions(opts...),
-		),
-		updateReleaseAsset: connect.NewClient[ermite.UpdateReleaseAssetRequest, ermite.UpdateReleaseAssetResponse](
-			httpClient,
-			baseURL+ReleaseServiceUpdateReleaseAssetProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("UpdateReleaseAsset")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteReleaseAsset: connect.NewClient[ermite.DeleteReleaseAssetRequest, ermite.DeleteReleaseAssetResponse](
-			httpClient,
-			baseURL+ReleaseServiceDeleteReleaseAssetProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("DeleteReleaseAsset")),
-			connect.WithClientOptions(opts...),
-		),
-		downloadReleaseAsset: connect.NewClient[ermite.DownloadReleaseAssetRequest, ermite.DownloadReleaseAssetResponse](
-			httpClient,
-			baseURL+ReleaseServiceDownloadReleaseAssetProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("DownloadReleaseAsset")),
-			connect.WithClientOptions(opts...),
-		),
-		listReleaseAssets: connect.NewClient[ermite.ListReleaseAssetsRequest, ermite.ListReleaseAssetsResponse](
-			httpClient,
-			baseURL+ReleaseServiceListReleaseAssetsProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("ListReleaseAssets")),
-			connect.WithClientOptions(opts...),
-		),
-		getReleaseUsage: connect.NewClient[ermite.GetReleaseUsageRequest, ermite.GetReleaseUsageResponse](
-			httpClient,
-			baseURL+ReleaseServiceGetReleaseUsageProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("GetReleaseUsage")),
-			connect.WithClientOptions(opts...),
-		),
-		listUnreleased: connect.NewClient[ermite.ListUnreleasedRequest, ermite.ListUnreleasedResponse](
-			httpClient,
-			baseURL+ReleaseServiceListUnreleasedProcedure,
-			connect.WithSchema(releaseServiceMethods.ByName("ListUnreleased")),
-			connect.WithClientOptions(opts...),
-		),
+// NewReleaseServiceClient constructs a client for the ermite.ReleaseService service. Multiple
+// service clients may share a single connect.Client.
+func NewReleaseServiceClient(client *connect.Client) ReleaseServiceClient {
+	return &releaseServiceClient{client: client}
+}
+
+// ReleaseServiceUploadReleaseAssetClientStream is the client stream for the ReleaseService's
+// UploadReleaseAsset RPC.
+type ReleaseServiceUploadReleaseAssetClientStream struct {
+	stream connect.ClientStream
+}
+
+// SendHeaders opens the stream and flushes the request headers without a message. The first Send or
+// Receive does this implicitly.
+func (s ReleaseServiceUploadReleaseAssetClientStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a request message to the server.
+func (s ReleaseServiceUploadReleaseAssetClientStream) Send(req *ermite.UploadReleaseAssetRequest) error {
+	return s.stream.Send(req)
+}
+
+// CloseAndReceive closes the request side of the stream and returns the single response message. It
+// reads the stream to completion to release its resources.
+func (s ReleaseServiceUploadReleaseAssetClientStream) CloseAndReceive() (*ermite.UploadReleaseAssetResponse, error) {
+	if err := s.stream.CloseSend(); err != nil {
+		return nil, err
 	}
+	var res ermite.UploadReleaseAssetResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
-// releaseServiceClient implements ReleaseServiceClient.
-type releaseServiceClient struct {
-	createRelease        *connect.Client[ermite.CreateReleaseRequest, ermite.CreateReleaseResponse]
-	getRelease           *connect.Client[ermite.GetReleaseRequest, ermite.GetReleaseResponse]
-	listReleases         *connect.Client[ermite.ListReleasesRequest, ermite.ListReleasesResponse]
-	updateRelease        *connect.Client[ermite.UpdateReleaseRequest, ermite.UpdateReleaseResponse]
-	deleteRelease        *connect.Client[ermite.DeleteReleaseRequest, ermite.DeleteReleaseResponse]
-	uploadReleaseAsset   *connect.Client[ermite.UploadReleaseAssetRequest, ermite.UploadReleaseAssetResponse]
-	updateReleaseAsset   *connect.Client[ermite.UpdateReleaseAssetRequest, ermite.UpdateReleaseAssetResponse]
-	deleteReleaseAsset   *connect.Client[ermite.DeleteReleaseAssetRequest, ermite.DeleteReleaseAssetResponse]
-	downloadReleaseAsset *connect.Client[ermite.DownloadReleaseAssetRequest, ermite.DownloadReleaseAssetResponse]
-	listReleaseAssets    *connect.Client[ermite.ListReleaseAssetsRequest, ermite.ListReleaseAssetsResponse]
-	getReleaseUsage      *connect.Client[ermite.GetReleaseUsageRequest, ermite.GetReleaseUsageResponse]
-	listUnreleased       *connect.Client[ermite.ListUnreleasedRequest, ermite.ListUnreleasedResponse]
+// ReleaseServiceDownloadReleaseAssetClientStream is the client stream for the ReleaseService's
+// DownloadReleaseAsset RPC.
+type ReleaseServiceDownloadReleaseAssetClientStream struct {
+	stream connect.ClientStream
 }
 
-// CreateRelease calls ermite.ReleaseService.CreateRelease.
-func (c *releaseServiceClient) CreateRelease(ctx context.Context, req *connect.Request[ermite.CreateReleaseRequest]) (*connect.Response[ermite.CreateReleaseResponse], error) {
-	return c.createRelease.CallUnary(ctx, req)
+// Receive returns the next response message from the server.
+func (s ReleaseServiceDownloadReleaseAssetClientStream) Receive() (*ermite.DownloadReleaseAssetResponse, error) {
+	var res ermite.DownloadReleaseAssetResponse
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
-// GetRelease calls ermite.ReleaseService.GetRelease.
-func (c *releaseServiceClient) GetRelease(ctx context.Context, req *connect.Request[ermite.GetReleaseRequest]) (*connect.Response[ermite.GetReleaseResponse], error) {
-	return c.getRelease.CallUnary(ctx, req)
-}
-
-// ListReleases calls ermite.ReleaseService.ListReleases.
-func (c *releaseServiceClient) ListReleases(ctx context.Context, req *connect.Request[ermite.ListReleasesRequest]) (*connect.Response[ermite.ListReleasesResponse], error) {
-	return c.listReleases.CallUnary(ctx, req)
-}
-
-// UpdateRelease calls ermite.ReleaseService.UpdateRelease.
-func (c *releaseServiceClient) UpdateRelease(ctx context.Context, req *connect.Request[ermite.UpdateReleaseRequest]) (*connect.Response[ermite.UpdateReleaseResponse], error) {
-	return c.updateRelease.CallUnary(ctx, req)
-}
-
-// DeleteRelease calls ermite.ReleaseService.DeleteRelease.
-func (c *releaseServiceClient) DeleteRelease(ctx context.Context, req *connect.Request[ermite.DeleteReleaseRequest]) (*connect.Response[ermite.DeleteReleaseResponse], error) {
-	return c.deleteRelease.CallUnary(ctx, req)
-}
-
-// UploadReleaseAsset calls ermite.ReleaseService.UploadReleaseAsset.
-func (c *releaseServiceClient) UploadReleaseAsset(ctx context.Context) *connect.ClientStreamForClient[ermite.UploadReleaseAssetRequest, ermite.UploadReleaseAssetResponse] {
-	return c.uploadReleaseAsset.CallClientStream(ctx)
-}
-
-// UpdateReleaseAsset calls ermite.ReleaseService.UpdateReleaseAsset.
-func (c *releaseServiceClient) UpdateReleaseAsset(ctx context.Context, req *connect.Request[ermite.UpdateReleaseAssetRequest]) (*connect.Response[ermite.UpdateReleaseAssetResponse], error) {
-	return c.updateReleaseAsset.CallUnary(ctx, req)
-}
-
-// DeleteReleaseAsset calls ermite.ReleaseService.DeleteReleaseAsset.
-func (c *releaseServiceClient) DeleteReleaseAsset(ctx context.Context, req *connect.Request[ermite.DeleteReleaseAssetRequest]) (*connect.Response[ermite.DeleteReleaseAssetResponse], error) {
-	return c.deleteReleaseAsset.CallUnary(ctx, req)
-}
-
-// DownloadReleaseAsset calls ermite.ReleaseService.DownloadReleaseAsset.
-func (c *releaseServiceClient) DownloadReleaseAsset(ctx context.Context, req *connect.Request[ermite.DownloadReleaseAssetRequest]) (*connect.ServerStreamForClient[ermite.DownloadReleaseAssetResponse], error) {
-	return c.downloadReleaseAsset.CallServerStream(ctx, req)
-}
-
-// ListReleaseAssets calls ermite.ReleaseService.ListReleaseAssets.
-func (c *releaseServiceClient) ListReleaseAssets(ctx context.Context, req *connect.Request[ermite.ListReleaseAssetsRequest]) (*connect.Response[ermite.ListReleaseAssetsResponse], error) {
-	return c.listReleaseAssets.CallUnary(ctx, req)
-}
-
-// GetReleaseUsage calls ermite.ReleaseService.GetReleaseUsage.
-func (c *releaseServiceClient) GetReleaseUsage(ctx context.Context, req *connect.Request[ermite.GetReleaseUsageRequest]) (*connect.Response[ermite.GetReleaseUsageResponse], error) {
-	return c.getReleaseUsage.CallUnary(ctx, req)
-}
-
-// ListUnreleased calls ermite.ReleaseService.ListUnreleased.
-func (c *releaseServiceClient) ListUnreleased(ctx context.Context, req *connect.Request[ermite.ListUnreleasedRequest]) (*connect.Response[ermite.ListUnreleasedResponse], error) {
-	return c.listUnreleased.CallUnary(ctx, req)
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s ReleaseServiceDownloadReleaseAssetClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // ReleaseServiceHandler is an implementation of the ermite.ReleaseService service.
@@ -281,200 +253,378 @@ type ReleaseServiceHandler interface {
 	// CreateRelease creates one release per tag (already_exists on duplication).
 	// Publishing without an existing tag is failed_precondition, unless
 	// target_commitish is supplied to create it; existing tags never move.
-	CreateRelease(context.Context, *connect.Request[ermite.CreateReleaseRequest]) (*connect.Response[ermite.CreateReleaseResponse], error)
+	CreateRelease(context.Context, *ermite.CreateReleaseRequest) (*ermite.CreateReleaseResponse, error)
 	// GetRelease selects by id, tag or latest (latest must be true).
-	GetRelease(context.Context, *connect.Request[ermite.GetReleaseRequest]) (*connect.Response[ermite.GetReleaseResponse], error)
+	GetRelease(context.Context, *ermite.GetReleaseRequest) (*ermite.GetReleaseResponse, error)
 	// ListReleases lists newest first, including drafts only for writers.
-	ListReleases(context.Context, *connect.Request[ermite.ListReleasesRequest]) (*connect.Response[ermite.ListReleasesResponse], error)
+	ListReleases(context.Context, *ermite.ListReleasesRequest) (*ermite.ListReleasesResponse, error)
 	// UpdateRelease changes masked fields. Publishing requires an existing tag
 	// or target_commitish to create it; otherwise failed_precondition.
-	UpdateRelease(context.Context, *connect.Request[ermite.UpdateReleaseRequest]) (*connect.Response[ermite.UpdateReleaseResponse], error)
+	UpdateRelease(context.Context, *ermite.UpdateReleaseRequest) (*ermite.UpdateReleaseResponse, error)
 	// DeleteRelease removes a release and its assets.
-	DeleteRelease(context.Context, *connect.Request[ermite.DeleteReleaseRequest]) (*connect.Response[ermite.DeleteReleaseResponse], error)
+	DeleteRelease(context.Context, *ermite.DeleteReleaseRequest) (*ermite.DeleteReleaseResponse, error)
 	// UploadReleaseAsset reserves size before reading. The first message carries
 	// metadata; subsequent messages carry only data, at most 1 MiB per message.
 	// Size must be nonnegative (-1 is refused). An interrupted stream stores no
 	// asset. A taken name gives already_exists unless replace is true. Uploading
 	// to a release of another repo gives failed_precondition.
-	UploadReleaseAsset(context.Context, *connect.ClientStream[ermite.UploadReleaseAssetRequest]) (*connect.Response[ermite.UploadReleaseAssetResponse], error)
+	UploadReleaseAsset(context.Context, ReleaseServiceUploadReleaseAssetServerStream) (*ermite.UploadReleaseAssetResponse, error)
 	// UpdateReleaseAsset changes masked name and label; a taken name gives already_exists.
-	UpdateReleaseAsset(context.Context, *connect.Request[ermite.UpdateReleaseAssetRequest]) (*connect.Response[ermite.UpdateReleaseAssetResponse], error)
+	UpdateReleaseAsset(context.Context, *ermite.UpdateReleaseAssetRequest) (*ermite.UpdateReleaseAssetResponse, error)
 	// DeleteReleaseAsset removes an asset.
-	DeleteReleaseAsset(context.Context, *connect.Request[ermite.DeleteReleaseAssetRequest]) (*connect.Response[ermite.DeleteReleaseAssetResponse], error)
+	DeleteReleaseAsset(context.Context, *ermite.DeleteReleaseAssetRequest) (*ermite.DeleteReleaseAssetResponse, error)
 	// DownloadReleaseAsset sends asset metadata first, then chunks of at most
 	// 1 MiB. Resume with the offset after the last byte received. An offset
 	// beyond the size gives out_of_range.
-	DownloadReleaseAsset(context.Context, *connect.Request[ermite.DownloadReleaseAssetRequest], *connect.ServerStream[ermite.DownloadReleaseAssetResponse]) error
+	DownloadReleaseAsset(context.Context, *ermite.DownloadReleaseAssetRequest, ReleaseServiceDownloadReleaseAssetServerStream) error
 	// ListReleaseAssets lists uploaded assets, ordered by name.
-	ListReleaseAssets(context.Context, *connect.Request[ermite.ListReleaseAssetsRequest]) (*connect.Response[ermite.ListReleaseAssetsResponse], error)
+	ListReleaseAssets(context.Context, *ermite.ListReleaseAssetsRequest) (*ermite.ListReleaseAssetsResponse, error)
 	// GetReleaseUsage returns usage (including reserved uploads) and limits.
-	GetReleaseUsage(context.Context, *connect.Request[ermite.GetReleaseUsageRequest]) (*connect.Response[ermite.GetReleaseUsageResponse], error)
+	GetReleaseUsage(context.Context, *ermite.GetReleaseUsageRequest) (*ermite.GetReleaseUsageResponse, error)
 	// ListUnreleased lists the non-archived repositories whose default branch
 	// has commits after its nearest tag, by name. Repositories without a tag
 	// are left out. It follows the access rule of JournalService (owner rights
 	// or journal:read, repository list respected) and needs the "journal"
 	// feature. An unknown or invisible repo is not_found.
-	ListUnreleased(context.Context, *connect.Request[ermite.ListUnreleasedRequest]) (*connect.Response[ermite.ListUnreleasedResponse], error)
+	ListUnreleased(context.Context, *ermite.ListUnreleasedRequest) (*ermite.ListUnreleasedResponse, error)
 }
 
-// NewReleaseServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewReleaseServiceHandler(svc ReleaseServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	releaseServiceMethods := ermite.File_ermite_release_proto.Services().ByName("ReleaseService").Methods()
-	releaseServiceCreateReleaseHandler := connect.NewUnaryHandler(
-		ReleaseServiceCreateReleaseProcedure,
-		svc.CreateRelease,
-		connect.WithSchema(releaseServiceMethods.ByName("CreateRelease")),
-		connect.WithHandlerOptions(opts...),
+// RegisterReleaseServiceHandler registers svc as the ermite.ReleaseService implementation on
+// server.
+func RegisterReleaseServiceHandler(server *connect.Server, svc ReleaseServiceHandler) {
+	adapter := releaseServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: releaseServiceCreateReleaseSpec(), Handler: adapter.createRelease},
+		connect.Method{Spec: releaseServiceGetReleaseSpec(), Handler: adapter.getRelease},
+		connect.Method{Spec: releaseServiceListReleasesSpec(), Handler: adapter.listReleases},
+		connect.Method{Spec: releaseServiceUpdateReleaseSpec(), Handler: adapter.updateRelease},
+		connect.Method{Spec: releaseServiceDeleteReleaseSpec(), Handler: adapter.deleteRelease},
+		connect.Method{Spec: releaseServiceUploadReleaseAssetSpec(), Handler: adapter.uploadReleaseAsset},
+		connect.Method{Spec: releaseServiceUpdateReleaseAssetSpec(), Handler: adapter.updateReleaseAsset},
+		connect.Method{Spec: releaseServiceDeleteReleaseAssetSpec(), Handler: adapter.deleteReleaseAsset},
+		connect.Method{Spec: releaseServiceDownloadReleaseAssetSpec(), Handler: adapter.downloadReleaseAsset},
+		connect.Method{Spec: releaseServiceListReleaseAssetsSpec(), Handler: adapter.listReleaseAssets},
+		connect.Method{Spec: releaseServiceGetReleaseUsageSpec(), Handler: adapter.getReleaseUsage},
+		connect.Method{Spec: releaseServiceListUnreleasedSpec(), Handler: adapter.listUnreleased},
 	)
-	releaseServiceGetReleaseHandler := connect.NewUnaryHandler(
-		ReleaseServiceGetReleaseProcedure,
-		svc.GetRelease,
-		connect.WithSchema(releaseServiceMethods.ByName("GetRelease")),
-		connect.WithHandlerOptions(opts...),
-	)
-	releaseServiceListReleasesHandler := connect.NewUnaryHandler(
-		ReleaseServiceListReleasesProcedure,
-		svc.ListReleases,
-		connect.WithSchema(releaseServiceMethods.ByName("ListReleases")),
-		connect.WithHandlerOptions(opts...),
-	)
-	releaseServiceUpdateReleaseHandler := connect.NewUnaryHandler(
-		ReleaseServiceUpdateReleaseProcedure,
-		svc.UpdateRelease,
-		connect.WithSchema(releaseServiceMethods.ByName("UpdateRelease")),
-		connect.WithHandlerOptions(opts...),
-	)
-	releaseServiceDeleteReleaseHandler := connect.NewUnaryHandler(
-		ReleaseServiceDeleteReleaseProcedure,
-		svc.DeleteRelease,
-		connect.WithSchema(releaseServiceMethods.ByName("DeleteRelease")),
-		connect.WithHandlerOptions(opts...),
-	)
-	releaseServiceUploadReleaseAssetHandler := connect.NewClientStreamHandler(
-		ReleaseServiceUploadReleaseAssetProcedure,
-		svc.UploadReleaseAsset,
-		connect.WithSchema(releaseServiceMethods.ByName("UploadReleaseAsset")),
-		connect.WithHandlerOptions(opts...),
-	)
-	releaseServiceUpdateReleaseAssetHandler := connect.NewUnaryHandler(
-		ReleaseServiceUpdateReleaseAssetProcedure,
-		svc.UpdateReleaseAsset,
-		connect.WithSchema(releaseServiceMethods.ByName("UpdateReleaseAsset")),
-		connect.WithHandlerOptions(opts...),
-	)
-	releaseServiceDeleteReleaseAssetHandler := connect.NewUnaryHandler(
-		ReleaseServiceDeleteReleaseAssetProcedure,
-		svc.DeleteReleaseAsset,
-		connect.WithSchema(releaseServiceMethods.ByName("DeleteReleaseAsset")),
-		connect.WithHandlerOptions(opts...),
-	)
-	releaseServiceDownloadReleaseAssetHandler := connect.NewServerStreamHandler(
-		ReleaseServiceDownloadReleaseAssetProcedure,
-		svc.DownloadReleaseAsset,
-		connect.WithSchema(releaseServiceMethods.ByName("DownloadReleaseAsset")),
-		connect.WithHandlerOptions(opts...),
-	)
-	releaseServiceListReleaseAssetsHandler := connect.NewUnaryHandler(
-		ReleaseServiceListReleaseAssetsProcedure,
-		svc.ListReleaseAssets,
-		connect.WithSchema(releaseServiceMethods.ByName("ListReleaseAssets")),
-		connect.WithHandlerOptions(opts...),
-	)
-	releaseServiceGetReleaseUsageHandler := connect.NewUnaryHandler(
-		ReleaseServiceGetReleaseUsageProcedure,
-		svc.GetReleaseUsage,
-		connect.WithSchema(releaseServiceMethods.ByName("GetReleaseUsage")),
-		connect.WithHandlerOptions(opts...),
-	)
-	releaseServiceListUnreleasedHandler := connect.NewUnaryHandler(
-		ReleaseServiceListUnreleasedProcedure,
-		svc.ListUnreleased,
-		connect.WithSchema(releaseServiceMethods.ByName("ListUnreleased")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/ermite.ReleaseService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case ReleaseServiceCreateReleaseProcedure:
-			releaseServiceCreateReleaseHandler.ServeHTTP(w, r)
-		case ReleaseServiceGetReleaseProcedure:
-			releaseServiceGetReleaseHandler.ServeHTTP(w, r)
-		case ReleaseServiceListReleasesProcedure:
-			releaseServiceListReleasesHandler.ServeHTTP(w, r)
-		case ReleaseServiceUpdateReleaseProcedure:
-			releaseServiceUpdateReleaseHandler.ServeHTTP(w, r)
-		case ReleaseServiceDeleteReleaseProcedure:
-			releaseServiceDeleteReleaseHandler.ServeHTTP(w, r)
-		case ReleaseServiceUploadReleaseAssetProcedure:
-			releaseServiceUploadReleaseAssetHandler.ServeHTTP(w, r)
-		case ReleaseServiceUpdateReleaseAssetProcedure:
-			releaseServiceUpdateReleaseAssetHandler.ServeHTTP(w, r)
-		case ReleaseServiceDeleteReleaseAssetProcedure:
-			releaseServiceDeleteReleaseAssetHandler.ServeHTTP(w, r)
-		case ReleaseServiceDownloadReleaseAssetProcedure:
-			releaseServiceDownloadReleaseAssetHandler.ServeHTTP(w, r)
-		case ReleaseServiceListReleaseAssetsProcedure:
-			releaseServiceListReleaseAssetsHandler.ServeHTTP(w, r)
-		case ReleaseServiceGetReleaseUsageProcedure:
-			releaseServiceGetReleaseUsageHandler.ServeHTTP(w, r)
-		case ReleaseServiceListUnreleasedProcedure:
-			releaseServiceListUnreleasedHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// ReleaseServiceUploadReleaseAssetServerStream is the server stream for the ReleaseService's
+// UploadReleaseAsset RPC.
+type ReleaseServiceUploadReleaseAssetServerStream struct {
+	stream connect.ServerStream
+}
+
+// Receive returns the next request message from the client.
+func (s ReleaseServiceUploadReleaseAssetServerStream) Receive() (*ermite.UploadReleaseAssetRequest, error) {
+	var req ermite.UploadReleaseAssetRequest
+	if err := s.stream.Receive(&req); err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
+// ReleaseServiceDownloadReleaseAssetServerStream is the server stream for the ReleaseService's
+// DownloadReleaseAsset RPC.
+type ReleaseServiceDownloadReleaseAssetServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s ReleaseServiceDownloadReleaseAssetServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s ReleaseServiceDownloadReleaseAssetServerStream) Send(res *ermite.DownloadReleaseAssetResponse) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedReleaseServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedReleaseServiceHandler struct{}
 
-func (UnimplementedReleaseServiceHandler) CreateRelease(context.Context, *connect.Request[ermite.CreateReleaseRequest]) (*connect.Response[ermite.CreateReleaseResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.CreateRelease is not implemented"))
+func (UnimplementedReleaseServiceHandler) CreateRelease(context.Context, *ermite.CreateReleaseRequest) (*ermite.CreateReleaseResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.CreateRelease is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) GetRelease(context.Context, *connect.Request[ermite.GetReleaseRequest]) (*connect.Response[ermite.GetReleaseResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.GetRelease is not implemented"))
+func (UnimplementedReleaseServiceHandler) GetRelease(context.Context, *ermite.GetReleaseRequest) (*ermite.GetReleaseResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.GetRelease is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) ListReleases(context.Context, *connect.Request[ermite.ListReleasesRequest]) (*connect.Response[ermite.ListReleasesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.ListReleases is not implemented"))
+func (UnimplementedReleaseServiceHandler) ListReleases(context.Context, *ermite.ListReleasesRequest) (*ermite.ListReleasesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.ListReleases is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) UpdateRelease(context.Context, *connect.Request[ermite.UpdateReleaseRequest]) (*connect.Response[ermite.UpdateReleaseResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.UpdateRelease is not implemented"))
+func (UnimplementedReleaseServiceHandler) UpdateRelease(context.Context, *ermite.UpdateReleaseRequest) (*ermite.UpdateReleaseResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.UpdateRelease is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) DeleteRelease(context.Context, *connect.Request[ermite.DeleteReleaseRequest]) (*connect.Response[ermite.DeleteReleaseResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.DeleteRelease is not implemented"))
+func (UnimplementedReleaseServiceHandler) DeleteRelease(context.Context, *ermite.DeleteReleaseRequest) (*ermite.DeleteReleaseResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.DeleteRelease is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) UploadReleaseAsset(context.Context, *connect.ClientStream[ermite.UploadReleaseAssetRequest]) (*connect.Response[ermite.UploadReleaseAssetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.UploadReleaseAsset is not implemented"))
+func (UnimplementedReleaseServiceHandler) UploadReleaseAsset(context.Context, ReleaseServiceUploadReleaseAssetServerStream) (*ermite.UploadReleaseAssetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.UploadReleaseAsset is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) UpdateReleaseAsset(context.Context, *connect.Request[ermite.UpdateReleaseAssetRequest]) (*connect.Response[ermite.UpdateReleaseAssetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.UpdateReleaseAsset is not implemented"))
+func (UnimplementedReleaseServiceHandler) UpdateReleaseAsset(context.Context, *ermite.UpdateReleaseAssetRequest) (*ermite.UpdateReleaseAssetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.UpdateReleaseAsset is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) DeleteReleaseAsset(context.Context, *connect.Request[ermite.DeleteReleaseAssetRequest]) (*connect.Response[ermite.DeleteReleaseAssetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.DeleteReleaseAsset is not implemented"))
+func (UnimplementedReleaseServiceHandler) DeleteReleaseAsset(context.Context, *ermite.DeleteReleaseAssetRequest) (*ermite.DeleteReleaseAssetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.DeleteReleaseAsset is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) DownloadReleaseAsset(context.Context, *connect.Request[ermite.DownloadReleaseAssetRequest], *connect.ServerStream[ermite.DownloadReleaseAssetResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.DownloadReleaseAsset is not implemented"))
+func (UnimplementedReleaseServiceHandler) DownloadReleaseAsset(context.Context, *ermite.DownloadReleaseAssetRequest, ReleaseServiceDownloadReleaseAssetServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.DownloadReleaseAsset is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) ListReleaseAssets(context.Context, *connect.Request[ermite.ListReleaseAssetsRequest]) (*connect.Response[ermite.ListReleaseAssetsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.ListReleaseAssets is not implemented"))
+func (UnimplementedReleaseServiceHandler) ListReleaseAssets(context.Context, *ermite.ListReleaseAssetsRequest) (*ermite.ListReleaseAssetsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.ListReleaseAssets is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) GetReleaseUsage(context.Context, *connect.Request[ermite.GetReleaseUsageRequest]) (*connect.Response[ermite.GetReleaseUsageResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.GetReleaseUsage is not implemented"))
+func (UnimplementedReleaseServiceHandler) GetReleaseUsage(context.Context, *ermite.GetReleaseUsageRequest) (*ermite.GetReleaseUsageResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.GetReleaseUsage is not implemented")
 }
 
-func (UnimplementedReleaseServiceHandler) ListUnreleased(context.Context, *connect.Request[ermite.ListUnreleasedRequest]) (*connect.Response[ermite.ListUnreleasedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ermite.ReleaseService.ListUnreleased is not implemented"))
+func (UnimplementedReleaseServiceHandler) ListUnreleased(context.Context, *ermite.ListUnreleasedRequest) (*ermite.ListUnreleasedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.ReleaseService.ListUnreleased is not implemented")
+}
+
+type releaseServiceClient struct {
+	client *connect.Client
+}
+
+func (c *releaseServiceClient) CreateRelease(ctx context.Context, req *ermite.CreateReleaseRequest) (*ermite.CreateReleaseResponse, error) {
+	var res ermite.CreateReleaseResponse
+	if err := c.client.CallUnary(ctx, releaseServiceCreateReleaseSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *releaseServiceClient) GetRelease(ctx context.Context, req *ermite.GetReleaseRequest) (*ermite.GetReleaseResponse, error) {
+	var res ermite.GetReleaseResponse
+	if err := c.client.CallUnary(ctx, releaseServiceGetReleaseSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *releaseServiceClient) ListReleases(ctx context.Context, req *ermite.ListReleasesRequest) (*ermite.ListReleasesResponse, error) {
+	var res ermite.ListReleasesResponse
+	if err := c.client.CallUnary(ctx, releaseServiceListReleasesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *releaseServiceClient) UpdateRelease(ctx context.Context, req *ermite.UpdateReleaseRequest) (*ermite.UpdateReleaseResponse, error) {
+	var res ermite.UpdateReleaseResponse
+	if err := c.client.CallUnary(ctx, releaseServiceUpdateReleaseSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *releaseServiceClient) DeleteRelease(ctx context.Context, req *ermite.DeleteReleaseRequest) (*ermite.DeleteReleaseResponse, error) {
+	var res ermite.DeleteReleaseResponse
+	if err := c.client.CallUnary(ctx, releaseServiceDeleteReleaseSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *releaseServiceClient) UploadReleaseAsset(ctx context.Context) (ReleaseServiceUploadReleaseAssetClientStream, error) {
+	stream, err := c.client.CallClientStream(ctx, releaseServiceUploadReleaseAssetSpec())
+	if err != nil {
+		return ReleaseServiceUploadReleaseAssetClientStream{}, err
+	}
+	return ReleaseServiceUploadReleaseAssetClientStream{stream: stream}, nil
+}
+
+func (c *releaseServiceClient) UpdateReleaseAsset(ctx context.Context, req *ermite.UpdateReleaseAssetRequest) (*ermite.UpdateReleaseAssetResponse, error) {
+	var res ermite.UpdateReleaseAssetResponse
+	if err := c.client.CallUnary(ctx, releaseServiceUpdateReleaseAssetSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *releaseServiceClient) DeleteReleaseAsset(ctx context.Context, req *ermite.DeleteReleaseAssetRequest) (*ermite.DeleteReleaseAssetResponse, error) {
+	var res ermite.DeleteReleaseAssetResponse
+	if err := c.client.CallUnary(ctx, releaseServiceDeleteReleaseAssetSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *releaseServiceClient) DownloadReleaseAsset(ctx context.Context, req *ermite.DownloadReleaseAssetRequest) (ReleaseServiceDownloadReleaseAssetClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, releaseServiceDownloadReleaseAssetSpec(), req)
+	if err != nil {
+		return ReleaseServiceDownloadReleaseAssetClientStream{}, err
+	}
+	return ReleaseServiceDownloadReleaseAssetClientStream{stream: stream}, nil
+}
+
+func (c *releaseServiceClient) ListReleaseAssets(ctx context.Context, req *ermite.ListReleaseAssetsRequest) (*ermite.ListReleaseAssetsResponse, error) {
+	var res ermite.ListReleaseAssetsResponse
+	if err := c.client.CallUnary(ctx, releaseServiceListReleaseAssetsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *releaseServiceClient) GetReleaseUsage(ctx context.Context, req *ermite.GetReleaseUsageRequest) (*ermite.GetReleaseUsageResponse, error) {
+	var res ermite.GetReleaseUsageResponse
+	if err := c.client.CallUnary(ctx, releaseServiceGetReleaseUsageSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *releaseServiceClient) ListUnreleased(ctx context.Context, req *ermite.ListUnreleasedRequest) (*ermite.ListUnreleasedResponse, error) {
+	var res ermite.ListUnreleasedResponse
+	if err := c.client.CallUnary(ctx, releaseServiceListUnreleasedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type releaseServiceHandler struct{ svc ReleaseServiceHandler }
+
+func (h releaseServiceHandler) createRelease(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.CreateReleaseRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateRelease(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h releaseServiceHandler) getRelease(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetReleaseRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetRelease(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h releaseServiceHandler) listReleases(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListReleasesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListReleases(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h releaseServiceHandler) updateRelease(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.UpdateReleaseRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateRelease(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h releaseServiceHandler) deleteRelease(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DeleteReleaseRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteRelease(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h releaseServiceHandler) uploadReleaseAsset(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	res, err := h.svc.UploadReleaseAsset(ctx, ReleaseServiceUploadReleaseAssetServerStream{stream: stream})
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h releaseServiceHandler) updateReleaseAsset(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.UpdateReleaseAssetRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateReleaseAsset(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h releaseServiceHandler) deleteReleaseAsset(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DeleteReleaseAssetRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteReleaseAsset(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h releaseServiceHandler) downloadReleaseAsset(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.DownloadReleaseAssetRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.DownloadReleaseAsset(ctx, &req, ReleaseServiceDownloadReleaseAssetServerStream{stream: stream})
+}
+
+func (h releaseServiceHandler) listReleaseAssets(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListReleaseAssetsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListReleaseAssets(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h releaseServiceHandler) getReleaseUsage(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.GetReleaseUsageRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetReleaseUsage(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h releaseServiceHandler) listUnreleased(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.ListUnreleasedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListUnreleased(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }
