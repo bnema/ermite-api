@@ -105,6 +105,8 @@ All methods are owner-only. Requires feature `deps`.
 | `OpenDependencyUpdates` | Open or update the Bernard MR; refuses stale expected versions |
 | `IgnoreDependencyUpdates` | Ignore the exact expected versions; refuses stale versions |
 | `SnoozeDependencyUpdates` | Hide the card for seven days |
+| `SetDependencyAutoOpen` | Set `enabled` for `repo`; returns its updates (feature `deps.auto`) |
+| `SplitDependency` | Split `ecosystem`/`name` from its major family in `repo`; `split = false` joins it back; returns its updates (feature `deps.families`) |
 
 `RepoDependencyUpdates.batches` contains independently opened/ignored batches:
 `key` (empty for base), `updates`, `state`, `error`, `run_id`,
@@ -114,6 +116,18 @@ complete set for that batch. Snooze remains repository-wide. The deprecated
 repository fields `updates`, `merge_request_number`, `state`, `error`, and
 `run_id` mirror the base batch for older clients. `DependencyUpdate.new_name`
 is the new module path for a Go import-path major, empty otherwise.
+
+With feature `deps.auto`, patch/minor batches automatically open draft MRs;
+`RepoDependencyUpdates.auto_open` controls this per repository. Batches carry
+`branch`, `title`, and `adopted`: a human push adopts the branch, which Bernard
+no longer rewrites. `repro` lists local commands to reproduce a failure.
+With `deps.families`, majors group by npm scope or Go/Actions owner;
+`split_out` lists `DependencyName` pairs (`ecosystem`, `name`) split out of families.
+With `deps.queue`, `ListDependencyUpdatesResponse.queue` reports server-wide
+`running`, concurrency `limit`, and `queued` counts for the persistent run queue.
+Batch `queue_position` is zero when not queued and one for next. `STATE_QUEUED`
+waits for the server step; `STATE_DRAFTED` means the draft MR was pushed and
+is waiting for a deps-run slot.
 
 New versions publish `dependency_updates_found` on the owner topic only.
 

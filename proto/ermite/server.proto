@@ -71,6 +71,13 @@ message GetVersionResponse {
   // "deps" covers DepsService, dependency_updates_found and runner deps jobs.
   // "deps.runs" covers deps jobs that are jobs of a run (Job.job_token and
   // Job.run_id set, WatchJob cancel) and RepoDependencyUpdates.run_id.
+  // "deps.auto" covers automatic patch/minor draft merge requests,
+  // SetDependencyAutoOpen, RepoDependencyUpdates.auto_open and batch adoption.
+  // "deps.families" covers major-update families (npm scope or Go/Actions
+  // owner), SplitDependency and RepoDependencyUpdates.split_out.
+  // "deps.queue" covers the persistent run queue and concurrency limit,
+  // ListDependencyUpdatesResponse.queue, batch queue_position and the
+  // STATE_QUEUED and STATE_DRAFTED states.
   // "journal" covers JournalService, ReleaseService.ListUnreleased and the
   // journal:read scope.
   repeated string features = 2;

@@ -41,6 +41,12 @@ const (
 	// DepsServiceSnoozeDependencyUpdatesProcedure is the procedure name of the DepsService's
 	// SnoozeDependencyUpdates RPC.
 	DepsServiceSnoozeDependencyUpdatesProcedure = "/ermite.DepsService/SnoozeDependencyUpdates"
+	// DepsServiceSetDependencyAutoOpenProcedure is the procedure name of the DepsService's
+	// SetDependencyAutoOpen RPC.
+	DepsServiceSetDependencyAutoOpenProcedure = "/ermite.DepsService/SetDependencyAutoOpen"
+	// DepsServiceSplitDependencyProcedure is the procedure name of the DepsService's SplitDependency
+	// RPC.
+	DepsServiceSplitDependencyProcedure = "/ermite.DepsService/SplitDependency"
 )
 
 var (
@@ -79,6 +85,20 @@ var (
 			Procedure:  DepsServiceSnoozeDependencyUpdatesProcedure,
 		}
 	})
+	depsServiceSetDependencyAutoOpenSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_deps_proto.Services().ByName("DepsService").Methods().ByName("SetDependencyAutoOpen"),
+			Procedure:  DepsServiceSetDependencyAutoOpenProcedure,
+		}
+	})
+	depsServiceSplitDependencySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     ermite.File_ermite_deps_proto.Services().ByName("DepsService").Methods().ByName("SplitDependency"),
+			Procedure:  DepsServiceSplitDependencyProcedure,
+		}
+	})
 )
 
 // DepsServiceClient is a client for the ermite.DepsService service.
@@ -96,6 +116,12 @@ type DepsServiceClient interface {
 	// SnoozeDependencyUpdates hides the card for the server's snooze duration
 	// (seven days by default).
 	SnoozeDependencyUpdates(context.Context, *ermite.SnoozeDependencyUpdatesRequest) (*ermite.SnoozeDependencyUpdatesResponse, error)
+	// SetDependencyAutoOpen enables or disables automatic draft merge requests.
+	// Owner-only; requires the "deps.auto" feature.
+	SetDependencyAutoOpen(context.Context, *ermite.SetDependencyAutoOpenRequest) (*ermite.SetDependencyAutoOpenResponse, error)
+	// SplitDependency separates one dependency from its major-update family or
+	// joins it back. Owner-only; requires the "deps.families" feature.
+	SplitDependency(context.Context, *ermite.SplitDependencyRequest) (*ermite.SplitDependencyResponse, error)
 }
 
 // NewDepsServiceClient constructs a client for the ermite.DepsService service. Multiple service
@@ -119,6 +145,12 @@ type DepsServiceHandler interface {
 	// SnoozeDependencyUpdates hides the card for the server's snooze duration
 	// (seven days by default).
 	SnoozeDependencyUpdates(context.Context, *ermite.SnoozeDependencyUpdatesRequest) (*ermite.SnoozeDependencyUpdatesResponse, error)
+	// SetDependencyAutoOpen enables or disables automatic draft merge requests.
+	// Owner-only; requires the "deps.auto" feature.
+	SetDependencyAutoOpen(context.Context, *ermite.SetDependencyAutoOpenRequest) (*ermite.SetDependencyAutoOpenResponse, error)
+	// SplitDependency separates one dependency from its major-update family or
+	// joins it back. Owner-only; requires the "deps.families" feature.
+	SplitDependency(context.Context, *ermite.SplitDependencyRequest) (*ermite.SplitDependencyResponse, error)
 }
 
 // RegisterDepsServiceHandler registers svc as the ermite.DepsService implementation on server.
@@ -130,6 +162,8 @@ func RegisterDepsServiceHandler(server *connect.Server, svc DepsServiceHandler) 
 		connect.Method{Spec: depsServiceOpenDependencyUpdatesSpec(), Handler: adapter.openDependencyUpdates},
 		connect.Method{Spec: depsServiceIgnoreDependencyUpdatesSpec(), Handler: adapter.ignoreDependencyUpdates},
 		connect.Method{Spec: depsServiceSnoozeDependencyUpdatesSpec(), Handler: adapter.snoozeDependencyUpdates},
+		connect.Method{Spec: depsServiceSetDependencyAutoOpenSpec(), Handler: adapter.setDependencyAutoOpen},
+		connect.Method{Spec: depsServiceSplitDependencySpec(), Handler: adapter.splitDependency},
 	)
 }
 
@@ -154,6 +188,14 @@ func (UnimplementedDepsServiceHandler) IgnoreDependencyUpdates(context.Context, 
 
 func (UnimplementedDepsServiceHandler) SnoozeDependencyUpdates(context.Context, *ermite.SnoozeDependencyUpdatesRequest) (*ermite.SnoozeDependencyUpdatesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.DepsService.SnoozeDependencyUpdates is not implemented")
+}
+
+func (UnimplementedDepsServiceHandler) SetDependencyAutoOpen(context.Context, *ermite.SetDependencyAutoOpenRequest) (*ermite.SetDependencyAutoOpenResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.DepsService.SetDependencyAutoOpen is not implemented")
+}
+
+func (UnimplementedDepsServiceHandler) SplitDependency(context.Context, *ermite.SplitDependencyRequest) (*ermite.SplitDependencyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ermite.DepsService.SplitDependency is not implemented")
 }
 
 type depsServiceClient struct {
@@ -195,6 +237,22 @@ func (c *depsServiceClient) IgnoreDependencyUpdates(ctx context.Context, req *er
 func (c *depsServiceClient) SnoozeDependencyUpdates(ctx context.Context, req *ermite.SnoozeDependencyUpdatesRequest) (*ermite.SnoozeDependencyUpdatesResponse, error) {
 	var res ermite.SnoozeDependencyUpdatesResponse
 	if err := c.client.CallUnary(ctx, depsServiceSnoozeDependencyUpdatesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *depsServiceClient) SetDependencyAutoOpen(ctx context.Context, req *ermite.SetDependencyAutoOpenRequest) (*ermite.SetDependencyAutoOpenResponse, error) {
+	var res ermite.SetDependencyAutoOpenResponse
+	if err := c.client.CallUnary(ctx, depsServiceSetDependencyAutoOpenSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *depsServiceClient) SplitDependency(ctx context.Context, req *ermite.SplitDependencyRequest) (*ermite.SplitDependencyResponse, error) {
+	var res ermite.SplitDependencyResponse
+	if err := c.client.CallUnary(ctx, depsServiceSplitDependencySpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -256,6 +314,30 @@ func (h depsServiceHandler) snoozeDependencyUpdates(ctx context.Context, _ conne
 		return err
 	}
 	res, err := h.svc.SnoozeDependencyUpdates(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h depsServiceHandler) setDependencyAutoOpen(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.SetDependencyAutoOpenRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetDependencyAutoOpen(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h depsServiceHandler) splitDependency(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req ermite.SplitDependencyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SplitDependency(ctx, &req)
 	if err != nil {
 		return err
 	}

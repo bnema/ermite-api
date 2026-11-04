@@ -41,6 +41,14 @@ message DependencyVersion {
   string version = 4;
 }
 
+// DependencyName identifies a dependency independently of its version or directory.
+message DependencyName {
+  // Ecosystem is "gomod", "github-actions", or "npm".
+  string ecosystem = 1;
+  // Name is the module path, action owner/repository, or npm package name.
+  string name = 2;
+}
+
 // RepoDependencyUpdates is the pending dependency state of one repository.
 message RepoDependencyUpdates {
   // State describes application of the pending updates.
@@ -49,6 +57,10 @@ message RepoDependencyUpdates {
     STATE_IDLE = 1;
     STATE_APPLYING = 2;
     STATE_FAILED = 3;
+    // Queued waits for the server step.
+    STATE_QUEUED = 4;
+    // Drafted has a pushed draft merge request and waits for a deps-run slot.
+    STATE_DRAFTED = 5;
   }
   string repo = 1;
   // base batch; use batches
@@ -71,6 +83,10 @@ message RepoDependencyUpdates {
   int64 run_id = 8 [deprecated = true];
   // Batches contains the base batch and independent major-update batches.
   repeated DependencyBatch batches = 9;
+  // AutoOpen enables automatic draft merge requests for patch/minor batches.
+  bool auto_open = 10;
+  // SplitOut lists dependencies separated from their major-update families.
+  repeated DependencyName split_out = 11;
 }
 
 // DependencyBatch is one independently applied or ignored set of updates.
@@ -87,6 +103,26 @@ message DependencyBatch {
   int64 merge_request_number = 6;
   // Outdated says the merge request no longer matches the proposed updates.
   bool outdated = 7;
+  // Adopted says a human pushed to the branch; Bernard no longer rewrites it.
+  bool adopted = 8;
+  // Branch is the Bernard branch name.
+  string branch = 9;
+  // Title is the merge request or batch title, such as a family name.
+  string title = 10;
+  // QueuePosition is zero when not queued; one means next.
+  int32 queue_position = 11;
+  // Repro lists local commands to reproduce a failure.
+  repeated string repro = 12;
+}
+
+// DependencyQueue describes the persistent dependency run queue.
+message DependencyQueue {
+  // Running is the number of active deps runs.
+  int32 running = 1;
+  // Limit is the maximum number of concurrent deps runs.
+  int32 limit = 2;
+  // Queued is the number of batches waiting for a deps-run slot.
+  int32 queued = 3;
 }
 
 // DepsService manages Bernard dependency updates. Every RPC is owner-only:
@@ -106,6 +142,12 @@ service DepsService {
   // SnoozeDependencyUpdates hides the card for the server's snooze duration
   // (seven days by default).
   rpc SnoozeDependencyUpdates(SnoozeDependencyUpdatesRequest) returns (SnoozeDependencyUpdatesResponse);
+  // SetDependencyAutoOpen enables or disables automatic draft merge requests.
+  // Owner-only; requires the "deps.auto" feature.
+  rpc SetDependencyAutoOpen(SetDependencyAutoOpenRequest) returns (SetDependencyAutoOpenResponse);
+  // SplitDependency separates one dependency from its major-update family or
+  // joins it back. Owner-only; requires the "deps.families" feature.
+  rpc SplitDependency(SplitDependencyRequest) returns (SplitDependencyResponse);
 }
 
 message ListDependencyUpdatesRequest {
@@ -114,6 +156,8 @@ message ListDependencyUpdatesRequest {
 }
 message ListDependencyUpdatesResponse {
   repeated RepoDependencyUpdates repos = 1;
+  // Queue is the server-wide deps-run queue; requires "deps.queue".
+  DependencyQueue queue = 2;
 }
 message CheckDependenciesRequest {
   string repo = 1;
@@ -145,5 +189,26 @@ message SnoozeDependencyUpdatesRequest {
   string repo = 1;
 }
 message SnoozeDependencyUpdatesResponse {
+  RepoDependencyUpdates updates = 1;
+}
+
+message SetDependencyAutoOpenRequest {
+  string repo = 1;
+  // Enabled controls automatic draft merge requests for patch/minor batches.
+  bool enabled = 2;
+}
+message SetDependencyAutoOpenResponse {
+  RepoDependencyUpdates updates = 1;
+}
+message SplitDependencyRequest {
+  string repo = 1;
+  // Ecosystem is "gomod", "github-actions", or "npm".
+  string ecosystem = 2;
+  // Name is the module path, action owner/repository, or npm package name.
+  string name = 3;
+  // Split separates the dependency; false joins it back to its family.
+  bool split = 4;
+}
+message SplitDependencyResponse {
   RepoDependencyUpdates updates = 1;
 }

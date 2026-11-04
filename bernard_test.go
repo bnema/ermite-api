@@ -18,6 +18,27 @@ func TestBernardFieldNumbers(t *testing.T) {
 		field   protoreflect.Name
 		number  protoreflect.FieldNumber
 	}{
+		{&ermite.RepoDependencyUpdates{}, "auto_open", 10},
+		{&ermite.RepoDependencyUpdates{}, "split_out", 11},
+		{&ermite.DependencyBatch{}, "adopted", 8},
+		{&ermite.DependencyBatch{}, "branch", 9},
+		{&ermite.DependencyBatch{}, "title", 10},
+		{&ermite.DependencyBatch{}, "queue_position", 11},
+		{&ermite.DependencyBatch{}, "repro", 12},
+		{&ermite.DependencyName{}, "ecosystem", 1},
+		{&ermite.DependencyName{}, "name", 2},
+		{&ermite.DependencyQueue{}, "running", 1},
+		{&ermite.DependencyQueue{}, "limit", 2},
+		{&ermite.DependencyQueue{}, "queued", 3},
+		{&ermite.ListDependencyUpdatesResponse{}, "queue", 2},
+		{&ermite.SetDependencyAutoOpenRequest{}, "repo", 1},
+		{&ermite.SetDependencyAutoOpenRequest{}, "enabled", 2},
+		{&ermite.SetDependencyAutoOpenResponse{}, "updates", 1},
+		{&ermite.SplitDependencyRequest{}, "repo", 1},
+		{&ermite.SplitDependencyRequest{}, "ecosystem", 2},
+		{&ermite.SplitDependencyRequest{}, "name", 3},
+		{&ermite.SplitDependencyRequest{}, "split", 4},
+		{&ermite.SplitDependencyResponse{}, "updates", 1},
 		{&ermite.Repo{}, "archived", 9},
 		{&ermite.UpdateRepoRequest{}, "archived", 9},
 		{&ermite.Event{}, "dependency_updates_found", 34},
@@ -51,6 +72,8 @@ func TestBernardFieldNumbers(t *testing.T) {
 
 func TestDepsProcedures(t *testing.T) {
 	for _, tc := range []struct{ got, method string }{
+		{ermiteconnect.DepsServiceSetDependencyAutoOpenProcedure, "SetDependencyAutoOpen"},
+		{ermiteconnect.DepsServiceSplitDependencyProcedure, "SplitDependency"},
 		{ermiteconnect.DepsServiceListDependencyUpdatesProcedure, "ListDependencyUpdates"},
 		{ermiteconnect.DepsServiceCheckDependenciesProcedure, "CheckDependencies"},
 		{ermiteconnect.DepsServiceOpenDependencyUpdatesProcedure, "OpenDependencyUpdates"},
@@ -65,6 +88,14 @@ func TestDepsProcedures(t *testing.T) {
 
 func TestDepsWireRoundTrip(t *testing.T) {
 	for _, original := range []proto.Message{
+		&ermite.SetDependencyAutoOpenRequest{Repo: "demo", Enabled: true},
+		&ermite.SplitDependencyRequest{Repo: "demo", Ecosystem: "npm", Name: "@scope/pkg", Split: true},
+		&ermite.SplitDependencyRequest{Repo: "demo", Ecosystem: "npm", Name: "@scope/pkg", Split: false},
+		&ermite.SetDependencyAutoOpenResponse{Updates: &ermite.RepoDependencyUpdates{AutoOpen: true}},
+		&ermite.SplitDependencyResponse{Updates: &ermite.RepoDependencyUpdates{SplitOut: []*ermite.DependencyName{{Ecosystem: "npm", Name: "@scope/pkg"}}}},
+		&ermite.ListDependencyUpdatesResponse{Queue: &ermite.DependencyQueue{Running: 1, Limit: 2, Queued: 3}},
+		&ermite.DependencyBatch{Adopted: true, Branch: "bernard/npm", Title: "@scope", QueuePosition: 1, Repro: []string{"npm ci", "npm test"}, State: ermite.RepoDependencyUpdates_STATE_DRAFTED},
+		&ermite.DependencyBatch{State: ermite.RepoDependencyUpdates_STATE_QUEUED},
 		&ermite.IgnoreDependencyUpdatesRequest{Repo: "demo", Batch: "npm/web/react@v19"},
 		&ermite.RepoDependencyUpdates{Batches: []*ermite.DependencyBatch{{Key: "gomod/sub/mod@v2", Updates: []*ermite.DependencyUpdate{{NewName: "example.com/mod/v2"}}, State: ermite.RepoDependencyUpdates_STATE_FAILED, Error: "failed", RunId: 7, MergeRequestNumber: 8, Outdated: true}}},
 		&ermite.DepsJob{NodeVersion: "22", Updates: []*ermite.DepsJobUpdate{{Ecosystem: "npm", Name: "react", Version: "19.0.0", Range: "^19.0.0", Manager: "pnpm", ManagerVersion: "9.15.0", Root: "web", NewName: "new-name"}}},
@@ -94,5 +125,14 @@ func TestDepsLegacyFieldsDeprecated(t *testing.T) {
 		if field == nil || !field.Options().(*descriptorpb.FieldOptions).GetDeprecated() {
 			t.Errorf("RepoDependencyUpdates field %d must remain deprecated", number)
 		}
+	}
+}
+
+func TestDepsQueueStateNumbers(t *testing.T) {
+	if ermite.RepoDependencyUpdates_STATE_QUEUED != 4 {
+		t.Error("STATE_QUEUED must remain 4")
+	}
+	if ermite.RepoDependencyUpdates_STATE_DRAFTED != 5 {
+		t.Error("STATE_DRAFTED must remain 5")
 	}
 }
